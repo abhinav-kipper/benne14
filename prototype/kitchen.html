@@ -6,156 +6,195 @@
 <title>Benne 14 — Kitchen</title>
 <link rel="stylesheet" href="theme.css">
 <style>
-  .screen{width:1280px;height:800px;display:flex;flex-direction:column;background:#0D0D0B}
-  .top{height:76px;display:flex;align-items:center;gap:26px;padding:0 24px;border-bottom:1px solid var(--line);background:var(--s1)}
-  .top .logo{font-family:var(--display);font-weight:900;font-size:34px;text-transform:uppercase;line-height:1}
-  .top .logo i{font-style:normal;color:var(--benne)}
-  .top .logo small{font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--cream-3);margin-left:10px;vertical-align:middle}
-  .counts{display:flex;gap:22px;margin-left:auto;font-size:16px;color:var(--cream-2)}
-  .counts b{font-family:var(--display);font-weight:900;font-size:30px;color:var(--cream);margin-right:6px;vertical-align:-3px}
-  .clock{font-family:var(--display);font-weight:800;font-size:34px;padding-left:24px;border-left:1px solid var(--line)}
+  :root{--paper:#F3EEE3;--paper-2:#E7E0D1;--ink:#16140F;--ink-2:#5E584B;--ok:#4F8A5D;--warn:#E9B13B;--late:#D9553A}
+  .screen{width:1280px;height:800px;display:grid;grid-template-columns:1fr 268px;grid-template-rows:64px 1fr 92px;background:#0D0D0B}
 
-  .board{flex:1;display:grid;grid-template-columns:1fr 1.45fr 1fr;gap:0;overflow:hidden}
-  .col{border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
-  .col:last-child{border-right:0}
-  .ch{display:flex;align-items:baseline;gap:10px;padding:14px 18px 10px}
-  .ch h2{font-family:var(--display);font-weight:900;font-size:30px;text-transform:uppercase;letter-spacing:.01em}
-  .ch .hi{font-size:18px;color:var(--cream-3)}
-  .ch .n{margin-left:auto;font-family:var(--display);font-weight:800;font-size:24px;color:var(--cream-3)}
-  .stack{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
-  .tawa .stack{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  /* top bar */
+  .top{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--s1);border-bottom:1px solid var(--line)}
+  .logo{font-family:var(--display);font-weight:900;font-size:30px;text-transform:uppercase}
+  .logo i{font-style:normal;color:var(--benne)}
+  .ibtn{height:44px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--s2);color:var(--cream-2);font-size:15px;font-weight:600}
+  .ibtn svg{width:20px;height:20px}
+  .ibtn.on{color:var(--benne);border-color:rgba(245,197,66,.4)}
+  .clock{margin-left:auto;font-family:var(--display);font-weight:800;font-size:30px}
 
-  .tk{background:var(--s1);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
-  .tk .h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2)}
-  .tk .tok{font-family:var(--display);font-weight:900;font-size:38px;line-height:.9;white-space:nowrap}
-  .tawa .tk .tok{font-size:34px}
-  .tk .type,.tk .t{white-space:nowrap}
-  .tawa .tk .type{font-size:11px;padding:4px 6px}
-  .tk .type{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:4px 7px;border-radius:5px;background:var(--s3);color:var(--cream-2)}
-  .tk .type.dine{background:rgba(94,154,108,.2);color:#9CD3A9}
-  .tk .t{margin-left:auto;font-family:var(--display);font-weight:800;font-size:26px}
-  .tk .who{padding:8px 14px 0;font-size:14px;color:var(--cream-3)}
-  .tk ul{list-style:none;padding:6px 14px 4px}
-  .tk li{display:grid;grid-template-columns:38px 1fr;padding:6px 0;border-bottom:1px dashed var(--line)}
-  .tk li:last-child{border-bottom:0}
-  .tk .q{font-family:var(--display);font-weight:900;font-size:28px;line-height:1;color:var(--benne)}
-  .tk .it{font-family:var(--hi);font-size:22px;line-height:1.15}
-  .tk .en{display:block;font-family:var(--body);font-size:12px;color:var(--cream-3);letter-spacing:.02em}
-  .tk .mod{display:block;font-family:var(--body);font-size:15px;font-weight:700;color:var(--benne);margin-top:3px}
-  .tk .note{display:inline-block;font-family:var(--body);font-size:14px;font-weight:700;background:var(--cream);color:var(--bg);padding:2px 8px;border-radius:4px;margin:4px 6px 0 0}
-  .tk .act{margin:8px 12px 12px;height:60px;border-radius:10px;border:0;width:calc(100% - 24px);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px}
+  /* the rail */
+  .railwrap{position:relative;overflow:hidden;padding:0 0 0 16px}
+  .rail{position:absolute;left:0;right:0;top:28px;height:14px;background:linear-gradient(180deg,#5A5A55,#2A2A27 55%,#4A4A45);box-shadow:0 3px 8px rgba(0,0,0,.6)}
+  .chits{position:relative;display:flex;gap:14px;align-items:flex-start;padding-top:34px}
+  .chit{flex:0 0 232px;background:var(--paper);color:var(--ink);border-radius:2px 2px 6px 6px;position:relative;box-shadow:0 14px 24px -12px rgba(0,0,0,.8);transform-origin:top center}
+  .chit:nth-child(2){transform:rotate(.6deg)}.chit:nth-child(3){transform:rotate(-.5deg)}.chit:nth-child(4){transform:rotate(.4deg)}
+  .clip{position:absolute;top:-14px;left:50%;width:54px;height:22px;margin-left:-27px;border-radius:4px;background:#8C8C86;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+  .age{height:7px;background:var(--paper-2)}
+  .age i{display:block;height:100%}
+  .ch-h{display:flex;align-items:center;gap:8px;padding:16px 14px 10px}
+  .ch-h .tok{font-family:var(--display);font-weight:900;font-size:50px;line-height:.85;white-space:nowrap}
+  .ch-h svg{width:24px;height:24px;margin-left:auto;color:var(--ink-2);flex-shrink:0}
+  .ch-h .min{font-family:var(--display);font-weight:800;font-size:26px;padding:2px 8px;border-radius:6px;background:var(--paper-2)}
+  .who{padding:0 14px 8px;font-size:17px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+  .perf{height:0;border-top:2px dashed #CFC6B4;margin:4px 10px}
+  .items{padding:6px 12px 8px}
+  .ln{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:12px 0;align-items:start}
+  .ln + .ln{border-top:1px solid #E1D9C9}
+  .qty{width:44px;height:44px;border-radius:9px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:30px}
+  .qty.one{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+  .nm{font-family:var(--hi);font-size:26px;line-height:1.15;padding-top:6px}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:flex-start}
+  .tg{font-family:var(--hi);font-size:17px;line-height:1;height:32px;display:inline-flex;align-items:center;padding:2px 9px 0;border-radius:5px;white-space:nowrap}
+  .tg.add{background:#F6DE97;color:#5A4300}
+  .tg.hot{background:#F3C3B6;color:#7A2410}
+  .tg.note{background:var(--ink);color:var(--paper)}
+  .go{margin:12px 10px 12px;height:80px;width:calc(100% - 20px);border:0;border-radius:10px;font-family:var(--hi);font-size:32px;display:flex;align-items:center;justify-content:center;gap:12px}
+  .go svg{width:28px;height:28px}
 
-  .new .tk{border-color:var(--benne);box-shadow:0 0 0 1px var(--benne),0 0 30px -10px rgba(245,197,66,.5)}
-  .new .tk .h{background:var(--benne);color:var(--benne-ink)}
-  .new .tk .h .type{background:rgba(26,22,8,.15);color:var(--benne-ink)}
-  .new .act{background:var(--benne);color:var(--benne-ink)}
-  .tawa .act{background:var(--leaf);color:#0F1A12}
-  .ready .act{background:transparent;color:var(--cream-2);border:1.5px solid var(--line)!important}
-  .ready .tk{opacity:.85}
-  .ready .tk .tok{color:#9CD3A9}
+  .chit.new .clip{background:var(--benne);box-shadow:0 0 0 4px rgba(245,197,66,.25),inset 0 -3px 0 rgba(0,0,0,.2)}
+  .chit.new .go{background:var(--benne);color:var(--benne-ink)}
+  .chit.cook .go{background:var(--ok);color:#fff}
+  .chit.warn .ch-h .min{background:var(--warn);color:var(--ink)}
+  .chit.late .ch-h .min{background:var(--late);color:#fff}
+  .chit.late{box-shadow:0 0 0 3px var(--late),0 14px 24px -12px rgba(0,0,0,.8)}
+  .chit.peek{opacity:.55}
 
-  .late .h{background:rgba(226,96,63,.18)!important}
-  .late .t{color:var(--chilli)}
-  .warn .t{color:var(--benne)}
+  /* the pass */
+  .pass{grid-row:2/4;grid-column:2;background:linear-gradient(180deg,#1E1D19,#171612);border-left:1px solid var(--line);display:flex;flex-direction:column;padding:16px 14px}
+  .pass-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .pass-h svg{width:34px;height:34px;color:var(--benne)}
+  .pass-h b{font-family:var(--hi);font-size:26px;font-weight:400}
+  .pass-h span{margin-left:auto;width:34px;height:34px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:20px}
+  .plate{background:var(--s2);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+  .plate .row1{display:flex;align-items:center;gap:10px}
+  .plate .tok{font-family:var(--display);font-weight:900;font-size:46px;line-height:.85;color:#A7DDB3}
+  .plate svg{width:24px;height:24px;color:var(--cream-3)}
+  .plate .w{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--display);font-weight:800;font-size:20px;color:var(--cream-2)}
+  .plate .w i{width:9px;height:9px;border-radius:50%;background:var(--warn)}
+  .plate .nm2{font-size:14px;color:var(--cream-3);margin:6px 0 10px}
+  .plate button{width:100%;height:54px;border-radius:10px;border:1.5px solid var(--line);background:var(--s1);color:var(--cream);font-family:var(--hi);font-size:22px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .plate button svg{width:22px;height:22px;color:var(--cream)}
 
-  .foot{height:58px;display:flex;align-items:center;gap:18px;padding:0 20px;border-top:1px solid var(--line);background:var(--s1);font-size:16px;color:var(--cream-2)}
-  .foot .lbl{font-size:12px;font-weight:700;letter-spacing:.16em;color:var(--cream-3);text-transform:uppercase}
-  .foot b{font-family:var(--display);font-weight:900;font-size:24px;color:var(--benne);margin-right:4px}
-  .foot .hi{font-size:18px}
-  .toast{margin-left:auto;display:flex;align-items:center;gap:14px;height:42px;padding:0 6px 0 16px;border-radius:10px;background:var(--cream);color:var(--bg);font-weight:600;font-size:15px}
-  .toast button{height:32px;padding:0 14px;border-radius:7px;border:0;background:var(--bg);color:var(--benne);font-weight:700;font-size:14px}
+  /* the tray: what's on the tawa right now */
+  .tray{grid-column:1;grid-row:3;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--s1);border-top:1px solid var(--line)}
+  .dish{position:relative;width:62px;height:62px;border-radius:50%;overflow:visible}
+  .dish img,.dish .ph{width:62px;height:62px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 0 0 3px #2A2822}
+  .dish .ph{background:var(--s3);display:grid;place-items:center;font-family:var(--hi);color:var(--benne);font-size:15px}
+  .dish b{position:absolute;right:-6px;bottom:-4px;min-width:30px;height:30px;padding:0 6px;border-radius:15px;background:var(--benne);color:var(--benne-ink);display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:20px;box-shadow:0 0 0 3px var(--s1)}
+  .tray .sep{width:1px;height:46px;background:var(--line);margin:0 6px}
+  .toast{margin-left:auto;display:flex;align-items:center;gap:12px;height:54px;padding:0 6px 0 14px;border-radius:12px;background:var(--cream);color:var(--bg);font-size:16px;font-weight:600}
+  .toast svg{width:22px;height:22px;color:var(--ok)}
+  .toast button{height:42px;padding:0 16px;border-radius:9px;border:0;background:var(--bg);color:var(--benne);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px}
+  .onfire{width:46px;height:46px;border-radius:12px;background:rgba(226,96,63,.15);display:grid;place-items:center;color:var(--chilli);margin-right:4px}
+  .onfire svg{width:24px;height:24px}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="dine" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><circle cx="32" cy="34" r="20"/><circle cx="32" cy="34" r="11"/><path d="M6 12v14m0 0c0 3 4 3 4 0V12m-2 14v28M58 12c-4 4-4 14 0 16v26"/></g></symbol>
+  <symbol id="bag" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 22h40l-3 34H15z"/><path d="M23 22v-4a9 9 0 0 1 18 0v4"/></g></symbol>
+  <symbol id="flame" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M4 12.5l5 5L20 6.5"/></symbol>
+  <symbol id="hand" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h4l5 3 7-4a1.6 1.6 0 0 0-1.6-2.6L13 13"/><path d="M8 13h4.5a1.5 1.5 0 0 0 0-3H9L6 9H3"/></g></symbol>
+  <symbol id="bell" viewBox="0 0 34 34"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 26h24M7 26a10 10 0 0 1 20 0M17 13v3M14 10h6"/></g></symbol>
+  <symbol id="undo" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 7L4 12l5 5M4 12h10a6 6 0 0 1 0 12"/></symbol>
+</svg>
+
 <div class="screen">
   <div class="top">
-    <div class="logo">Benne <i>14</i><small>KITCHEN</small></div>
-    <div class="counts"><span><b>2</b>new</span><span><b>3</b>on the tawa</span><span><b>2</b>ready</span><span><b>6:40</b>avg</span></div>
+    <div class="logo">Benne <i>14</i></div>
+    <button class="ibtn on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>आवाज़</button>
+    <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>खत्म हो गया</button>
     <div class="clock">12:42</div>
   </div>
 
-  <div class="board">
-    <!-- NEW -->
-    <div class="col new">
-      <div class="ch"><h2>New</h2><span class="hi">नया</span><span class="n">2</span></div>
-      <div class="stack">
-        <div class="tk">
-          <div class="h"><span class="tok">A-045</span><span class="type">Dine-in</span><span class="t">0:40</span></div>
-          <ul>
-            <li><span class="q">2</span><span class="it">मसाला डोसा<span class="mod">Fiery podi</span></span></li>
-            <li><span class="q">1</span><span class="it">मेदु वड़ा</span></li>
-            <li><span class="q">2</span><span class="it">फ़िल्टर कॉफ़ी</span></li>
-          </ul>
-          <button class="act">Start cooking</button>
-        </div>
-        <div class="tk">
-          <div class="h"><span class="tok">A-044</span><span class="type">Takeaway</span><span class="t">1:55</span></div>
-          <div class="who">Priya</div>
-          <ul>
-            <li><span class="q">1</span><span class="it">प्लेन बेन्ने डोसा<span class="mod">+ Extra benne</span><span class="note">Chutney separate</span></span></li>
-            <li><span class="q">1</span><span class="it">मसाला चाय</span></li>
-          </ul>
-          <button class="act">Start cooking</button>
-        </div>
-      </div>
-    </div>
+  <div class="railwrap">
+    <div class="rail"></div>
+    <div class="chits">
 
-    <!-- ON THE TAWA -->
-    <div class="col tawa">
-      <div class="ch"><h2>On the tawa</h2><span class="hi">बन रहा है</span><span class="n">3</span></div>
-      <div class="stack">
-        <div class="tk late">
-          <div class="h"><span class="tok">A-040</span><span class="type dine">Dine-in</span><span class="t">13:05</span></div>
-          <ul>
-            <li><span class="q">2</span><span class="it">प्लेन डोसा<br><span class="note">Cut in half</span></span></li>
-            <li><span class="q">1</span><span class="it">मसाला चाय</span></li>
-          </ul>
-          <button class="act">✓ Ready</button>
+      <div class="chit cook late">
+        <span class="clip"></span><div class="age"><i style="width:100%;background:var(--late)"></i></div>
+        <div class="ch-h"><span class="tok">A-040</span><svg><use href="#dine"/></svg><span class="min">13'</span></div>
+        <div class="perf"></div>
+        <div class="items">
+          <div class="ln"><span class="qty">2</span><div><div class="nm">प्लेन डोसा</div><div class="tags"><span class="tg note">आधा काटना</span></div></div></div>
+          <div class="ln"><span class="qty one">1</span><div class="nm">मसाला चाय</div></div>
         </div>
-        <div class="tk warn">
-          <div class="h"><span class="tok">A-041</span><span class="type dine">Dine-in</span><span class="t">9:30</span></div>
-          <ul>
-            <li><span class="q">3</span><span class="it">मल्लिगे इडली</span></li>
-            <li><span class="q">1</span><span class="it">घी पोडी थट्टे इडली</span></li>
-            <li><span class="q">1</span><span class="it">मेदु वड़ा</span></li>
-          </ul>
-          <button class="act">✓ Ready</button>
-        </div>
-        <div class="tk">
-          <div class="h"><span class="tok">A-042</span><span class="type">Takeaway</span><span class="t">6:12</span></div>
-          <div class="who">Rahul</div>
-          <ul>
-            <li><span class="q">1</span><span class="it">घी पोडी बेन्ने डोसा<span class="mod">Regular · + Extra benne</span><span class="note">Less oil</span><span class="note">Extra sambar</span></span></li>
-            <li><span class="q">2</span><span class="it">फ़िल्टर कॉफ़ी</span></li>
-          </ul>
-          <button class="act">✓ Ready</button>
-        </div>
+        <button class="go"><svg><use href="#check"/></svg>तैयार</button>
       </div>
-    </div>
 
-    <!-- READY -->
-    <div class="col ready">
-      <div class="ch"><h2>Ready</h2><span class="hi">तैयार</span><span class="n">2</span></div>
-      <div class="stack">
-        <div class="tk">
-          <div class="h"><span class="tok">A-039</span><span class="type">Takeaway</span><span class="t" style="font-size:18px;color:var(--cream-3)">waiting 1:10</span></div>
-          <div class="who">Aman</div>
-          <ul><li><span class="q">1</span><span class="it">मसाला डोसा</span></li></ul>
-          <button class="act">Handed over</button>
+      <div class="chit cook warn">
+        <span class="clip"></span><div class="age"><i style="width:68%;background:var(--warn)"></i></div>
+        <div class="ch-h"><span class="tok">A-041</span><svg><use href="#dine"/></svg><span class="min">9'</span></div>
+        <div class="perf"></div>
+        <div class="items">
+          <div class="ln"><span class="qty">3</span><div class="nm">मल्लिगे इडली</div></div>
+          <div class="ln"><span class="qty one">1</span><div class="nm">घी पोडी थट्टे इडली</div></div>
+          <div class="ln"><span class="qty one">1</span><div class="nm">मेदु वड़ा</div></div>
         </div>
-        <div class="tk">
-          <div class="h"><span class="tok">A-038</span><span class="type dine">Dine-in</span><span class="t" style="font-size:18px;color:var(--cream-3)">waiting 0:25</span></div>
-          <ul><li><span class="q">2</span><span class="it">थट्टे इडली</span></li><li><span class="q">1</span><span class="it">फ़िल्टर कॉफ़ी</span></li></ul>
-          <button class="act">Handed over</button>
-        </div>
+        <button class="go"><svg><use href="#check"/></svg>तैयार</button>
       </div>
+
+      <div class="chit cook">
+        <span class="clip"></span><div class="age"><i style="width:42%;background:var(--ok)"></i></div>
+        <div class="ch-h"><span class="tok">A-042</span><svg><use href="#bag"/></svg><span class="min">6'</span></div>
+        <div class="who">Rahul</div>
+        <div class="perf"></div>
+        <div class="items">
+          <div class="ln"><span class="qty one">1</span><div><div class="nm">घी पोडी बेन्ने डोसा</div><div class="tags"><span class="tg add">+ बेन्ने</span><span class="tg note">कम तेल</span><span class="tg note">सांभर ज़्यादा</span></div></div></div>
+          <div class="ln"><span class="qty">2</span><div class="nm">फ़िल्टर कॉफ़ी</div></div>
+        </div>
+        <button class="go"><svg><use href="#check"/></svg>तैयार</button>
+      </div>
+
+      <div class="chit new">
+        <span class="clip"></span><div class="age"><i style="width:12%;background:var(--ok)"></i></div>
+        <div class="ch-h"><span class="tok">A-044</span><svg><use href="#bag"/></svg><span class="min">2'</span></div>
+        <div class="who">Priya</div>
+        <div class="perf"></div>
+        <div class="items">
+          <div class="ln"><span class="qty one">1</span><div><div class="nm">प्लेन बेन्ने डोसा</div><div class="tags"><span class="tg add">+ बेन्ने</span><span class="tg note">चटनी अलग</span></div></div></div>
+          <div class="ln"><span class="qty one">1</span><div class="nm">मसाला चाय</div></div>
+        </div>
+        <button class="go"><svg><use href="#flame"/></svg>शुरू करो</button>
+      </div>
+
+      <div class="chit new peek">
+        <span class="clip"></span><div class="age"><i style="width:4%;background:var(--ok)"></i></div>
+        <div class="ch-h"><span class="tok">A-045</span><svg><use href="#dine"/></svg><span class="min">0'</span></div>
+        <div class="perf"></div>
+        <div class="items">
+          <div class="ln"><span class="qty">2</span><div><div class="nm">मसाला डोसा</div><div class="tags"><span class="tg hot">तीखा</span></div></div></div>
+          <div class="ln"><span class="qty one">1</span><div class="nm">मेदु वड़ा</div></div>
+          <div class="ln"><span class="qty">2</span><div class="nm">फ़िल्टर कॉफ़ी</div></div>
+        </div>
+        <button class="go"><svg><use href="#flame"/></svg>शुरू करो</button>
+      </div>
+
     </div>
   </div>
 
-  <div class="foot">
-    <span class="lbl">On the tawa now</span>
-    <span><b>3</b><span class="hi">डोसा</span></span><span><b>5</b><span class="hi">इडली</span></span><span><b>1</b><span class="hi">वड़ा</span></span><span><b>3</b><span class="hi">कॉफ़ी/चाय</span></span>
-    <div class="toast">A-043 handed over<button>Undo</button></div>
+  <div class="pass">
+    <div class="pass-h"><svg><use href="#bell"/></svg><b>काउंटर पर</b><span>2</span></div>
+    <div class="plate">
+      <div class="row1"><span class="tok">A-039</span><svg><use href="#bag"/></svg><span class="w"><i></i>1'</span></div>
+      <div class="nm2">Aman · मसाला डोसा</div>
+      <button><svg><use href="#hand"/></svg>दे दिया</button>
+    </div>
+    <div class="plate">
+      <div class="row1"><span class="tok">A-038</span><svg><use href="#dine"/></svg><span class="w"><i style="background:var(--ok)"></i>0'</span></div>
+      <div class="nm2">2 थट्टे इडली · 1 कॉफ़ी</div>
+      <button><svg><use href="#hand"/></svg>दे दिया</button>
+    </div>
+  </div>
+
+  <div class="tray">
+    <div class="onfire"><svg><use href="#flame"/></svg></div>
+    <div class="dish"><img src="assets/food/plain-dosa.jpg" alt=""><b>3</b></div>
+    <div class="dish"><img src="assets/food/plain-benne-dosa.jpg" alt=""><b>2</b></div>
+    <div class="dish"><img src="assets/food/mallige-idli.jpg" alt=""><b>3</b></div>
+    <div class="dish"><img src="assets/food/thatte-idli.jpg" alt=""><b>1</b></div>
+    <div class="dish"><img src="assets/food/medu-vada.jpg" alt=""><b>2</b></div>
+    <span class="sep"></span>
+    <div class="dish"><div class="ph">कॉफ़ी</div><b>4</b></div>
+    <div class="dish"><img src="assets/food/masala-tea.jpg" alt=""><b>2</b></div>
+    <div class="toast"><svg><use href="#check"/></svg>A-043 दे दिया<button><svg width="16" height="16"><use href="#undo"/></svg>वापस</button></div>
   </div>
 </div>
 </body>
