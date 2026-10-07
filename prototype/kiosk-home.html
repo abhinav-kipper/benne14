@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=800">
+<title>Benne 14 — Welcome</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .screen{display:flex;flex-direction:column}
+  .top{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;justify-content:space-between;align-items:center;padding:28px 32px;background:linear-gradient(180deg,rgba(18,18,16,.92),rgba(18,18,16,0))}
+  .logo{font-family:var(--display);font-weight:900;font-size:44px;line-height:.85;text-transform:uppercase}
+  .logo i{font-style:normal;color:var(--benne)}
+  .logo small{display:block;font-family:var(--body);font-weight:600;font-size:11px;letter-spacing:.16em;color:var(--cream-2);margin-top:8px}
+  .lang{display:flex;background:rgba(18,18,16,.7);border:1px solid var(--line);border-radius:999px;padding:4px}
+  .lang span{height:48px;padding:0 22px;display:grid;place-items:center;border-radius:999px;font-size:17px;color:var(--cream-2)}
+  .lang span.on{background:var(--cream);color:var(--bg);font-weight:700}
+
+  .mosaic{height:640px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0 12px;overflow:hidden;position:relative}
+  .col{display:flex;flex-direction:column;gap:12px}
+  .col:nth-child(1){margin-top:-90px}.col:nth-child(2){margin-top:-200px}.col:nth-child(3){margin-top:-40px}
+  .col img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:14px;display:block}
+  .mosaic::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,18,16,.35) 0%,rgba(18,18,16,0) 30%,rgba(18,18,16,0) 55%,var(--bg) 98%)}
+  .badge{position:absolute;z-index:2;right:34px;bottom:46px;width:132px;height:132px;border-radius:50%;background:var(--chilli);display:grid;place-items:center;text-align:center;transform:rotate(9deg)}
+  .badge b{font-family:var(--display);font-weight:900;font-size:56px;line-height:.8;display:block}
+  .badge small{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+
+  .copy{padding:0 40px;margin-top:-30px;position:relative;z-index:2}
+  .copy h1{font-size:132px;line-height:.86}
+  .copy h1 em{font-style:normal;color:var(--benne)}
+  .copy .hi{font-size:30px;color:var(--cream);margin-top:14px}
+  .live{display:flex;gap:10px;margin-top:22px}
+  .live span{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;background:var(--s1);border:1px solid var(--line);font-size:15px;color:var(--cream-2)}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:var(--leaf);box-shadow:0 0 0 4px rgba(94,154,108,.2)}
+
+  .choose{margin-top:auto;padding:0 28px 28px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .choice{height:240px;border-radius:20px;border:0;text-align:left;padding:24px 26px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+  .choice.dine{background:var(--benne);color:var(--benne-ink)}
+  .choice.take{background:var(--cream);color:var(--bg)}
+  .choice svg{width:64px;height:64px}
+  .choice b{display:block;font-family:var(--display);font-weight:900;font-size:58px;line-height:.85;text-transform:uppercase}
+  .choice .hi{font-size:22px;margin-top:6px;opacity:.75}
+  .choice .arr{position:absolute;right:24px;top:24px;font-size:34px}
+  .foot{text-align:center;font-size:14px;color:var(--cream-3);padding-bottom:22px;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="top">
+    <div class="logo">Benne <i>14</i><small>AUTHENTIC BANGALORE DOSA</small></div>
+    <div class="lang"><span class="on">English</span><span class="hi">हिंदी</span></div>
+  </div>
+
+  <div class="mosaic">
+    <div class="col"><img src="assets/food/masala-dosa.jpg"><img src="assets/food/medu-vada.jpg"><img src="assets/food/thatte-idli.jpg"></div>
+    <div class="col"><img src="assets/food/mallige-idli.jpg"><img src="assets/food/ghee-podi-benne-dosa.jpg"><img src="assets/food/masala-tea.jpg"></div>
+    <div class="col"><img src="assets/food/plain-benne-dosa.jpg"><img src="assets/food/ghee-podi-thatte-idli.jpg"><img src="assets/food/plain-dosa.jpg"></div>
+    <div class="badge"><div><b>14%</b><small>Launch<br>week off</small></div></div>
+  </div>
+
+  <div class="copy">
+    <h1 class="disp">Fresh off<br>the <em>tawa.</em></h1>
+    <div class="hi">गरमा-गरम, सीधे तवे से आपकी प्लेट तक।</div>
+    <div class="live"><span><i class="dot"></i>Kitchen open · ~8 min</span><span>Pay by UPI, card or cash</span></div>
+  </div>
+
+  <div class="choose">
+    <button class="choice dine">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="32" cy="34" r="20"/><circle cx="32" cy="34" r="12"/><path d="M6 12v14m0 0c0 3 4 3 4 0V12m-2 14v28M58 12c-4 4-4 14 0 16v26"/></svg>
+      <span class="arr">→</span>
+      <div><b>Dine in</b><div class="hi">यहीं बैठकर खाएँगे</div></div>
+    </button>
+    <button class="choice take">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M12 22h40l-3 34H15z"/><path d="M23 22v-4a9 9 0 0 1 18 0v4"/><path d="M26 38c4 4 8 4 12 0"/></svg>
+      <span class="arr">→</span>
+      <div><b>Takeaway</b><div class="hi">पैक करवा लेंगे</div></div>
+    </button>
+  </div>
+  <div class="foot">Tap to start your order</div>
+</div>
+</body>
+</html>

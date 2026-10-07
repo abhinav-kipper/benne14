@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=800">
+<title>Benne 14 — Order placed</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .screen{display:flex;flex-direction:column;align-items:center;padding:40px 36px 30px}
+  .paid{display:flex;align-items:center;gap:12px;height:56px;padding:0 22px 0 10px;border-radius:999px;background:rgba(94,154,108,.16);border:1px solid rgba(94,154,108,.4);color:#9CD3A9;font-size:18px;font-weight:600}
+  .paid i{width:38px;height:38px;border-radius:50%;background:var(--leaf);color:#0F1A12;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:20px}
+  .thanks{margin-top:44px;text-align:center}
+  .thanks h1{font-size:30px;font-weight:400;font-family:var(--hi);line-height:1.3}
+  .thanks h1 b{color:var(--benne);font-weight:400}
+
+  /* the token: a darshini-style paper token, perforated, slightly tilted */
+  .token{margin-top:56px;width:560px;background:var(--benne);color:var(--benne-ink);border-radius:22px;position:relative;transform:rotate(-2deg);box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
+  .token .tt{display:flex;justify-content:space-between;padding:22px 30px 0;font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+  .token .num{font-family:var(--display);font-weight:900;font-size:196px;line-height:.8;text-align:center;padding:18px 0 22px;letter-spacing:-.01em}
+  .perf{height:2px;margin:0 22px;background-image:linear-gradient(90deg,var(--benne-ink) 50%,transparent 50%);background-size:14px 2px;opacity:.35}
+  .token::before,.token::after{content:"";position:absolute;top:calc(100% - 92px);width:36px;height:36px;border-radius:50%;background:var(--bg)}
+  .token::before{left:-18px}.token::after{right:-18px}
+  .token .tb{display:flex;justify-content:space-between;align-items:center;padding:22px 30px 26px}
+  .token .tb b{font-size:24px}
+  .token .tb span{font-family:var(--display);font-weight:800;font-size:26px;text-transform:uppercase}
+
+  .watch{margin-top:60px;display:flex;align-items:center;gap:18px;font-size:19px;color:var(--cream-2);text-align:left}
+  .watch svg{width:56px;height:56px;flex-shrink:0;color:var(--benne)}
+  .watch b{color:var(--cream);display:block;font-size:22px}
+
+  .receipt{margin-top:auto;align-self:stretch;background:var(--s1);border:1px solid var(--line);border-radius:20px;padding:22px;display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:center}
+  .receipt .q{width:150px;height:150px;background:var(--cream);border-radius:12px;padding:12px}
+  .receipt .q img{width:100%;height:100%}
+  .receipt h3{font-size:30px}
+  .receipt p{font-size:15px;color:var(--cream-3);margin:4px 0 14px}
+  .receipt .btns{display:flex;gap:10px}
+  .receipt .btns button{height:58px;padding:0 20px;border-radius:12px;border:1.5px solid var(--line);background:var(--s2);color:var(--cream);font-size:16px;font-weight:600}
+  .reset{margin-top:20px;align-self:stretch;display:flex;justify-content:space-between;align-items:center}
+  .reset span{font-size:15px;color:var(--cream-3)}
+  .reset button{height:72px;padding:0 30px;border-radius:14px;border:0;background:var(--cream);color:var(--bg);font-size:20px;font-weight:700}
+  .bar{height:4px;border-radius:2px;background:var(--line);margin-top:10px;width:300px;overflow:hidden}
+  .bar i{display:block;height:100%;width:62%;background:var(--cream-2)}
+  .track{margin-top:64px;align-self:stretch;display:flex;align-items:flex-start;padding:0 10px}
+  .st{display:flex;flex-direction:column;align-items:center;text-align:center;width:150px;gap:4px}
+  .st i{width:44px;height:44px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-weight:800;margin-bottom:8px;background:var(--s1)}
+  .st b{font-size:17px;font-weight:600;color:var(--cream-3)}
+  .st span{font-size:15px;color:var(--cream-3)}
+  .st.done i{background:var(--leaf);border-color:var(--leaf);color:#0F1A12}
+  .st.done b{color:var(--cream-2)}
+  .st.now i{border-color:var(--benne);box-shadow:0 0 0 6px rgba(245,197,66,.15)}
+  .st.now i::after{content:"";width:16px;height:16px;border-radius:50%;background:var(--benne)}
+  .st.now b{color:var(--cream)}
+  .ln{flex:1;height:3px;background:var(--line);margin-top:21px;border-radius:2px}
+  .ln.on{background:linear-gradient(90deg,var(--leaf),var(--benne))}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="paid"><i>✓</i>Payment received · ₹330 via UPI</div>
+
+  <div class="thanks"><h1>शुक्रिया, <b>Rahul</b>! आपका डोसा तवे पर है।</h1></div>
+
+  <div class="token">
+    <div class="tt"><span>Benne 14 · Token</span><span>Takeaway</span></div>
+    <div class="num">A-042</div>
+    <div class="perf"></div>
+    <div class="tb"><b>Rahul · 3 items</b><span>Ready in ~8 min</span></div>
+  </div>
+
+  <div class="watch">
+    <svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><rect x="5" y="9" width="46" height="30" rx="4"/><path d="M20 47h16M28 39v8"/><path d="M15 24h8M28 24h13" stroke-linecap="round"/></svg>
+    <div><b>Watch the screen near the counter</b>We'll show A-042 and call your name when it's ready.</div>
+  </div>
+
+  <div class="track">
+    <div class="st done"><i>✓</i><b>Order received</b><span class="hi">ऑर्डर मिल गया</span></div>
+    <div class="ln on"></div>
+    <div class="st now"><i></i><b>On the tawa</b><span class="hi">बन रहा है</span></div>
+    <div class="ln"></div>
+    <div class="st"><i></i><b>Ready to collect</b><span class="hi">लेने आ जाइए</span></div>
+  </div>
+
+  <div class="receipt">
+    <div class="q"><img src="assets/receipt-qr.svg" alt=""></div>
+    <div>
+      <h3 class="disp">Track &amp; bill on your phone</h3>
+      <p>Scan to follow your order live and get the GST e-bill. No paper, no waiting.</p>
+      <div class="btns"><button>Send on WhatsApp</button><button>Email</button><button>Print</button></div>
+    </div>
+  </div>
+
+  <div class="reset">
+    <div><span>Starting a fresh order in 12s</span><div class="bar"><i></i></div></div>
+    <button>Done</button>
+  </div>
+</div>
+</body>
+</html>
