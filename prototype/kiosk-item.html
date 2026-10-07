@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=800">
+<title>Benne 14 — Item detail</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .bgframe{position:absolute;inset:0;width:800px;height:1280px;border:0;filter:blur(2px) brightness(.45)}
+  .sheet{position:absolute;left:0;right:0;top:48px;bottom:0;background:var(--s1);border-radius:28px 28px 0 0;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 -30px 60px rgba(0,0,0,.5)}
+  .ph{height:330px;position:relative;flex-shrink:0}
+  .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(27,26,22,0) 30%,rgba(27,26,22,.85) 75%,var(--s1))}
+  .close{position:absolute;top:20px;right:20px;width:64px;height:64px;border-radius:50%;background:rgba(18,18,16,.75);border:1px solid var(--line);color:var(--cream);font-size:30px;z-index:2}
+  .grab{position:absolute;top:10px;left:50%;width:56px;height:5px;margin-left:-28px;border-radius:3px;background:rgba(244,236,221,.5);z-index:2}
+  .body{flex:1;overflow:hidden;padding:0 36px}
+  .head{position:absolute;left:36px;right:36px;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;z-index:1}
+  h1{font-size:76px;line-height:.82}
+  .k{font-size:22px;color:var(--benne);margin-top:8px}
+  .desc{font-size:20px;margin:14px 0 4px;max-width:640px;color:var(--cream)}
+  .incl{display:block;font-family:var(--body);font-size:14px;color:var(--cream-3);margin-top:6px;letter-spacing:.02em}
+
+  .grp{padding:20px 0;border-top:1px solid var(--line)}
+  .grp:first-of-type{border-top:0}
+  .gh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .gh h3{font-size:28px}
+  .gh small{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cream-3);font-weight:600}
+  .seg{display:grid;gap:10px}
+  .opt{height:70px;border-radius:12px;border:1.5px solid var(--line);background:var(--s2);display:flex;flex-direction:column;justify-content:center;padding:0 18px;color:var(--cream);text-align:left}
+  .opt b{font-size:19px;font-weight:600}
+  .opt small{font-size:13px;color:var(--cream-3);margin-top:2px}
+  .opt.on{border-color:var(--benne);background:rgba(245,197,66,.1)}
+  .opt.on small{color:var(--benne)}
+  .heat{display:flex;gap:4px;margin-top:5px}
+  .heat i{width:16px;height:5px;border-radius:2px;background:var(--s3)}
+  .heat i.f{background:var(--chilli)}
+
+  .adds{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .addon{height:66px;border-radius:12px;border:1.5px solid var(--line);background:var(--s2);display:flex;align-items:center;gap:14px;padding:0 16px}
+  .box{width:30px;height:30px;border-radius:8px;border:2px solid var(--cream-3);display:grid;place-items:center;font-size:18px;font-weight:800;flex-shrink:0}
+  .addon.on{border-color:var(--benne)}
+  .addon.on .box{background:var(--benne);border-color:var(--benne);color:var(--benne-ink)}
+  .addon b{flex:1;font-size:17px;font-weight:600}
+  .addon .p{font-family:var(--display);font-weight:800;font-size:22px;color:var(--cream-2)}
+  .addon.on .p{color:var(--benne)}
+
+  .notes{display:flex;flex-wrap:wrap;gap:10px}
+  .note{height:50px;padding:0 17px;border-radius:999px;border:1.5px solid var(--line);display:flex;align-items:center;font-size:16px;color:var(--cream-2)}
+  .note.on{background:var(--cream);color:var(--bg);border-color:var(--cream);font-weight:600}
+
+  .foot{flex-shrink:0;border-top:1px solid var(--line);background:var(--s1);padding:18px 24px 22px;display:flex;gap:16px;align-items:center}
+  .foot .step{height:84px;border-radius:14px;background:var(--s2);color:var(--cream)}
+  .foot .step button{color:var(--cream);width:70px;height:84px;font-size:32px}
+  .foot .step span{min-width:30px;font-size:30px}
+  .foot .btn-benne{flex:1}
+  .pair{display:flex;align-items:center;gap:16px}
+  .pair .pimg{width:76px;height:76px;border-radius:12px;overflow:hidden;flex-shrink:0}
+  .pair .pimg .nophoto{font-size:18px}
+  .pair b{display:block;font-size:19px;font-weight:600;margin:4px 0 2px}
+  .pair span{font-size:14px;color:var(--cream-3)}
+  .grp{padding:14px 0}
+</style>
+</head>
+<body>
+<div class="screen">
+  <iframe class="bgframe" src="kiosk-menu.html" tabindex="-1"></iframe>
+  <div class="sheet">
+    <div class="ph"><span class="grab"></span><img src="assets/food/ghee-podi-benne-dosa.jpg" alt=""><button class="close">×</button>
+      <div class="head">
+        <div><span class="chip">House special</span><h1 class="disp" style="margin-top:14px">Ghee Podi<br>Benne Dosa</h1><div class="k hi">घी पोडी बेन्ने डोसा</div></div>
+        <div style="text-align:right"><span class="price" style="font-size:44px">₹171</span><br><span class="mrp">₹199</span></div>
+      </div>
+    </div>
+    <div class="body">
+      <p class="desc hdesc">घी में लिपटा, पोडी में लोटा, ऊपर से मक्खन का प्यारा सा टुकड़ा। माँ वाला प्यार, बेंगलुरु वाला स्वाद। <span class="incl">Comes with coconut chutney &amp; sambar</span></p>
+
+      <div class="grp">
+        <div class="gh"><h3 class="disp">Podi spice</h3><small>Pick one</small></div>
+        <div class="seg" style="grid-template-columns:1fr 1fr 1fr">
+          <button class="opt"><b>Mild</b><span class="heat"><i class="f"></i><i></i><i></i></span></button>
+          <button class="opt on"><b>Regular</b><span class="heat"><i class="f"></i><i class="f"></i><i></i></span></button>
+          <button class="opt"><b>Fiery</b><span class="heat"><i class="f"></i><i class="f"></i><i class="f"></i></span></button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="gh"><h3 class="disp">Make it extra</h3><small>Optional</small></div>
+        <div class="adds">
+          <div class="addon on"><span class="box">✓</span><b>Extra benne</b><span class="p">+₹25</span></div>
+          <div class="addon"><span class="box"></span><b>Extra podi</b><span class="p">+₹15</span></div>
+          <div class="addon"><span class="box"></span><b>Extra palya</b><span class="p">+₹30</span></div>
+          <div class="addon"><span class="box"></span><b>Sambar bowl</b><span class="p">+₹20</span></div>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="gh"><h3 class="disp">Note for the kitchen</h3><small>Tap any</small></div>
+        <div class="notes">
+          <span class="note">No onion</span><span class="note on">Less oil</span><span class="note">Extra crisp</span><span class="note">Chutney separate</span><span class="note">Cut in half</span><span class="note on">Extra sambar</span>
+        </div>
+      </div>
+      <div class="grp pair">
+        <div class="pimg"><div class="nophoto">कॉफ़ी</div></div>
+        <div style="flex:1"><small class="eyebrow">Goes well with</small><b>Bengaluru Filter Coffee</b><span class="hi" style="font-size:16px">स्टील के डबरा में झागदार गरम कॉफ़ी।</span></div>
+        <span class="price" style="font-size:26px">+₹59</span><button class="add">+</button>
+      </div>
+    </div>
+    <div class="foot">
+      <div class="step"><button>−</button><span>1</span><button>+</button></div>
+      <button class="btn-benne"><span>Add to order</span><span class="amt">₹196</span></button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=800">
+<title>Benne 14 — Direction A</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gloock&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Serif+Kannada:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F0E6; --paper-2:#EDE5D6; --ink:#1A1915; --ink-2:#5B564B; --ink-3:#8C8576;
+    --leaf:#1E4A34; --leaf-2:#2C6448; --benne:#E9B949; --chilli:#B4432B; --rule:#D8CDB8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:"Hanken Grotesk",sans-serif;-webkit-font-smoothing:antialiased}
+  .screen{width:800px;height:1280px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .mono{font-family:"IBM Plex Mono",monospace;letter-spacing:.06em;text-transform:uppercase}
+  .kn{font-family:"Noto Serif Kannada",serif}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;padding:34px 40px 18px}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo .word{font-family:Gloock,serif;font-size:56px;line-height:.8;letter-spacing:-.02em}
+  .token{width:58px;height:58px;border-radius:50%;background:var(--leaf);color:var(--benne);display:grid;place-items:center;position:relative;transform:rotate(-8deg)}
+  .token::after{content:"";position:absolute;inset:5px;border-radius:50%;border:1.5px dashed rgba(233,185,73,.55)}
+  .token b{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:22px}
+  .tag{font-size:11px;color:var(--ink-2);margin-top:8px}
+  .hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+  .ordertype{display:flex;align-items:center;gap:10px;border:1.5px solid var(--ink);padding:10px 16px;border-radius:999px;font-weight:600;font-size:16px}
+  .ordertype small{font-family:"IBM Plex Mono";font-size:11px;color:var(--ink-3);font-weight:500;letter-spacing:.06em}
+  .lang{display:flex;gap:0;font-size:13px;border:1px solid var(--rule);border-radius:999px;overflow:hidden}
+  .lang span{padding:6px 12px;color:var(--ink-2)}
+  .lang span.on{background:var(--ink);color:var(--paper)}
+
+  .offer{margin:0 40px;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);padding:9px 0;display:flex;justify-content:space-between;font-size:12px}
+  .offer em{font-style:normal;color:var(--chilli);font-weight:600}
+
+  nav{display:flex;gap:34px;padding:22px 40px 0;border-bottom:1px solid var(--rule)}
+  nav a{font-family:Gloock,serif;font-size:30px;padding-bottom:14px;color:var(--ink-3);position:relative;text-decoration:none}
+  nav a sup{font-family:"IBM Plex Mono";font-size:12px;vertical-align:top;margin-left:4px}
+  nav a.on{color:var(--ink)}
+  nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:4px;background:var(--leaf)}
+
+  main{flex:1;overflow:hidden;padding:26px 40px 0}
+  .special{display:grid;grid-template-columns:330px 1fr;gap:28px;padding-bottom:26px;border-bottom:1px solid var(--rule)}
+  .special .ph{width:330px;height:330px;position:relative}
+  .special .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  .stamp{position:absolute;left:-10px;top:18px;background:var(--benne);color:var(--ink);padding:6px 12px 6px 14px;font-size:11px;font-weight:600}
+  .special h2{font-family:Gloock,serif;font-size:44px;line-height:1;letter-spacing:-.015em;margin:6px 0 6px}
+  .special .knn{font-size:16px;color:var(--leaf-2)}
+  .special p{font-size:16px;line-height:1.45;color:var(--ink-2);margin:16px 0 22px;max-width:330px}
+  .priceline{display:flex;align-items:baseline;gap:10px}
+  .price{font-family:"IBM Plex Mono";font-weight:600;font-size:26px;letter-spacing:0}
+  .mrp{font-family:"IBM Plex Mono";font-size:15px;color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--chilli)}
+  .row-act{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+
+  .step{display:flex;align-items:center;border:1.5px solid var(--leaf);border-radius:999px;height:52px}
+  .step button{width:52px;height:49px;border:0;background:none;font-size:26px;color:var(--leaf);font-family:"Hanken Grotesk"}
+  .step span{min-width:26px;text-align:center;font-family:"IBM Plex Mono";font-weight:600;font-size:18px}
+  .add{height:52px;padding:0 24px;border-radius:999px;border:0;background:var(--leaf);color:var(--paper);font-weight:600;font-size:17px;font-family:"Hanken Grotesk"}
+  .add.sm{height:46px;padding:0 20px;font-size:15px}
+  .step.sm{height:46px}.step.sm button{width:44px;height:43px}
+
+  .sec{display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 16px}
+  .sec h3{font-family:Gloock,serif;font-size:28px;font-weight:400}
+  .sec .kn{color:var(--leaf-2);font-size:15px;margin-left:10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px}
+  .card .ph{aspect-ratio:1;background:var(--paper-2);position:relative}
+  .card .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  .card h4{font-size:17px;font-weight:700;margin:12px 0 4px;line-height:1.2}
+  .card p{font-size:13px;color:var(--ink-2);line-height:1.4;height:36px;overflow:hidden}
+  .card .row-act{margin-top:12px}
+  .card .price{font-size:19px}
+  .card .mrp{font-size:12px}
+  .card .priceline{flex-direction:column;gap:0}
+  .qtybadge{position:absolute;right:8px;top:8px;background:var(--leaf);color:var(--benne);font-family:"IBM Plex Mono";font-weight:600;font-size:13px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+
+  .cartbar{position:absolute;left:24px;right:24px;bottom:24px;height:96px;background:var(--ink);color:var(--paper);border-radius:6px;display:flex;align-items:center;padding:0 14px 0 28px;gap:22px;box-shadow:0 18px 40px -18px rgba(26,25,21,.6)}
+  .cartbar .count{width:48px;height:48px;border-radius:50%;background:var(--benne);color:var(--ink);display:grid;place-items:center;font-family:"IBM Plex Mono";font-weight:600;font-size:18px}
+  .cartbar .what{flex:1}
+  .cartbar .what b{display:block;font-size:18px;font-weight:600}
+  .cartbar .what small{font-size:13px;color:#B9B1A0}
+  .cartbar .tot{font-family:"IBM Plex Mono";font-weight:600;font-size:26px}
+  .cartbar .go{height:68px;padding:0 28px;border-radius:4px;background:var(--benne);color:var(--ink);font-weight:700;font-size:19px;display:flex;align-items:center;gap:10px}
+  .fade{position:absolute;left:0;right:0;bottom:0;height:200px;background:linear-gradient(to bottom,rgba(245,240,230,0),var(--paper) 55%)}
+  .nophoto{width:100%;height:100%;display:grid;place-items:center;background:var(--leaf);color:var(--benne)}
+  .nophoto span{font-family:Gloock,serif;font-size:42px}
+</style>
+</head>
+<body>
+<div class="screen">
+  <header>
+    <div>
+      <div class="logo"><span class="word">benne</span><span class="token"><b>14</b></span></div>
+      <div class="tag mono">Authentic Bangalore Dosa · Indirapuram · 100% Veg</div>
+    </div>
+    <div class="hdr-right">
+      <div class="lang"><span class="on">EN</span><span class="kn">ಕನ್ನಡ</span><span>हिंदी</span></div>
+      <div class="ordertype">Takeaway <small>CHANGE</small></div>
+    </div>
+  </header>
+  <div class="offer mono"><span>Launch week</span><em>14% off everything</em><span>Already applied</span></div>
+  <nav id="nav"></nav>
+  <main id="main"></main>
+  <div class="fade"></div>
+  <div class="cartbar">
+    <div class="count" id="cc">3</div>
+    <div class="what"><b>Your order</b><small id="cl"></small></div>
+    <div class="tot" id="ct"></div>
+    <div class="go">Review order <span style="font-size:22px">→</span></div>
+  </div>
+</div>
+<script src="menu.js"></script>
+<script>
+  const M = window.MENU, C = window.DEMO_CART, img = (it) => it.nophoto ? `<div class="nophoto"><span class="kn">ಕಾಫಿ</span></div>` : `<img src="assets/food/${it.id}.jpg" alt="">`;
+  const act = (it, sm) => C[it.id]
+    ? `<div class="step ${sm?'sm':''}"><button>−</button><span>${C[it.id]}</span><button>+</button></div>`
+    : `<button class="add ${sm?'sm':''}">Add</button>`;
+  document.getElementById('nav').innerHTML = M.categories.map((c,i)=>`<a class="${i==0?'on':''}">${c.name}<sup>${M.items.filter(x=>x.cat==c.id).length}</sup></a>`).join('');
+  const sp = M.items.find(i=>i.special);
+  let h = `<section class="special"><div class="ph">${img(sp)}<div class="stamp mono">House special</div></div><div>
+      <div class="mono" style="font-size:11px;color:var(--ink-3)">Our signature</div>
+      <h2>${sp.name}</h2><div class="kn knn">${sp.kn}</div><p>${sp.desc}</p>
+      <div class="row-act"><div class="priceline"><span class="price">₹${sp.price}</span><span class="mrp">₹${sp.mrp}</span></div>${act(sp)}</div></div></section>`;
+  for (const c of M.categories) {
+    const its = M.items.filter(i=>i.cat==c.id && !i.special);
+    h += `<div class="sec"><h3>${c.name}<span class="kn">${c.kn}</span></h3></div><div class="grid">` +
+      its.map(it=>`<div class="card"><div class="ph">${img(it)}${C[it.id]?`<span class="qtybadge">${C[it.id]}</span>`:''}</div><h4>${it.name}</h4><p>${it.desc}</p>
+      <div class="row-act"><div class="priceline"><span class="price">₹${it.price}</span><span class="mrp">₹${it.mrp}</span></div>${act(it,true)}</div></div>`).join('') + `</div>`;
+  }
+  document.getElementById('main').innerHTML = h;
+  const n = Object.values(C).reduce((a,b)=>a+b,0), t = Object.entries(C).reduce((a,[k,q])=>a+M.items.find(i=>i.id==k).price*q,0);
+  document.getElementById('cc').textContent = n;
+  document.getElementById('ct').textContent = '₹'+t;
+  document.getElementById('cl').textContent = Object.entries(C).map(([k,q])=>`${q} × ${M.items.find(i=>i.id==k).name}`).join(' · ');
+</script>
+</body>
+</html>

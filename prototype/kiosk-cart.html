@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=800">
+<title>Benne 14 — Your order</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  .screen{display:flex;flex-direction:column}
+  .top{display:flex;align-items:center;gap:18px;padding:28px 32px 22px;border-bottom:1px solid var(--line)}
+  .back{height:64px;padding:0 22px 0 18px;border-radius:12px;border:1.5px solid var(--line);background:var(--s1);color:var(--cream);font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
+  .back span{font-size:26px;line-height:1}
+  .top h1{font-size:56px;line-height:.9;flex:1}
+  .top h1 small{display:block;font-family:var(--hi);text-transform:none;font-size:20px;font-weight:400;color:var(--benne);margin-top:4px;letter-spacing:0}
+  .seg{display:flex;background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:5px}
+  .seg span{height:54px;padding:0 20px;display:grid;place-items:center;border-radius:10px;font-size:17px;font-weight:600;color:var(--cream-3)}
+  .seg span.on{background:var(--cream);color:var(--bg)}
+
+  .body{flex:1;overflow:hidden;padding:6px 32px 0}
+  .line{display:grid;grid-template-columns:104px 1fr auto;gap:20px;padding:22px 0;border-bottom:1px solid var(--line);align-items:start}
+  .line .ph{width:104px;height:104px;border-radius:12px;overflow:hidden}
+  .line .ph img{width:100%;height:100%;object-fit:cover}
+  .line h3{font-size:24px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+  .line .hi{font-size:17px;color:var(--benne);opacity:.85;margin:2px 0 8px}
+  .mods{display:flex;flex-wrap:wrap;gap:6px}
+  .mods span{font-size:14px;padding:5px 10px;border-radius:6px;background:var(--s2);color:var(--cream-2)}
+  .mods span.paid{color:var(--benne)}
+  .edit{display:inline-block;margin-top:12px;font-size:15px;font-weight:600;color:var(--cream-2);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--cream-3)}
+  .right{display:flex;flex-direction:column;align-items:flex-end;gap:14px}
+  .right .price{font-size:32px}
+  .right .each{font-size:13px;color:var(--cream-3);margin-top:-12px}
+
+  .more{margin:26px 0 0}
+  .more .gh{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+  .more h2{font-size:30px}
+  .more .gh .hi{color:var(--cream-3);font-size:18px}
+  .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .mini{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;align-items:center;gap:12px}
+  .mini .ph{width:70px;height:70px;border-radius:10px;overflow:hidden;flex-shrink:0}
+  .mini .ph img{width:100%;height:100%;object-fit:cover}
+  .mini b{display:block;font-size:16px;font-weight:600;line-height:1.15}
+  .mini .price{font-size:22px}
+  .mini .add{width:48px;height:48px;margin-left:auto;flex-shrink:0;font-size:26px}
+
+  .bill{margin:26px 0 0;background:var(--s1);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .saved{background:var(--chilli);color:var(--cream);display:flex;justify-content:space-between;align-items:center;padding:12px 22px}
+  .saved b{font-family:var(--display);font-weight:900;font-size:26px;letter-spacing:.02em}
+  .saved span{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  .rows{padding:12px 22px 6px}
+  .row{display:flex;justify-content:space-between;padding:7px 0;font-size:17px;color:var(--cream-2)}
+  .row .v{font-family:var(--display);font-weight:700;font-size:22px;color:var(--cream)}
+  .row.muted .v{color:var(--cream-3)}
+  .total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--line);margin:8px 22px 0;padding:14px 0 18px}
+  .total span{font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-2)}
+  .total b{font-family:var(--display);font-weight:900;font-size:48px;color:var(--benne);line-height:.9}
+
+  .foot{border-top:1px solid var(--line);padding:18px 24px 22px;display:flex;flex-direction:column;gap:10px}
+  .foot .btn-benne{height:96px;font-size:26px}
+  .foot .btn-benne .amt{font-size:44px}
+  .foot small{text-align:center;font-size:14px;color:var(--cream-3)}
+  .name{margin-top:18px;display:flex;align-items:center;gap:16px;padding:18px 22px;border:1.5px dashed var(--line);border-radius:16px}
+  .name div{flex:1}
+  .name b{display:block;font-size:22px;font-weight:400;color:var(--cream)}
+  .name span{font-size:14px;color:var(--cream-3)}
+  .name button{height:56px;padding:0 22px;border-radius:12px;border:1.5px solid var(--cream-2);background:none;color:var(--cream);font-size:17px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="top">
+    <button class="back"><span>←</span>Menu</button>
+    <h1 class="disp">Your order<small>आपका ऑर्डर</small></h1>
+    <div class="seg"><span>Dine-in</span><span class="on">Takeaway</span></div>
+  </div>
+
+  <div class="body">
+    <div class="line">
+      <div class="ph"><img src="assets/food/ghee-podi-benne-dosa.jpg" alt=""></div>
+      <div>
+        <h3>Ghee Podi Benne Dosa</h3><div class="hi">घी पोडी बेन्ने डोसा</div>
+        <div class="mods"><span>Regular spice</span><span class="paid">Extra benne +₹25</span><span>Less oil</span><span>Extra sambar</span></div>
+        <span class="edit">Edit</span>
+      </div>
+      <div class="right"><span class="price">₹196</span><div class="step"><button>−</button><span>1</span><button>+</button></div></div>
+    </div>
+    <div class="line">
+      <div class="ph"><div class="nophoto" style="font-size:22px">कॉफ़ी</div></div>
+      <div>
+        <h3>Bengaluru Filter Coffee</h3><div class="hi">फ़िल्टर कॉफ़ी</div>
+        <div class="mods"><span>Hot</span><span>Regular sugar</span></div>
+        <span class="edit">Edit</span>
+      </div>
+      <div class="right"><span class="price">₹118</span><span class="each">₹59 each</span><div class="step"><button>−</button><span>2</span><button>+</button></div></div>
+    </div>
+
+    <div class="more">
+      <div class="gh"><h2 class="disp">Kuch aur?</h2><span class="hi">डोसे के साथ ये भी जमेगा</span></div>
+      <div class="strip">
+        <div class="mini"><div class="ph"><img src="assets/food/medu-vada.jpg" alt=""></div><div><b>Medu Vada</b><span class="price">₹76</span></div><button class="add">+</button></div>
+        <div class="mini"><div class="ph"><img src="assets/food/mallige-idli.jpg" alt=""></div><div><b>Mallige Idli</b><span class="price">₹76</span></div><button class="add">+</button></div>
+        <div class="mini"><div class="ph"><img src="assets/food/masala-tea.jpg" alt=""></div><div><b>Masala Tea</b><span class="price">₹42</span></div><button class="add">+</button></div>
+      </div>
+    </div>
+
+    <div class="bill">
+      <div class="saved"><span>Launch offer applied</span><b>You saved ₹48</b></div>
+      <div class="rows">
+        <div class="row"><span>Item total · 3 items</span><span class="v">₹314.00</span></div>
+        <div class="row muted"><span>CGST 2.5%</span><span class="v">₹7.85</span></div>
+        <div class="row muted"><span>SGST 2.5%</span><span class="v">₹7.85</span></div>
+        <div class="row muted"><span>Round off</span><span class="v">+₹0.30</span></div>
+      </div>
+      <div class="total"><span>To pay</span><b>₹330</b></div>
+    </div>
+    <div class="name">
+      <div><b class="hi">आपको किस नाम से बुलाएँ?</b><span>Optional. We'll call your name and token when it's ready.</span></div>
+      <button>Add name</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button class="btn-benne"><span>Continue to pay</span><span class="amt">₹330 →</span></button>
+    <small>UPI · Card · Cash at counter</small>
+  </div>
+</div>
+</body>
+</html>
