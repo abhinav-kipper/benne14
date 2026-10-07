@@ -10,7 +10,17 @@
   .back{align-self:flex-start;height:64px;padding:0 22px 0 18px;border-radius:12px;border:1.5px solid var(--line);background:var(--s1);color:var(--cream);font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
   .back span{font-size:26px;line-height:1}
 
-  .amount{margin:44px 0 0}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;margin:44px 0 40px}
+  .amount{margin:0}
+  .slip{margin-top:30px;width:268px;background:var(--cream);color:var(--bg);padding:20px 22px 30px;position:relative;transform:rotate(2.5deg);
+    -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/18px 100%;mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/18px 100%}
+  .slip .sh{display:flex;justify-content:space-between;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6E6757;padding-bottom:12px;border-bottom:1.5px dashed #CFC5B2;margin-bottom:12px}
+  .slip .li{font-size:17px;font-weight:600;padding:5px 0;display:flex;gap:10px}
+  .slip .li b{font-family:var(--display);font-weight:800;font-size:20px;color:#8A8170;min-width:24px}
+  .slip .sf{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1.5px dashed #CFC5B2;font-size:13px;color:#6E6757;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .slip .sf span:last-child{font-family:var(--display);font-weight:900;font-size:28px;color:var(--bg);letter-spacing:0}
+  .stamp{width:78px;height:78px;margin:-4px 0 -10px;border-radius:50%;border:3px solid var(--chilli);color:var(--chilli);display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-16deg);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.9}
+  .stamp b{font-family:var(--display);font-weight:900;font-size:28px;letter-spacing:0;line-height:.9}
   .amount .eyebrow{font-size:14px}
   .amount b{display:block;font-family:var(--display);font-weight:900;font-size:200px;line-height:.82;color:var(--benne);margin-top:10px}
   .amount .hi{font-size:34px;margin-top:14px}
@@ -47,12 +57,19 @@
 <div class="screen">
   <button class="back"><span>←</span>Order</button>
 
-  <div class="amount">
-    <div class="eyebrow">Amount to pay</div>
-    <b>₹330</b>
-    <div class="hi">कैसे पे करना चाहेंगे?</div>
+  <div class="head">
+    <div class="amount">
+      <div class="eyebrow">Amount to pay</div>
+      <b>₹330</b>
+      <div class="hi">कैसे पे करना चाहेंगे?</div>
+    </div>
+    <div class="slip">
+      <div class="sh"><span>Takeaway</span><span>Rahul</span></div>
+      <div class="li"><b>1×</b>Ghee Podi Benne Dosa</div>
+      <div class="li"><b>2×</b>Filter Coffee</div>
+      <div class="sf"><div class="stamp"><b>₹48</b>saved</div><span>₹330</span></div>
+    </div>
   </div>
-  <div class="meta">3 items, takeaway, for Rahul. <em>Launch offer saved you ₹48.</em></div>
 
   <button class="tile upi">
     <span class="lead">Most people pay this way</span>
