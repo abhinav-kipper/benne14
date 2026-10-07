@@ -6,64 +6,96 @@
 <title>Benne 14 — Payment method</title>
 <link rel="stylesheet" href="theme.css">
 <style>
-  .screen{display:flex;flex-direction:column;padding:28px 32px 28px}
+  .screen{display:flex;flex-direction:column;padding:28px 32px 26px}
   .back{align-self:flex-start;height:64px;padding:0 22px 0 18px;border-radius:12px;border:1.5px solid var(--line);background:var(--s1);color:var(--cream);font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
   .back span{font-size:26px;line-height:1}
-  .amount{margin:70px 0 8px}
+
+  .amount{margin:44px 0 0}
   .amount .eyebrow{font-size:14px}
   .amount b{display:block;font-family:var(--display);font-weight:900;font-size:200px;line-height:.82;color:var(--benne);margin-top:10px}
-  .amount .hi{font-size:32px;margin-top:12px}
-  .summary{display:flex;gap:10px;margin:26px 0 48px}
-  .summary span{height:40px;padding:0 14px;display:flex;align-items:center;border-radius:999px;background:var(--s1);border:1px solid var(--line);font-size:15px;color:var(--cream-2)}
+  .amount .hi{font-size:34px;margin-top:14px}
+  .meta{margin:18px 0 34px;font-size:18px;color:var(--cream-2)}
+  .meta em{font-style:normal;color:var(--chilli);font-weight:600}
 
-  .opts{display:flex;flex-direction:column;gap:20px}
-  .opt{border-radius:20px;border:1.5px solid var(--line);background:var(--s1);padding:34px 28px;display:grid;grid-template-columns:76px 1fr auto;gap:22px;align-items:center;text-align:left;color:var(--cream)}
-  .opt .ic{width:76px;height:76px;border-radius:16px;background:var(--s2);display:grid;place-items:center}
-  .opt .ic svg{width:42px;height:42px}
-  .opt h2{font-family:var(--display);font-weight:900;font-size:44px;line-height:.9;text-transform:uppercase}
-  .opt .hi{font-size:19px;color:var(--cream-2);margin-top:4px}
-  .opt p{font-size:15px;color:var(--cream-3);margin-top:8px;line-height:1.4}
-  .opt .go{width:64px;height:64px;border-radius:14px;border:1.5px solid var(--line);display:grid;place-items:center;font-size:28px}
-  .opt.rec{border-color:var(--benne);background:linear-gradient(180deg,rgba(245,197,66,.12),rgba(245,197,66,.03))}
-  .opt.rec .ic{background:var(--benne);color:var(--benne-ink)}
-  .opt.rec .go{background:var(--benne);border-color:var(--benne);color:var(--benne-ink)}
-  .tag{display:inline-block;margin-left:10px;vertical-align:middle;background:var(--leaf);color:#0F1A12;font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.12em;padding:5px 9px;border-radius:6px}
-  .apps{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
-  .apps span{font-size:13px;font-weight:600;padding:5px 10px;border-radius:6px;background:var(--s2);color:var(--cream-2)}
-  .trust{margin-top:auto;display:flex;justify-content:center;gap:26px;font-size:14px;color:var(--cream-3)}
-  .trust span::before{content:"✓  ";color:var(--leaf);font-weight:700}
+  /* tiles: the whole tile is the button */
+  .tile{border:0;border-radius:24px;text-align:left;position:relative;overflow:hidden;display:block;width:100%}
+  .tile .big{font-family:var(--display);font-weight:900;text-transform:uppercase;line-height:.8;display:block}
+  .tile .hi{display:block}
+
+  .upi{height:372px;background:var(--benne);color:var(--benne-ink);padding:34px 36px}
+  .upi .lead{font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+  .upi .big{font-size:176px;margin-top:16px}
+  .upi .hi{font-size:26px;margin-top:14px}
+  .upi .apps{position:absolute;left:36px;bottom:32px;font-size:16px;font-weight:600;opacity:.75}
+  .upi svg{position:absolute;right:40px;top:30px;width:250px;height:312px}
+
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  .half{height:330px;padding:28px 28px 26px;display:flex;flex-direction:column;justify-content:flex-end}
+  .half svg{position:absolute;top:28px;left:28px;height:88px}
+  .half .big{font-size:80px}
+  .half .hi{font-size:22px;margin-top:8px}
+  .half small{display:block;font-size:15px;margin-top:8px;line-height:1.35}
+  .card{background:var(--cream);color:var(--bg)}
+  .card small{color:#6E6757}
+  .cash{background:var(--s2);color:var(--cream);box-shadow:inset 0 0 0 1.5px var(--line)}
+  .cash small{color:var(--cream-3)}
+
+  .note{margin-top:auto;text-align:center;font-size:18px;color:var(--cream-3)}
 </style>
 </head>
 <body>
 <div class="screen">
   <button class="back"><span>←</span>Order</button>
+
   <div class="amount">
     <div class="eyebrow">Amount to pay</div>
     <b>₹330</b>
     <div class="hi">कैसे पे करना चाहेंगे?</div>
   </div>
-  <div class="summary"><span>3 items</span><span>Takeaway</span><span>For Rahul</span><span style="color:var(--chilli)">You saved ₹48</span></div>
+  <div class="meta">3 items, takeaway, for Rahul. <em>Launch offer saved you ₹48.</em></div>
 
-  <div class="opts">
-    <button class="opt rec">
-      <span class="ic"><svg viewBox="0 0 42 42" fill="currentColor"><path d="M4 4h14v14H4zM8 8v6h6V8zM24 4h14v14H24zm4 4v6h6V8zM4 24h14v14H4zm4 4v6h6v-6zM24 24h5v5h-5zm9 0h5v5h-5zm-9 9h5v5h-5zm9 0h5v5h-5zm-4.5-4.5h5v5h-5z"/></svg></span>
-      <div><h2>UPI <span class="tag">FASTEST</span></h2><div class="hi">किसी भी UPI ऐप से स्कैन करें</div>
-        <div class="apps"><span>Google Pay</span><span>PhonePe</span><span>Paytm</span><span>BHIM</span><span>Any UPI app</span></div></div>
-      <span class="go">→</span>
+  <button class="tile upi">
+    <span class="lead">Most people pay this way</span>
+    <span class="big">UPI</span>
+    <span class="hi">किसी भी UPI ऐप से स्कैन करें</span>
+    <span class="apps">Google Pay, PhonePe, Paytm, BHIM or any UPI app</span>
+    <svg viewBox="0 0 250 312" fill="none" stroke="currentColor" stroke-width="8" stroke-linejoin="round">
+      <rect x="40" y="6" width="170" height="300" rx="28"/>
+      <path d="M100 26h50" stroke-linecap="round"/>
+      <g fill="currentColor" stroke="none">
+        <rect x="66" y="70" width="44" height="44"/><rect x="140" y="70" width="44" height="44"/><rect x="66" y="196" width="44" height="44"/>
+        <rect x="140" y="160" width="14" height="14"/><rect x="160" y="176" width="14" height="14"/><rect x="140" y="196" width="14" height="14"/>
+        <rect x="170" y="210" width="14" height="14"/><rect x="150" y="226" width="14" height="14"/><rect x="118" y="130" width="14" height="14"/>
+        <rect x="88" y="140" width="14" height="14"/><rect x="66" y="160" width="14" height="14"/><rect x="118" y="170" width="14" height="14"/><rect x="118" y="214" width="14" height="14"/>
+      </g>
+      <g fill="#F5C542" stroke="none"><rect x="77" y="81" width="22" height="22"/><rect x="151" y="81" width="22" height="22"/><rect x="77" y="207" width="22" height="22"/></g>
+      <path d="M20 150h210" stroke="#E2603F" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <div class="row">
+    <button class="tile half card">
+      <svg viewBox="0 0 170 110" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+        <rect x="4" y="14" width="136" height="90" rx="12"/><rect x="22" y="36" width="30" height="22" rx="4"/><path d="M22 84h44M80 84h22"/>
+        <path d="M150 32c8 8 8 26 0 34M160 22c14 14 14 40 0 54"/>
+      </svg>
+      <span class="big">Card</span>
+      <span class="hi">डेबिट / क्रेडिट कार्ड</span>
+      <small>Tap or insert on the machine at the counter</small>
     </button>
-    <button class="opt">
-      <span class="ic"><svg viewBox="0 0 42 42" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="4" y="9" width="34" height="24" rx="4"/><path d="M4 16h34M10 26h8"/></svg></span>
-      <div><h2>Card</h2><div class="hi">डेबिट / क्रेडिट कार्ड</div><p>Tap or insert on the card machine at the counter.</p></div>
-      <span class="go">→</span>
-    </button>
-    <button class="opt">
-      <span class="ic"><svg viewBox="0 0 42 42" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="36" height="20" rx="3"/><circle cx="21" cy="21" r="5"/><path d="M9 16v10M33 16v10"/></svg></span>
-      <div><h2>Cash</h2><div class="hi">काउंटर पर नकद दें</div><p>Get your token now, pay at the counter. We start cooking once paid.</p></div>
-      <span class="go">→</span>
+    <button class="tile half cash">
+      <svg viewBox="0 0 170 110" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round">
+        <rect x="24" y="4" width="140" height="74" rx="8" opacity=".45"/>
+        <rect x="4" y="28" width="140" height="78" rx="8" fill="#25231E"/>
+        <circle cx="74" cy="67" r="20"/><path d="M66 58h17M66 66h17M70 58c10 0 10 14 0 14l12 12" stroke-linecap="round" stroke-width="5"/>
+      </svg>
+      <span class="big">Cash</span>
+      <span class="hi">काउंटर पर नकद दें</span>
+      <small>Take your token, pay at the counter</small>
     </button>
   </div>
 
-  <div class="trust"><span>Bill with GST</span><span>Instant e-receipt</span><span>Auto-refund if anything fails</span></div>
+  <div class="note hi">पेमेंट अटक गया? चिंता नहीं, पैसा अपने-आप वापस आ जाएगा।</div>
 </div>
 </body>
 </html>
