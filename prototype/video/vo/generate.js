@@ -1,6 +1,7 @@
 // Generates the Hindi voiceover clips with ElevenLabs.
 // Usage: ELEVENLABS_API_KEY=... node prototype/video/vo/generate.js
-// Optional: ELEVENLABS_VOICE_ID (a voice in your library), ELEVENLABS_MODEL (default eleven_multilingual_v2).
+// Optional: ELEVENLABS_VOICE_ID (a voice in your library), ELEVENLABS_MODEL (default eleven_multilingual_v2),
+// ONLY=00,01 to regenerate just those lines (keeps the voice recorded in durations.json).
 // Writes NN.mp3 per scene and durations.json next to this file; record.js then times scenes to the clips.
 const fs = require('fs');
 const path = require('path');
@@ -41,10 +42,13 @@ async function pickVoice() {
 
 (async () => {
   const { lines } = JSON.parse(fs.readFileSync(path.join(DIR, 'script.json'), 'utf8'));
-  const voice = await pickVoice();
+  const prev = fs.existsSync(path.join(DIR, 'durations.json')) ? JSON.parse(fs.readFileSync(path.join(DIR, 'durations.json'), 'utf8')) : null;
+  const only = process.env.ONLY ? process.env.ONLY.split(',') : null;
+  const voice = only && prev ? prev.voice : await pickVoice();
   const keys = Object.keys(lines).sort();
-  const durations = {};
+  const durations = only && prev ? { ...prev.durations } : {};
   for (const [i, k] of keys.entries()) {
+    if (only && !only.includes(k)) continue;
     const body = {
       text: lines[k],
       model_id: MODEL,
