@@ -53,6 +53,7 @@
   <div class="prog" id="prog"></div>
   <div class="dev hide" id="dev"><div class="bezel" id="bezel"><div class="clip" id="clip"><iframe id="f"></iframe></div></div><div class="stand" id="stand" style="display:none"></div></div>
   <div class="finger" id="finger"></div>
+  <div id="sync" style="position:absolute;right:0;bottom:0;width:100px;height:10px;display:flex;z-index:99"></div>
   <div class="card" id="card"><div class="w">Benne <i>14</i></div><div class="t">Authentic Bangalore Dosa · Indirapuram</div><div class="h">ऑर्डर से टोकन तक, एक नज़र में</div><div class="s">Self-order kiosk · Kitchen display · TV order board</div></div>
 </div>
 <script>
@@ -137,6 +138,15 @@
         await new Promise(r => setTimeout(r, 900));
         others.forEach(o => { o.style.transition = 'opacity .5s'; o.style.opacity = 1; });
       }
+    },
+    // Sync marker: a 16px corner square whose colour encodes an event number; record.js finds the
+    // colour changes in the recorded video to place voice and sound effects frame-accurately.
+    // Sync strip: 10 cells of 10px at the bottom-right corner — cell 0 always white, cells 1-9 the
+    // mark number in binary. record.js reads it back from every frame to line audio up with video.
+    mark(n) {
+      document.getElementById('sync').innerHTML = Array.from({ length: 10 }, (_, i) =>
+        `<i style="width:10px;height:10px;background:${i === 0 || (n >> (i - 1)) & 1 ? '#fff' : '#000'}"></i>`).join('');
+      return n;
     },
     win() { return f.contentWindow; },
     doc() { return f.contentDocument; },
