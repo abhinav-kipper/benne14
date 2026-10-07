@@ -123,5 +123,22 @@
     <small>UPI · Card · Cash at counter</small>
   </div>
 </div>
+<script>
+  // Demo hook: set filter-coffee quantity and recompute the bill (dosa line fixed at ₹196).
+  window.demo = { coffee(n) {
+    const line = document.querySelectorAll('.line')[1];
+    line.querySelector('.step span').textContent = n;
+    line.querySelector('.price').textContent = '₹' + 59*n;
+    const sub = 196 + 59*n, gst = Math.round(sub*0.025*100)/100, tot = Math.round(sub + 2*gst), ro = (tot - sub - 2*gst).toFixed(2);
+    const v = document.querySelectorAll('.bill .row .v');
+    document.querySelector('.bill .row span').textContent = `Item total · ${1+n} items`;
+    v[0].textContent = '₹' + sub.toFixed(2); v[1].textContent = v[2].textContent = '₹' + gst.toFixed(2);
+    v[3].textContent = (ro >= 0 ? '+₹' : '−₹') + Math.abs(ro).toFixed(2);
+    document.querySelector('.total b').textContent = '₹' + tot;
+    document.querySelector('.foot .amt').textContent = '₹' + tot + ' →';
+    document.querySelector('.saved b').textContent = 'You saved ₹' + (28 + 10*n);
+  } };
+  if (new URLSearchParams(location.search).get('coffee')) demo.coffee(+new URLSearchParams(location.search).get('coffee'));
+</script>
 </body>
 </html>

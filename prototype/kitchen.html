@@ -131,7 +131,7 @@
         <button class="go"><svg><use href="#check"/></svg>तैयार</button>
       </div>
 
-      <div class="chit cook">
+      <div class="chit cook" id="c042">
         <span class="clip"></span><div class="age"><i style="width:42%;background:var(--ok)"></i></div>
         <div class="ch-h"><span class="tok">A-042</span><svg><use href="#bag"/></svg><span class="min">6'</span></div>
         <div class="who">Rahul</div>
@@ -143,7 +143,7 @@
         <button class="go"><svg><use href="#check"/></svg>तैयार</button>
       </div>
 
-      <div class="chit new">
+      <div data-later class="chit new">
         <span class="clip"></span><div class="age"><i style="width:12%;background:var(--ok)"></i></div>
         <div class="ch-h"><span class="tok">A-044</span><svg><use href="#bag"/></svg><span class="min">2'</span></div>
         <div class="who">Priya</div>
@@ -155,7 +155,7 @@
         <button class="go"><svg><use href="#flame"/></svg>शुरू करो</button>
       </div>
 
-      <div class="chit new peek">
+      <div data-later class="chit new peek">
         <span class="clip"></span><div class="age"><i style="width:4%;background:var(--ok)"></i></div>
         <div class="ch-h"><span class="tok">A-045</span><svg><use href="#dine"/></svg><span class="min">0'</span></div>
         <div class="perf"></div>
@@ -171,8 +171,8 @@
   </div>
 
   <div class="pass">
-    <div class="pass-h"><svg><use href="#bell"/></svg><b>काउंटर पर</b><span>2</span></div>
-    <div class="plate">
+    <div class="pass-h"><svg><use href="#bell"/></svg><b>काउंटर पर</b><span id="passn">2</span></div>
+    <div class="plate" id="shelf-first">
       <div class="row1"><span class="tok">A-039</span><svg><use href="#bag"/></svg><span class="w"><i></i>1'</span></div>
       <div class="nm2">Aman · मसाला डोसा</div>
       <button><svg><use href="#hand"/></svg>दे दिया</button>
@@ -197,5 +197,45 @@
     <div class="toast"><svg><use href="#check"/></svg>A-043 दे दिया<button><svg width="16" height="16"><use href="#undo"/></svg>वापस</button></div>
   </div>
 </div>
+<style>
+  @keyframes drop{0%{transform:translateY(-120%) rotate(-4deg);opacity:0}70%{transform:translateY(4%) rotate(1deg);opacity:1}100%{transform:none}}
+  @keyframes lift{to{transform:translateY(-30px) scale(.9);opacity:0}}
+  @keyframes slidein{0%{transform:translateX(60px);opacity:0}100%{transform:none;opacity:1}}
+  .chit.dropping{animation:drop .7s cubic-bezier(.2,.9,.3,1.15) both}
+  .chit.lifting{animation:lift .45s ease-in forwards}
+  .plate.fresh{animation:slidein .5s cubic-bezier(.2,.9,.3,1.1) both;box-shadow:0 0 0 2px #A7DDB3}
+</style>
+<script>
+  // Demo hooks for the walkthrough video (?video=1 starts with A-042 not yet on the rail).
+  const q = new URLSearchParams(location.search);
+  const c042 = document.getElementById('c042');
+  const tpl = c042.cloneNode(true);
+  if (q.get('video')) { c042.remove(); document.querySelectorAll('[data-later]').forEach(e => e.remove()); }
+  window.demo = {
+    arrive() {
+      const el = tpl.cloneNode(true); el.id = 'c042'; el.className = 'chit new dropping';
+      el.querySelector('.age i').style.width = '4%';
+      el.querySelector('.min').textContent = "0'";
+      el.querySelector('.go').innerHTML = '<svg><use href="#flame"/></svg>शुरू करो';
+      document.querySelector('.chits').appendChild(el);
+    },
+    start() {
+      const el = document.getElementById('c042'); el.className = 'chit cook';
+      el.querySelector('.go').innerHTML = '<svg><use href="#check"/></svg>तैयार';
+      el.querySelector('.min').textContent = "1'"; el.querySelector('.age i').style.width = '10%';
+    },
+    ready() {
+      const el = document.getElementById('c042'); el.classList.add('lifting');
+      setTimeout(() => el.remove(), 450);
+      const p = document.getElementById('shelf-first').cloneNode(true); p.id = ''; p.classList.add('fresh');
+      p.querySelector('.tok').textContent = 'A-042';
+      p.querySelector('.w').innerHTML = "<i style=\"background:var(--ok)\"></i>0'";
+      p.querySelector('.nm2').textContent = 'Rahul · घी पोडी बेन्ने डोसा';
+      document.querySelector('.pass-h').after(p);
+      document.getElementById('passn').textContent = '3';
+      document.querySelector('.toast').innerHTML = '<svg><use href="#check"/></svg>A-042 तैयार · TV पर दिख रहा है';
+    }
+  };
+</script>
 </body>
 </html>
