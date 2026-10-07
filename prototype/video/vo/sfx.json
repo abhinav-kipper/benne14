@@ -1,0 +1,10 @@
+{
+  "tap":      { "text": "Very soft subtle UI tap on a glass touchscreen, short gentle click, no reverb", "dur": 0.5 },
+  "whoosh":   { "text": "Soft airy whoosh, smooth logo transition swoosh, gentle and warm", "dur": 1.0 },
+  "paid":     { "text": "Pleasant bright two-note payment success chime, like a modern UPI payment received sound, friendly", "dur": 1.5 },
+  "ding":     { "text": "Single clear kitchen order bell ding, small brass service bell, crisp", "dur": 1.2 },
+  "sizzle":   { "text": "Dosa batter poured onto a hot iron tawa, crisp sizzling, close up, Indian kitchen", "dur": 2.5 },
+  "ready":    { "text": "Restaurant counter service bell rung twice, cheerful ding ding", "dur": 1.5 },
+  "pop":      { "text": "Cheerful sparkly notification pop with a soft marimba flourish, order ready on screen", "dur": 1.5 },
+  "bed":      { "text": "Warm playful light Indian cafe background music loop, soft acoustic guitar and gentle tabla and a little flute, cozy homely, low energy, instrumental, seamless", "dur": 22 }
+}

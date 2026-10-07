@@ -8,14 +8,15 @@
   html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#0B0B09}
   .stage{position:relative;width:1920px;height:1080px;background:radial-gradient(1200px 800px at 75% 50%,#1D1B16 0%,#0B0B09 70%)}
 
-  .cap{position:absolute;left:110px;top:0;bottom:0;width:560px;display:flex;flex-direction:column;justify-content:center;transition:opacity .35s}
+  .cap{position:absolute;left:110px;top:300px;width:560px;transition:opacity .3s}
   .cap .n{font-family:var(--display);font-weight:900;font-size:150px;line-height:.8;color:var(--benne)}
-  .cap .en{font-family:var(--display);font-weight:900;font-size:84px;line-height:.86;text-transform:uppercase;margin-top:26px}
-  .cap .hi{font-family:var(--hi);font-size:40px;color:var(--cream);margin-top:22px;line-height:1.3}
-  .cap .sub{font-size:24px;color:var(--cream-2);margin-top:22px;line-height:1.45;max-width:520px}
-  .brand{position:absolute;left:110px;top:64px;font-family:var(--display);font-weight:900;font-size:40px;text-transform:uppercase}
+  .cap .en{font-family:var(--display);font-weight:900;font-size:84px;line-height:.86;text-transform:uppercase;margin-top:26px;height:146px;white-space:nowrap}
+  .cap .hi{font-family:var(--hi);font-size:40px;color:var(--cream);margin-top:24px;line-height:1.3;height:52px;white-space:nowrap}
+  .cap .sub{font-size:24px;color:var(--cream-2);margin-top:22px;line-height:1.45;max-width:520px;height:70px}
+  .brand{position:absolute;left:110px;top:64px;font-family:var(--display);font-weight:900;font-size:64px;line-height:.8;text-transform:uppercase;opacity:0;transition:opacity .2s}
+  .brand .bw{display:inline-block;line-height:.8}
   .brand i{font-style:normal;color:var(--benne)}
-  .brand small{font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.2em;color:var(--cream-3);margin-left:12px;vertical-align:middle}
+  .brand small{display:block;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.2em;color:var(--cream-3);margin-top:12px}
   .prog{position:absolute;left:110px;bottom:64px;display:flex;gap:8px}
   .prog i{width:34px;height:5px;border-radius:3px;background:#2F2C26}
   .prog i.on{background:var(--benne)}
@@ -34,8 +35,10 @@
   .ring{position:absolute;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;border:4px solid var(--benne);pointer-events:none;z-index:19;animation:ring .6s ease-out forwards}
   @keyframes ring{from{transform:scale(.6);opacity:1}to{transform:scale(2.4);opacity:0}}
 
-  .card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#0B0B09;z-index:30;transition:opacity .6s}
-  .card.hide{opacity:0;pointer-events:none}
+  .card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(11,11,9,1);z-index:30;transition:background-color .8s}
+  .card > *:not(.w){transition:opacity .4s}
+  .card .w{display:inline-block;transform-origin:0 0}
+  .card.hide{display:none}
   .card .w{font-family:var(--display);font-weight:900;font-size:220px;line-height:.8;text-transform:uppercase}
   .card .w i{font-style:normal;color:var(--benne)}
   .card .t{font-family:var(--body);font-size:20px;font-weight:600;letter-spacing:.3em;color:var(--cream-3);margin-top:26px;text-transform:uppercase}
@@ -45,7 +48,7 @@
 </head>
 <body>
 <div class="stage" id="stage">
-  <div class="brand">Benne <i>14</i><small>PROTOTYPE WALKTHROUGH</small></div>
+  <div class="brand" id="brand"><span class="bw">Benne <i>14</i></span><small>PROTOTYPE WALKTHROUGH</small></div>
   <div class="cap" id="cap"><div class="n"></div><div class="en"></div><div class="hi"></div><div class="sub"></div></div>
   <div class="prog" id="prog"></div>
   <div class="dev hide" id="dev"><div class="bezel" id="bezel"><div class="clip" id="clip"><iframe id="f"></iframe></div></div><div class="stand" id="stand" style="display:none"></div></div>
@@ -111,7 +114,30 @@
       await new Promise(r => setTimeout(r, 160));
     },
     hideFinger() { document.getElementById('finger').style.opacity = 0; },
-    card(show, html) { const c = document.getElementById('card'); if (html) c.innerHTML = html; c.classList.toggle('hide', !show); },
+    // Title cards morph into / out of the corner logo so the brand never jumps in size.
+    async card(show, html) {
+      const c = document.getElementById('card'), brand = document.getElementById('brand');
+      if (html) c.innerHTML = html;
+      const w = c.querySelector('.w'), others = [...c.children].filter(x => x !== w);
+      const toBrand = () => { w.style.transform = 'none'; const r1 = w.getBoundingClientRect(), r2 = brand.querySelector('.bw').getBoundingClientRect(), k = r2.height / r1.height;
+        return `translate(${r2.left - r1.left}px,${r2.top - r1.top}px) scale(${k})`; };
+      const ease = 'transform .9s cubic-bezier(.65,0,.25,1)';
+      if (!show) {
+        w.style.transition = 'none'; const t = toBrand(); void w.offsetWidth;
+        w.style.transition = ease; others.forEach(o => o.style.opacity = 0); c.style.backgroundColor = 'rgba(11,11,9,0)';
+        w.style.transform = t;
+        await new Promise(r => setTimeout(r, 900));
+        brand.style.opacity = 1; c.classList.add('hide');
+      } else {
+        c.classList.remove('hide'); c.style.backgroundColor = 'rgba(11,11,9,0)';
+        w.style.transition = 'none'; others.forEach(o => { o.style.transition = 'none'; o.style.opacity = 0; });
+        w.style.transform = toBrand(); void w.offsetWidth;
+        brand.style.opacity = 0; this.hideFinger();
+        w.style.transition = ease; c.style.backgroundColor = 'rgba(11,11,9,1)'; w.style.transform = 'none';
+        await new Promise(r => setTimeout(r, 900));
+        others.forEach(o => { o.style.transition = 'opacity .5s'; o.style.opacity = 1; });
+      }
+    },
     win() { return f.contentWindow; },
     doc() { return f.contentDocument; },
   };

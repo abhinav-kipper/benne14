@@ -22,6 +22,9 @@ Food photos are placeholders from Wikimedia Commons (CC BY / CC BY-SA, see `prot
 
 ## Walkthrough video
 
-`prototype/video/benne14-walkthrough.mp4` — ~75 s, 1080p: home → menu → customise → cart → pay → token → kitchen → TV board.
+`prototype/video/benne14-walkthrough.mp4` — ~100 s, 1080p, Hindi voiceover with sound effects and a soft music bed: home → menu → customise → cart → pay → token → kitchen → TV board.
 
-Re-record after design changes: `node prototype/video/record.js` (Playwright + ffmpeg). The script drives `prototype/video/stage.html`, which frames each screen and shows the taps; screens expose small `window.demo` hooks for the state changes.
+- `prototype/video/stage.html` frames each screen, shows the taps and captions; screens expose small `window.demo` hooks for state changes.
+- `prototype/video/vo/script.json` is the Hindi voiceover script (one line per scene). `ELEVENLABS_API_KEY=… node prototype/video/vo/generate.js` regenerates the clips (`ELEVENLABS_VOICE_ID` to pin a voice; current: Nitya, see `durations.json`).
+- `prototype/video/vo/sfx/` holds the sound effects and music bed (ElevenLabs sound generation, prompts in `vo/sfx.json`).
+- `node prototype/video/record.js` re-records the video; each scene waits for its voice line, then voice, effects and the ducked music are mixed in with ffmpeg.
