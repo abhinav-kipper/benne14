@@ -20,8 +20,18 @@ export function getStore(): Store {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   // Supabase's new "secret" key (sb_secret_…) or the legacy service_role key. Server-only, never NEXT_PUBLIC.
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (key?.startsWith('sb_publishable_')) throw new StoreError('SUPABASE_SECRET_KEY holds the publishable key; use the sb_secret_ key', 503);
   if (url && key) return (store = new SupabaseStore(url, key));
   // On Vercel every request can land on a different instance, so in-memory orders would vanish.
   if (process.env.VERCEL) throw new StoreError('Database not configured: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY', 503);
   return (store = MemoryStore.shared());
+}
+
+// What kind of key is configured, without revealing it (for /api/health).
+export function keyKind(): 'secret' | 'legacy-service-role' | 'publishable (wrong key)' | 'missing' {
+  const k = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!k) return 'missing';
+  if (k.startsWith('sb_secret_')) return 'secret';
+  if (k.startsWith('sb_publishable_')) return 'publishable (wrong key)';
+  return 'legacy-service-role';
 }
