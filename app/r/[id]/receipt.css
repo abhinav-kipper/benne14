@@ -1,0 +1,31 @@
+/* Customer's phone: live tracker + GST bill. Mobile-first, normal page flow (no Fit). */
+.rcpt{max-width:480px;margin:0 auto;padding:22px 18px 40px;-webkit-user-select:text;user-select:text}
+.rcpt .logo{font-family:var(--display);font-weight:900;font-size:30px;text-transform:uppercase;line-height:1}
+.rcpt .logo i{font-style:normal;color:var(--benne-fg)}
+.rcpt .logo small{display:block;font-family:var(--body);font-size:10px;font-weight:600;letter-spacing:.18em;color:var(--cream-3);margin-top:6px}
+.rcpt .tkt{margin:22px 0 0;background:var(--benne);color:var(--benne-ink);border-radius:18px;position:relative;transform:rotate(-1.5deg)}
+.rcpt .tkt::before,.rcpt .tkt::after{content:"";position:absolute;bottom:52px;width:24px;height:24px;border-radius:50%;background:var(--bg)}
+.rcpt .tkt::before{left:-12px}.rcpt .tkt::after{right:-12px}
+.rcpt .tkt .tt{display:flex;justify-content:space-between;padding:14px 18px 0;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.rcpt .tkt .num{font-family:var(--display);font-weight:900;font-size:120px;line-height:.8;text-align:center;padding:12px 0 14px}
+.rcpt .tkt .perf{height:2px;margin:0 16px;background-image:linear-gradient(90deg,var(--benne-ink) 50%,transparent 50%);background-size:12px 2px;opacity:.35}
+.rcpt .tkt .tb{display:flex;justify-content:space-between;padding:14px 18px 16px;font-weight:700}
+.rcpt .status{margin:26px 0 8px;font-family:var(--hi);font-size:28px;line-height:1.3;text-align:center}
+.rcpt .status b{color:var(--benne-fg);font-weight:400}
+.rcpt .track{display:flex;align-items:flex-start;margin:18px 0 6px}
+.rcpt .st{width:96px}
+.rcpt .st b{font-size:13px}
+.rcpt .st span{font-size:12px}
+.rcpt .st i{width:36px;height:36px}
+.rcpt .track .ln{margin-top:17px}
+.rcpt .bill{margin-top:26px;background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:18px}
+.rcpt .bill h3{font-size:24px;margin-bottom:8px}
+.rcpt .li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:15px}
+.rcpt .li small{display:block;color:var(--cream-3);font-size:13px;margin-top:2px}
+.rcpt .li .v{font-family:var(--display);font-weight:800;font-size:19px;white-space:nowrap}
+.rcpt .row{display:flex;justify-content:space-between;padding:5px 0;font-size:14px;color:var(--cream-2)}
+.rcpt .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);margin-top:8px;padding-top:12px}
+.rcpt .tot b{font-family:var(--display);font-weight:900;font-size:36px;color:var(--benne-fg)}
+.rcpt .saved{margin-top:12px;text-align:center;color:var(--chilli);font-weight:600;font-size:14px}
+.rcpt .foot{margin-top:22px;text-align:center;font-size:12px;color:var(--cream-3);line-height:1.6}
+.rcpt .missing{margin-top:80px;text-align:center;font-family:var(--hi);font-size:24px;color:var(--cream-2)}

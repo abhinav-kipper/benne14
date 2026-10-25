@@ -1,0 +1,52 @@
+/* Benne 14 design tokens — ported from prototype/theme.css. Light is the default; dark kept for later. */
+:root{
+  --bg:#FBF7EF; --s1:#FFFFFF; --s2:#F4EEE2; --s3:#E9E1D2; --line:#E2D8C7;
+  --cream:#1C1A15; --cream-2:#5C5649; --cream-3:#8C8473;   /* "cream" = main ink colour (name kept from the dark design) */
+  --benne:#F5C542; --benne-ink:#1A1608; --benne-fg:#9C6A00; /* yellow fill / ink on yellow / yellow as text */
+  --leaf:#3E7C51; --chilli:#D14F2B;
+  --paper:#FFFFFF;
+  --display:var(--font-display),sans-serif;
+  --body:var(--font-body),sans-serif;
+  --hi:var(--font-hi),serif;
+}
+html[data-theme=dark]{
+  --bg:#121210; --s1:#1B1A16; --s2:#25231E; --s3:#2F2C26; --line:#34312A;
+  --cream:#F4ECDD; --cream-2:#B8AE9C; --cream-3:#7D7566;
+  --benne-fg:#F5C542; --leaf:#5E9A6C; --chilli:#E2603F; --paper:#F4ECDD;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--cream);font-family:var(--body);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+body{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button{font-family:inherit;cursor:pointer;color:inherit;background:none;border:0}
+button:disabled{opacity:.55;cursor:default}
+input{font-family:inherit}
+img{-webkit-user-drag:none}
+
+.disp{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.005em}
+.hi{font-family:var(--hi)}
+.hdesc{font-family:var(--hi);font-size:18px;line-height:1.5;color:var(--cream-2)}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3)}
+
+.price{font-family:var(--display);font-weight:800;font-size:30px;color:var(--benne-fg);letter-spacing:.01em}
+.mrp{font-family:var(--display);font-weight:600;font-size:18px;color:var(--cream-3);text-decoration:line-through;margin-left:8px}
+
+.step{display:flex;align-items:center;background:var(--benne);color:var(--benne-ink);border-radius:10px;height:56px}
+.step button{width:54px;height:56px;font-size:28px;font-weight:600;color:var(--benne-ink)}
+.step span{min-width:24px;text-align:center;font-family:var(--display);font-weight:800;font-size:24px}
+.add{height:56px;width:56px;border-radius:10px;border:1.5px solid var(--benne-fg)!important;color:var(--benne-fg)!important;font-size:30px;font-weight:400}
+
+.btn-benne{height:84px;border-radius:14px;background:var(--benne);color:var(--benne-ink);display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:22px;font-weight:700}
+.btn-benne .amt{font-family:var(--display);font-weight:900;font-size:36px}
+.chip{display:inline-block;background:var(--benne);color:var(--benne-ink);font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:6px 10px}
+.nophoto{width:100%;height:100%;display:grid;place-items:center;color:var(--benne-fg);font-family:var(--hi);font-size:30px;background:var(--s2)}
+.back{height:64px;padding:0 22px 0 18px;border-radius:12px;border:1.5px solid var(--line)!important;background:var(--s1);color:var(--cream);font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
+.back span{font-size:26px;line-height:1}
+
+/* Fit: a fixed-size design surface scaled to the device */
+.fit-outer{position:fixed;inset:0;overflow:hidden;background:var(--bg)}
+.fit-inner{position:absolute;left:0;top:0;transform-origin:0 0}
+.screen{position:relative;overflow:hidden;width:100%;height:100%}
+
+@keyframes rise{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}

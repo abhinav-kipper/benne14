@@ -1,0 +1,102 @@
+/* Kitchen display — ported from prototype/kitchen.html (light). Design surface: 1280×800 landscape. */
+.kitchen{--ink:#16140F;--ink-2:#5E584B;--ok:#3E7C51;--warn:#E9B13B;--late:#D9553A;--chit:#FFFFFF;--chit-2:#F1EBDF;
+  width:1280px;height:800px;display:grid;grid-template-columns:1fr 268px;grid-template-rows:64px 1fr 92px;background:var(--bg);position:relative;overflow:hidden}
+.kitchen .top{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--s1);border-bottom:1px solid var(--line)}
+.kitchen .logo{font-family:var(--display);font-weight:900;font-size:30px;text-transform:uppercase}
+.kitchen .logo i{font-style:normal;color:var(--benne-fg)}
+.kitchen .ibtn{height:44px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--s2);color:var(--cream-2);font-size:15px;font-weight:600}
+.kitchen .ibtn svg{width:20px;height:20px}
+.kitchen .ibtn.on{color:var(--benne-fg);border-color:rgba(156,106,0,.35)}
+.kitchen .ibtn.ask{background:var(--benne);color:var(--benne-ink);border-color:var(--benne);animation:pulsebtn 1.6s ease-in-out infinite}
+@keyframes pulsebtn{50%{box-shadow:0 0 0 6px rgba(245,197,66,.3)}}
+.kitchen .net{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--chilli);font-weight:600}
+.kitchen .net i{width:10px;height:10px;border-radius:50%;background:var(--chilli)}
+.kitchen .clock{margin-left:auto;font-family:var(--display);font-weight:800;font-size:30px}
+
+.kitchen .railwrap{position:relative;overflow-x:auto;overflow-y:hidden;padding:0 16px 0 16px;background:#EEE7D9;scrollbar-width:none}
+.kitchen .railwrap::-webkit-scrollbar{display:none}
+.kitchen .rail{position:absolute;left:0;right:0;top:28px;height:14px;min-width:100%;background:linear-gradient(180deg,#5A5A55,#2A2A27 55%,#4A4A45);box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.kitchen .chits{position:relative;display:flex;gap:14px;align-items:flex-start;padding-top:34px;min-height:100%;width:max-content;min-width:100%}
+.kitchen .empty{position:absolute;inset:60px 0 0;display:grid;place-items:center;text-align:center;color:var(--cream-3)}
+.kitchen .empty b{display:block;font-family:var(--hi);font-weight:400;font-size:34px;color:var(--cream-2)}
+.chit{flex:0 0 232px;background:var(--chit);color:var(--ink);border-radius:2px 2px 6px 6px;position:relative;box-shadow:0 14px 24px -14px rgba(60,45,20,.45);transform-origin:top center;animation:drop .6s cubic-bezier(.2,.9,.3,1.15) both}
+.chit:nth-child(3n+2){transform:rotate(.6deg)}.chit:nth-child(3n){transform:rotate(-.5deg)}
+.chit .clip{position:absolute;top:-14px;left:50%;width:54px;height:22px;margin-left:-27px;border-radius:4px;background:#8C8C86;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.chit .age{height:7px;background:var(--chit-2)}
+.chit .age i{display:block;height:100%;background:var(--ok);transition:width 1s}
+.chit .ch-h{display:flex;align-items:center;gap:8px;padding:16px 14px 10px}
+.chit .tok{font-family:var(--display);font-weight:900;font-size:50px;line-height:.85;white-space:nowrap}
+.chit .ch-h svg{width:24px;height:24px;margin-left:auto;color:var(--ink-2);flex-shrink:0}
+.chit .min{font-family:var(--display);font-weight:800;font-size:26px;padding:2px 8px;border-radius:6px;background:var(--chit-2)}
+.chit .who{padding:0 14px 8px;font-size:17px;font-weight:600;color:var(--ink-2)}
+.chit .perf{height:0;border-top:2px dashed #CFC6B4;margin:4px 10px}
+.chit .items{padding:6px 12px 8px}
+.chit .ln{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:12px 0;align-items:start}
+.chit .ln + .ln{border-top:1px solid #E1D9C9}
+.chit .qty{width:44px;height:44px;border-radius:9px;background:var(--ink);color:var(--chit);display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:30px}
+.chit .qty.one{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+.chit .nm{font-family:var(--hi);font-size:26px;line-height:1.15;padding-top:6px}
+.chit .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:flex-start}
+.chit .tg{font-family:var(--hi);font-size:17px;line-height:1;height:32px;display:inline-flex;align-items:center;padding:2px 9px 0;border-radius:5px;white-space:nowrap}
+.chit .tg.add{background:#F6DE97;color:#5A4300}
+.chit .tg.hot{background:#F3C3B6;color:#7A2410}
+.chit .tg.opt{background:var(--chit-2);color:var(--ink)}
+.chit .tg.note{background:var(--ink);color:var(--chit)}
+.chit .go{margin:12px 10px;height:80px;width:calc(100% - 20px);border-radius:10px;font-family:var(--hi);font-size:32px;display:flex;align-items:center;justify-content:center;gap:12px}
+.chit .go svg{width:28px;height:28px}
+.chit.new .clip{background:var(--benne);box-shadow:0 0 0 4px rgba(245,197,66,.25),inset 0 -3px 0 rgba(0,0,0,.2)}
+.chit.new .go{background:var(--benne);color:var(--benne-ink)}
+.chit.cooking .go{background:var(--ok);color:#fff}
+.chit.warn .min{background:var(--warn);color:var(--ink)}
+.chit.warn .age i{background:var(--warn)}
+.chit.late .min{background:var(--late);color:#fff}
+.chit.late .age i{background:var(--late)}
+.chit.late{box-shadow:0 0 0 3px var(--late),0 14px 24px -14px rgba(60,45,20,.45)}
+@keyframes drop{0%{transform:translateY(-120%) rotate(-4deg);opacity:0}70%{transform:translateY(4%) rotate(1deg);opacity:1}100%{opacity:1}}
+
+.kitchen .pass{grid-row:2/4;grid-column:2;background:var(--s2);border-left:1px solid var(--line);display:flex;flex-direction:column;padding:16px 14px;overflow-y:auto;scrollbar-width:none}
+.kitchen .pass-h{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.kitchen .pass-h svg{width:32px;height:32px;color:var(--benne-fg)}
+.kitchen .pass-h b{font-family:var(--hi);font-size:24px;font-weight:400}
+.kitchen .pass-h span{margin-left:auto;min-width:32px;height:32px;padding:0 8px;border-radius:16px;background:var(--ok);color:#fff;display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:19px}
+.kitchen .pass-h.due span{background:var(--chilli)}
+.kitchen .plate{background:#FFFFFF;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;animation:slidein .45s cubic-bezier(.2,.9,.3,1.1) both}
+.kitchen .plate .row1{display:flex;align-items:center;gap:10px}
+.kitchen .plate .tok{font-family:var(--display);font-weight:900;font-size:46px;line-height:.85;color:var(--ok);white-space:nowrap}
+.kitchen .plate.due .tok{color:var(--chilli)}
+.kitchen .plate svg{width:24px;height:24px;color:var(--cream-3)}
+.kitchen .plate .w{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--display);font-weight:800;font-size:20px;color:var(--cream-2)}
+.kitchen .plate .w i{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.kitchen .plate .w i.long{background:var(--warn)}
+.kitchen .plate .nm2{font-size:14px;color:var(--cream-3);margin:6px 0 10px;line-height:1.35}
+.kitchen .plate .amt{font-family:var(--display);font-weight:900;font-size:30px;color:var(--cream)}
+.kitchen .plate button{width:100%;height:54px;border-radius:10px;border:1.5px solid var(--line);background:var(--s2);color:var(--cream);font-family:var(--hi);font-size:22px;display:flex;align-items:center;justify-content:center;gap:8px}
+.kitchen .plate.due button{background:var(--benne);border-color:var(--benne);color:var(--benne-ink)}
+.kitchen .plate button svg{width:22px;height:22px;color:currentColor}
+.kitchen .pass .gap{height:10px}
+@keyframes slidein{0%{transform:translateX(60px);opacity:0}100%{transform:none;opacity:1}}
+
+.kitchen .tray{grid-column:1;grid-row:3;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--s1);border-top:1px solid var(--line);position:relative}
+.kitchen .onfire{width:46px;height:46px;border-radius:12px;background:rgba(209,79,43,.12);display:grid;place-items:center;color:var(--chilli);margin-right:4px;flex-shrink:0}
+.kitchen .onfire svg{width:24px;height:24px}
+.kitchen .dish{position:relative;width:62px;height:62px;border-radius:50%;flex-shrink:0}
+.kitchen .dish img,.kitchen .dish .ph{width:62px;height:62px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 0 0 3px #FFFFFF}
+.kitchen .dish .ph{background:var(--s3);display:grid;place-items:center;font-family:var(--hi);color:var(--benne-fg);font-size:15px}
+.kitchen .dish b{position:absolute;right:-6px;bottom:-4px;min-width:30px;height:30px;padding:0 6px;border-radius:15px;background:var(--benne);color:var(--benne-ink);display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:20px;box-shadow:0 0 0 3px var(--s1)}
+.kitchen .tray .quiet{font-family:var(--hi);font-size:20px;color:var(--cream-3)}
+.kitchen .toast{position:absolute;right:18px;top:19px;display:flex;align-items:center;gap:12px;height:54px;padding:0 6px 0 14px;border-radius:12px;background:var(--cream);color:var(--bg);font-size:16px;font-weight:600;animation:slidein .3s}
+.kitchen .toast svg{width:22px;height:22px;color:#7FC793}
+.kitchen .toast button{height:42px;padding:0 16px;border-radius:9px;background:var(--bg);color:var(--benne-fg);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;font-family:var(--hi)}
+.kitchen .toast.err{background:var(--chilli);color:#fff}
+
+/* PIN gate */
+.pin{position:absolute;inset:0;z-index:20;background:var(--bg);display:grid;place-items:center}
+.pin .box{text-align:center}
+.pin h2{font-size:56px}
+.pin p{font-family:var(--hi);font-size:24px;color:var(--cream-2);margin:6px 0 22px}
+.pin .dots{display:flex;gap:14px;justify-content:center;margin-bottom:22px}
+.pin .dots i{width:20px;height:20px;border-radius:50%;border:2px solid var(--cream-3)}
+.pin .dots i.f{background:var(--cream);border-color:var(--cream)}
+.pin .pad{display:grid;grid-template-columns:repeat(3,96px);gap:12px;justify-content:center}
+.pin .pad button{height:80px;border-radius:14px;background:var(--s1);border:1.5px solid var(--line);font-family:var(--display);font-weight:800;font-size:36px}
+.pin .bad{color:var(--chilli);font-weight:600;height:24px;margin-top:12px}
