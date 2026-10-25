@@ -438,7 +438,13 @@ function Pay({ priced, lines, type, name, onBack, onChoose }: {
   const choose = async (m: PayMethod) => {
     if (busy) return;
     setBusy(m); setErr(null);
-    try { await onChoose(m); } catch (e) { setErr(e instanceof ApiError ? e.message : 'Could not reach the kitchen. Please try again.'); setBusy(null); }
+    try { await onChoose(m); } catch (e) {
+      // Customers see a calm message; the technical reason stays in the console and server logs.
+      console.error('Order failed', e);
+      const ours = e instanceof ApiError && e.status < 500;
+      setErr(ours ? (e as ApiError).message : 'ऑर्डर अभी नहीं जा पाया। एक बार फिर टैप करें, या काउंटर पर बताइए।');
+      setBusy(null);
+    }
   };
   return (
     <div className="screen k-pay">
