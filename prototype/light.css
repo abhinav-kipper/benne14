@@ -1,0 +1,51 @@
+/* Light-theme overrides for spots that use fixed colours (photo fades, paper, kitchen rail, TV board).
+   Tokens live in theme.css; this file only covers what tokens can't. */
+
+/* Photo headers: fade to paper so dark titles sit on a light ground */
+html[data-theme=light] .hero::after{background:linear-gradient(180deg,rgba(251,247,239,0) 12%,rgba(251,247,239,.55) 40%,rgba(251,247,239,.93) 62%,var(--bg) 90%)}
+html[data-theme=light] .sheet .ph::after{background:linear-gradient(180deg,rgba(255,255,255,0) 10%,rgba(255,255,255,.6) 40%,rgba(255,255,255,.94) 66%,var(--s1) 95%)}
+html[data-theme=light] .sheet{box-shadow:0 -30px 60px rgba(60,45,20,.25)}
+html[data-theme=light] .bgframe{filter:blur(2px) brightness(.75)}
+html[data-theme=light] .close{background:rgba(255,255,255,.9);color:var(--cream)}
+html[data-theme=light] .grab{background:rgba(28,26,21,.35)}
+
+/* Home: soften the photo mosaic into paper, light pill for language */
+html[data-theme=light] .top{background:linear-gradient(180deg,rgba(251,247,239,.95),rgba(251,247,239,0))}
+html[data-theme=light] .mosaic::after{background:linear-gradient(180deg,rgba(251,247,239,.3) 0%,rgba(251,247,239,0) 30%,rgba(251,247,239,0) 55%,var(--bg) 98%)}
+html[data-theme=light] .lang{background:rgba(255,255,255,.85)}
+
+/* Menu cart bar arrow */
+html[data-theme=light] .cartbar .arrow{color:var(--benne)}
+
+/* Paper things stay paper: payment slip, QR cards, token stamp */
+html[data-theme=light] .slip{background:#FFFFFF;color:var(--cream);box-shadow:0 10px 30px -10px rgba(60,45,20,.35)}
+html[data-theme=light] .qrcard,html[data-theme=light] .receipt .q{background:#FFFFFF;box-shadow:0 12px 40px -16px rgba(60,45,20,.35)}
+html[data-theme=light] .qrcard .who{color:var(--cream)}
+html[data-theme=light] .tile.card{background:var(--cream);color:#FBF7EF}
+html[data-theme=light] .tile.cash{background:#FFFFFF}
+
+/* Paid screen */
+html[data-theme=light] .paid{background:rgba(62,124,81,.1);border-color:rgba(62,124,81,.35);color:var(--leaf)}
+html[data-theme=light] .paid i{color:#fff}
+html[data-theme=light] .st.done i{color:#fff}
+html[data-theme=light] .token{box-shadow:0 30px 60px -24px rgba(120,90,10,.45)}
+
+/* Kitchen: warm counter background, white chits, light shelf */
+html[data-theme=light] .screen{background:var(--bg)}
+html[data-theme=light] .railwrap{background:#EEE7D9}
+html[data-theme=light] .chit{--paper:#FFFFFF;--paper-2:#F1EBDF;box-shadow:0 14px 24px -14px rgba(60,45,20,.45)}
+html[data-theme=light] .chit.late{box-shadow:0 0 0 3px var(--late),0 14px 24px -14px rgba(60,45,20,.45)}
+html[data-theme=light] .pass{background:var(--s2)}
+html[data-theme=light] .plate{background:#FFFFFF}
+html[data-theme=light] .plate .tok{color:var(--leaf)}
+html[data-theme=light] .plate button{background:var(--s2)}
+html[data-theme=light] .dish img,html[data-theme=light] .dish .ph{box-shadow:0 0 0 3px #FFFFFF}
+html[data-theme=light] .dish b{box-shadow:0 0 0 3px var(--s1)}
+
+/* TV board */
+html[data-theme=light] .ready .tkt::before,html[data-theme=light] .ready .tkt::after{background:var(--bg)}
+html[data-theme=light] .pc{background:#FFFFFF;box-shadow:0 8px 24px -16px rgba(60,45,20,.4)}
+html[data-theme=light] .hero .tkt{box-shadow:0 40px 80px -30px rgba(160,110,0,.45)}
+html[data-theme=light] .more .tkt{background:#F6E7B5}
+html[data-theme=light] .ready .ic{color:var(--benne-ink)}
+html[data-theme=light] .slip .sf span:last-child{color:var(--cream)}

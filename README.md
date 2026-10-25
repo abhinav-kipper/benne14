@@ -8,7 +8,9 @@ Design prototype. Static HTML screens in `prototype/`, no backend yet. Payments 
 
 ## Prototype
 
-- `prototype/theme.css` — design tokens ("Tawa" direction: cast-iron dark, benne-butter accent; Big Shoulders Display + Familjen Grotesk + Tiro Devanagari Hindi)
+- `prototype/theme.css` — design tokens, dark and light (`?theme=light` on any screen; `light.css` covers fixed-colour spots)
+- `prototype/shots/light/` — light-theme renders (`THEME=light node prototype/shots-all.js`)
+- previously: `prototype/theme.css` — design tokens ("Tawa" direction: cast-iron dark, benne-butter accent; Big Shoulders Display + Familjen Grotesk + Tiro Devanagari Hindi)
 - `prototype/menu.js` — menu data (real launch prices, Hindi names + descriptions)
 - `prototype/kiosk-*.html` — kiosk screens, 800×1280 portrait: home → menu → item → cart → pay → pay-upi → done
 - `prototype/kitchen.html` — kitchen display, 1280×800 landscape (`node prototype/shot.js prototype/kitchen.html out.png 1280 800`)

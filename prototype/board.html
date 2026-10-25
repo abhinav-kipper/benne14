@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920">
 <title>Benne 14 — Order board</title>
+<script src="theme.js"></script>
 <link rel="stylesheet" href="theme.css">
 <style>
   .screen{width:1920px;height:1080px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);grid-template-rows:96px 1fr 150px;overflow:hidden;background:#0D0D0B}
   .top{grid-column:1/3;display:flex;align-items:center;padding:0 48px;border-bottom:1px solid var(--line)}
   .logo{font-family:var(--display);font-weight:900;font-size:52px;text-transform:uppercase;line-height:1}
-  .logo i{font-style:normal;color:var(--benne)}
+  .logo i{font-style:normal;color:var(--benne-fg)}
   .logo small{font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:.2em;color:var(--cream-3);margin-left:16px;vertical-align:middle}
   .top .clock{margin-left:auto;font-family:var(--display);font-weight:800;font-size:48px;color:var(--cream-2)}
 
@@ -32,7 +33,7 @@
   .hero .tkt{transform:rotate(-2deg)}
   .hero .tkt .num{font-size:250px}
   .callout{font-family:var(--hi);font-size:52px;line-height:1.25;min-width:330px}
-  .callout b{color:var(--benne);font-weight:400}
+  .callout b{color:var(--benne-fg);font-weight:400}
   .callout small{display:block;font-family:var(--body);font-size:26px;color:var(--cream-2);margin-top:14px}
   .more{display:flex;gap:28px;margin-top:auto}
   .more .tkt{flex:1;background:#E9D9A6}
@@ -59,7 +60,7 @@
   .promo .t{font-family:var(--display);font-weight:900;font-size:56px;text-transform:uppercase;line-height:.9}
   .promo .hi{font-size:30px;color:var(--cream-2);margin-top:6px}
   .promo .p{margin-left:auto;display:flex;align-items:baseline;gap:14px}
-  .promo .p b{font-family:var(--display);font-weight:900;font-size:80px;color:var(--benne)}
+  .promo .p b{font-family:var(--display);font-weight:900;font-size:80px;color:var(--benne-fg)}
   .promo .p s{font-family:var(--display);font-weight:700;font-size:36px;color:var(--cream-3)}
   .promo .dots{display:flex;gap:10px;margin-left:40px}
   .promo .dots i{width:12px;height:12px;border-radius:50%;background:var(--s3)}
@@ -72,6 +73,7 @@
   @keyframes fadeout{to{opacity:0;transform:scale(.9)}}
   .pc.leaving{animation:fadeout .5s forwards}
 </style>
+<link rel="stylesheet" href="light.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">

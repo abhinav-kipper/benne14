@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=800">
 <title>Benne 14 — Item detail</title>
+<script src="theme.js"></script>
 <link rel="stylesheet" href="theme.css">
 <style>
   .bgframe{position:absolute;inset:0;width:800px;height:1280px;border:0;filter:blur(2px) brightness(.45)}
@@ -16,7 +17,7 @@
   .body{flex:1;overflow:hidden;padding:0 36px}
   .head{position:absolute;left:36px;right:36px;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;z-index:1}
   h1{font-size:76px;line-height:.82}
-  .k{font-size:22px;color:var(--benne);margin-top:8px}
+  .k{font-size:22px;color:var(--benne-fg);margin-top:8px}
   .desc{font-size:20px;margin:14px 0 4px;max-width:640px;color:var(--cream)}
   .incl{display:block;font-family:var(--body);font-size:14px;color:var(--cream-3);margin-top:6px;letter-spacing:.02em}
 
@@ -29,8 +30,8 @@
   .opt{height:70px;border-radius:12px;border:1.5px solid var(--line);background:var(--s2);display:flex;flex-direction:column;justify-content:center;padding:0 18px;color:var(--cream);text-align:left}
   .opt b{font-size:19px;font-weight:600}
   .opt small{font-size:13px;color:var(--cream-3);margin-top:2px}
-  .opt.on{border-color:var(--benne);background:rgba(245,197,66,.1)}
-  .opt.on small{color:var(--benne)}
+  .opt.on{border-color:var(--benne-fg);background:rgba(245,197,66,.1)}
+  .opt.on small{color:var(--benne-fg)}
   .heat{display:flex;gap:4px;margin-top:5px}
   .heat i{width:16px;height:5px;border-radius:2px;background:var(--s3)}
   .heat i.f{background:var(--chilli)}
@@ -38,11 +39,11 @@
   .adds{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .addon{height:66px;border-radius:12px;border:1.5px solid var(--line);background:var(--s2);display:flex;align-items:center;gap:14px;padding:0 16px}
   .box{width:30px;height:30px;border-radius:8px;border:2px solid var(--cream-3);display:grid;place-items:center;font-size:18px;font-weight:800;flex-shrink:0}
-  .addon.on{border-color:var(--benne)}
-  .addon.on .box{background:var(--benne);border-color:var(--benne);color:var(--benne-ink)}
+  .addon.on{border-color:var(--benne-fg)}
+  .addon.on .box{background:var(--benne);border-color:var(--benne-fg);color:var(--benne-ink)}
   .addon b{flex:1;font-size:17px;font-weight:600}
   .addon .p{font-family:var(--display);font-weight:800;font-size:22px;color:var(--cream-2)}
-  .addon.on .p{color:var(--benne)}
+  .addon.on .p{color:var(--benne-fg)}
 
   .notes{display:flex;flex-wrap:wrap;gap:10px}
   .note{height:50px;padding:0 17px;border-radius:999px;border:1.5px solid var(--line);display:flex;align-items:center;font-size:16px;color:var(--cream-2)}
@@ -60,6 +61,7 @@
   .pair span{font-size:14px;color:var(--cream-3)}
   .grp{padding:14px 0}
 </style>
+<link rel="stylesheet" href="light.css">
 </head>
 <body>
 <div class="screen">

@@ -5,9 +5,18 @@
   --bg:#121210; --s1:#1B1A16; --s2:#25231E; --s3:#2F2C26; --line:#34312A;
   --cream:#F4ECDD; --cream-2:#B8AE9C; --cream-3:#7D7566;
   --benne:#F5C542; --benne-ink:#1A1608; --leaf:#5E9A6C; --chilli:#E2603F;
+  --benne-fg:var(--benne);   /* yellow used as text/outline; darker in light theme for contrast */
+  --shade:rgba(0,0,0,.5);
   --display:"Big Shoulders Display",sans-serif;
   --body:"Familjen Grotesk",sans-serif;
   --hi:"Tiro Devanagari Hindi",serif;
+}
+/* Light theme — warm paper, like the restaurant's white sign and cream walls. */
+html[data-theme=light]{
+  --bg:#FBF7EF; --s1:#FFFFFF; --s2:#F4EEE2; --s3:#E9E1D2; --line:#E2D8C7;
+  --cream:#1C1A15; --cream-2:#5C5649; --cream-3:#8C8473;
+  --benne:#F5C542; --benne-ink:#1A1608; --leaf:#3E7C51; --chilli:#D14F2B;
+  --benne-fg:#9C6A00; --shade:rgba(60,45,20,.18);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--cream);font-family:var(--body);-webkit-font-smoothing:antialiased}
@@ -18,13 +27,13 @@ button{font-family:inherit;cursor:pointer}
 .hi{font-family:var(--hi)}
 .eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3)}
 
-.price{font-family:var(--display);font-weight:800;font-size:30px;color:var(--benne);letter-spacing:.01em}
+.price{font-family:var(--display);font-weight:800;font-size:30px;color:var(--benne-fg);letter-spacing:.01em}
 .mrp{font-family:var(--display);font-weight:600;font-size:18px;color:var(--cream-3);text-decoration:line-through;margin-left:8px}
 
 .step{display:flex;align-items:center;background:var(--benne);color:var(--benne-ink);border-radius:10px;height:56px}
 .step button{width:54px;height:56px;border:0;background:none;font-size:28px;font-weight:600;color:var(--benne-ink)}
 .step span{min-width:24px;text-align:center;font-family:var(--display);font-weight:800;font-size:24px}
-.add{height:56px;width:56px;border-radius:10px;border:1.5px solid var(--benne);background:none;color:var(--benne);font-size:30px;font-weight:400}
+.add{height:56px;width:56px;border-radius:10px;border:1.5px solid var(--benne-fg);background:none;color:var(--benne-fg);font-size:30px;font-weight:400}
 
 .btn-benne{height:84px;border:0;border-radius:14px;background:var(--benne);color:var(--benne-ink);display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:22px;font-weight:700}
 .btn-benne .amt{font-family:var(--display);font-weight:900;font-size:36px}

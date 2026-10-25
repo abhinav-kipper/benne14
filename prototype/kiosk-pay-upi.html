@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=800">
 <title>Benne 14 — Scan &amp; pay</title>
+<script src="theme.js"></script>
 <link rel="stylesheet" href="theme.css">
 <style>
   .screen{display:flex;flex-direction:column;align-items:center;padding:28px 32px}
@@ -22,7 +23,7 @@
   .qrcard .who b{font-family:var(--display);font-weight:900;font-size:30px;text-transform:uppercase}
   .qrcard .who span{font-family:var(--display);font-weight:900;font-size:40px}
   .qrcard .who small{display:block;font-size:13px;color:#6E6757;margin-top:2px}
-  .corner{position:absolute;width:44px;height:44px;border:5px solid var(--benne)}
+  .corner{position:absolute;width:44px;height:44px;border:5px solid var(--benne-fg)}
   .c1{top:-10px;left:-10px;border-right:0;border-bottom:0;border-radius:18px 0 0 0}
   .c2{top:-10px;right:-10px;border-left:0;border-bottom:0;border-radius:0 18px 0 0}
   .c3{bottom:-10px;left:-10px;border-right:0;border-top:0;border-radius:0 0 0 18px}
@@ -39,17 +40,18 @@
   .demo{display:inline-block;margin-top:8px;font-size:11px;letter-spacing:.14em;color:var(--cream-3);border:1px dashed var(--line);padding:6px 10px;border-radius:6px}
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px;align-self:stretch}
   .steps div{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:16px;font-weight:600;display:flex;flex-direction:column;gap:4px}
-  .steps b{font-family:var(--display);font-weight:900;font-size:30px;color:var(--benne);line-height:1}
+  .steps b{font-family:var(--display);font-weight:900;font-size:30px;color:var(--benne-fg);line-height:1}
   .steps span{font-size:15px;font-weight:400;color:var(--cream-3)}
   .wait{margin-top:22px}
 </style>
+<link rel="stylesheet" href="light.css">
 </head>
 <body>
 <div class="screen">
   <div class="bar">
     <button class="back"><span style="font-size:26px">←</span>Other ways to pay</button>
     <div class="timer">QR valid for
-      <div class="ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="#34312A" stroke-width="5"/><circle cx="32" cy="32" r="28" fill="none" stroke="#F5C542" stroke-width="5" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="28"/></svg><b>4:12</b></div>
+      <div class="ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="#34312A" stroke-width="5"/><circle cx="32" cy="32" r="28" fill="none" stroke="var(--benne-fg)" stroke-width="5" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="28"/></svg><b>4:12</b></div>
     </div>
   </div>
 

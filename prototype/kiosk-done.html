@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=800">
 <title>Benne 14 — Order placed</title>
+<script src="theme.js"></script>
 <link rel="stylesheet" href="theme.css">
 <style>
   .screen{display:flex;flex-direction:column;align-items:center;padding:40px 36px 30px}
@@ -11,7 +12,7 @@
   .paid i{width:38px;height:38px;border-radius:50%;background:var(--leaf);color:#0F1A12;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:20px}
   .thanks{margin-top:44px;text-align:center}
   .thanks h1{font-size:30px;font-weight:400;font-family:var(--hi);line-height:1.3}
-  .thanks h1 b{color:var(--benne);font-weight:400}
+  .thanks h1 b{color:var(--benne-fg);font-weight:400}
 
   /* the token: a darshini-style paper token, perforated, slightly tilted */
   .token{margin-top:56px;width:560px;background:var(--benne);color:var(--benne-ink);border-radius:22px;position:relative;transform:rotate(-2deg);box-shadow:0 30px 60px -20px rgba(0,0,0,.7)}
@@ -25,7 +26,7 @@
   .token .tb span{font-family:var(--display);font-weight:800;font-size:26px;text-transform:uppercase}
 
   .watch{margin-top:60px;display:flex;align-items:center;gap:18px;font-size:19px;color:var(--cream-2);text-align:left}
-  .watch svg{width:56px;height:56px;flex-shrink:0;color:var(--benne)}
+  .watch svg{width:56px;height:56px;flex-shrink:0;color:var(--benne-fg)}
   .watch b{color:var(--cream);display:block;font-size:22px}
 
   .receipt{margin-top:auto;align-self:stretch;background:var(--s1);border:1px solid var(--line);border-radius:20px;padding:22px;display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:center}
@@ -47,12 +48,13 @@
   .st span{font-size:15px;color:var(--cream-3)}
   .st.done i{background:var(--leaf);border-color:var(--leaf);color:#0F1A12}
   .st.done b{color:var(--cream-2)}
-  .st.now i{border-color:var(--benne);box-shadow:0 0 0 6px rgba(245,197,66,.15)}
+  .st.now i{border-color:var(--benne-fg);box-shadow:0 0 0 6px rgba(245,197,66,.15)}
   .st.now i::after{content:"";width:16px;height:16px;border-radius:50%;background:var(--benne)}
   .st.now b{color:var(--cream)}
   .ln{flex:1;height:3px;background:var(--line);margin-top:21px;border-radius:2px}
   .ln.on{background:linear-gradient(90deg,var(--leaf),var(--benne))}
 </style>
+<link rel="stylesheet" href="light.css">
 </head>
 <body>
 <div class="screen">

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=800">
 <title>Benne 14 — Your order</title>
+<script src="theme.js"></script>
 <link rel="stylesheet" href="theme.css">
 <style>
   .screen{display:flex;flex-direction:column}
@@ -11,7 +12,7 @@
   .back{height:64px;padding:0 22px 0 18px;border-radius:12px;border:1.5px solid var(--line);background:var(--s1);color:var(--cream);font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
   .back span{font-size:26px;line-height:1}
   .top h1{font-size:56px;line-height:.9;flex:1}
-  .top h1 small{display:block;font-family:var(--hi);text-transform:none;font-size:20px;font-weight:400;color:var(--benne);margin-top:4px;letter-spacing:0}
+  .top h1 small{display:block;font-family:var(--hi);text-transform:none;font-size:20px;font-weight:400;color:var(--benne-fg);margin-top:4px;letter-spacing:0}
   .seg{display:flex;background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:5px}
   .seg span{height:54px;padding:0 20px;display:grid;place-items:center;border-radius:10px;font-size:17px;font-weight:600;color:var(--cream-3)}
   .seg span.on{background:var(--cream);color:var(--bg)}
@@ -21,10 +22,10 @@
   .line .ph{width:104px;height:104px;border-radius:12px;overflow:hidden}
   .line .ph img{width:100%;height:100%;object-fit:cover}
   .line h3{font-size:24px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
-  .line .hi{font-size:17px;color:var(--benne);opacity:.85;margin:2px 0 8px}
+  .line .hi{font-size:17px;color:var(--benne-fg);opacity:.85;margin:2px 0 8px}
   .mods{display:flex;flex-wrap:wrap;gap:6px}
   .mods span{font-size:14px;padding:5px 10px;border-radius:6px;background:var(--s2);color:var(--cream-2)}
-  .mods span.paid{color:var(--benne)}
+  .mods span.paid{color:var(--benne-fg)}
   .edit{display:inline-block;margin-top:12px;font-size:15px;font-weight:600;color:var(--cream-2);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--cream-3)}
   .right{display:flex;flex-direction:column;align-items:flex-end;gap:14px}
   .right .price{font-size:32px}
@@ -52,7 +53,7 @@
   .row.muted .v{color:var(--cream-3)}
   .total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--line);margin:8px 22px 0;padding:14px 0 18px}
   .total span{font-size:15px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-2)}
-  .total b{font-family:var(--display);font-weight:900;font-size:48px;color:var(--benne);line-height:.9}
+  .total b{font-family:var(--display);font-weight:900;font-size:48px;color:var(--benne-fg);line-height:.9}
 
   .foot{border-top:1px solid var(--line);padding:18px 24px 22px;display:flex;flex-direction:column;gap:10px}
   .foot .btn-benne{height:96px;font-size:26px}
@@ -64,6 +65,7 @@
   .name span{font-size:14px;color:var(--cream-3)}
   .name button{height:56px;padding:0 22px;border-radius:12px;border:1.5px solid var(--cream-2);background:none;color:var(--cream);font-size:17px;font-weight:600}
 </style>
+<link rel="stylesheet" href="light.css">
 </head>
 <body>
 <div class="screen">
