@@ -4,13 +4,13 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Now
 
-**v1 (thin end-to-end slice) on `feat/v1-skeleton`.** Kiosk → kitchen → TV board → phone bill works on the in-memory store; Supabase store + migration written, not yet connected.
+**v1 live on the Vercel preview, connected to Supabase** (`feat/v1-skeleton`). Full flow verified on the live link: kiosk order → kitchen (PIN) → TV board → phone bill, plus cash via the counter. Check setup any time at `/api/health`.
 
 ## Up next
 
-1. Connect Supabase: run `supabase/migrations/0001_orders.sql` in the SQL editor; add `SUPABASE_SECRET_KEY` and `STAFF_PIN` to Vercel (and the Claude environment).
-2. Vercel preview on the real devices: kiosk tablet (portrait), kitchen tablet, TV.
-3. Owner feedback round on the live preview, then merge to `main`.
+1. Owner tries the preview on the real devices: kiosk tablet (portrait), kitchen tablet, TV.
+2. Rotate the Supabase secret key (it was pasted in chat) and pick a new STAFF_PIN before real use.
+3. Feedback round, then merge to `main` (production URL).
 4. M4 owner admin (prices, sold-out) — moves the menu into the DB.
 
 ## v1 shortcuts (deliberate, see docs/BUILD_PLAN.md)
@@ -29,8 +29,15 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 - Tablet model / Android version; receipt printer; shop Wi-Fi reliability.
 - Real dish photos (current ones are Wikimedia placeholders; filter coffee has none).
 
+## Gotchas
+
+- Free-tier Supabase pauses after inactivity; `/api/health` then shows a 521/522. Restore it in the dashboard.
+- e2e tests blank the Supabase vars and refuse to run unless the store is `memory`, so they never write to the real DB.
+- Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
+
 ## Done
 
+- 2026-11-10 — v1 live on the preview with Supabase; fixed kitchen cards jumping after a tap, hydration warning, friendly kiosk errors; e2e locked to the memory store.
 - 2026-10-25 — v1 slice: Next.js 15 app (kiosk, kitchen, board, phone bill), server-side pricing with GST, idempotent orders with daily tokens, staff PIN, 15 unit + 3 e2e tests, CI.
 - 2026-10-25 — Light theme for all prototype screens; build plan + CLAUDE.md.
 - 2026-10 — Design prototype (kiosk, kitchen, TV board) and Hindi-voiced walkthrough video.
