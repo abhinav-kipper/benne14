@@ -1,6 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const PIN = '2468';
+
+// Safety first: these tests place orders, so they must only ever run against the in-memory store.
+test.beforeAll(async ({ request }) => {
+  const h = await (await request.get('/api/health')).json();
+  if (h.store !== 'memory') throw new Error(`Refusing to run e2e against the ${h.store} store`);
+});
 const staff = async (page: Page) => page.addInitScript((pin) => localStorage.setItem('benne14.staffPin', pin), PIN);
 
 test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
@@ -49,6 +55,11 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await phone.goto(`/r/${id}`);
   await expect(phone.getByTestId('receipt-status')).toContainText('तैयार');
   await expect(phone.locator('.tot b')).toHaveText('₹330');
+
+  // Hand it over so the next test starts with a clear board, like a real shift.
+  await kitchen.locator('.plate', { hasText: token }).getByRole('button').click({ timeout: 5000 }); // दे दिया
+  await expect(kitchen.locator('.plate', { hasText: token })).toHaveCount(0, { timeout: 5000 });
+  await expect(board.getByTestId('board-hero')).toHaveCount(0, { timeout: 5000 });
 });
 
 test('cash order waits for the counter before reaching the rail', async ({ browser }) => {
@@ -70,6 +81,13 @@ test('cash order waits for the counter before reaching the rail', async ({ brows
   await expect(kitchen.getByTestId(`chit-${token}`)).toHaveCount(0);
   await kitchen.locator('.plate.due', { hasText: token }).getByRole('button').click(); // पैसे मिल गए
   await expect(kitchen.getByTestId(`chit-${token}`)).toBeVisible({ timeout: 5000 });
+  // and the cook can take it all the way through without the chit jumping around
+  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // शुरू करो
+  await expect(kitchen.getByTestId(`go-${token}`)).toContainText('तैयार');
+  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // तैयार
+  await expect(kitchen.locator('.plate', { hasText: token })).toBeVisible({ timeout: 5000 });
+  await kitchen.locator('.plate', { hasText: token }).getByRole('button').click({ timeout: 5000 }); // दे दिया
+  await expect(kitchen.locator('.plate', { hasText: token })).toHaveCount(0, { timeout: 5000 });
 });
 
 test('status changes need the staff PIN', async ({ request }) => {
