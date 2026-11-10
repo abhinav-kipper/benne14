@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { itemById, photoOf } from '@/lib/menu';
 import { minutesSince, type Order, type OrderStatus } from '@/lib/orders';
-import { api, ApiError, chime, useLiveOrders } from '@/lib/client';
+import { api, ApiError, chime, useFreshIds, useLiveOrders } from '@/lib/client';
 
 const WARN_MIN = 8;
 const LATE_MIN = 12;
@@ -25,9 +25,10 @@ export default function Kitchen() {
   const [pinChecked, setPinChecked] = useState(false);
   useEffect(() => { setPin(localStorage.getItem(PIN_KEY)); setPinChecked(true); }, []);
 
-  const { orders, setOrders, online, refresh } = useLiveOrders(1500);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(t); }, []);
+  const { orders, setOrders, online, refresh, noteLocalChange } = useLiveOrders(1500);
+  // Clock starts in the browser only: a time rendered at build/server time would never match (React #418).
+  const [now, setNow] = useState(0);
+  useEffect(() => { setNow(Date.now()); const t = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(t); }, []);
 
   // Sound: browsers only play audio after a tap, so the cook taps "आवाज़" once after opening.
   const audio = useRef<AudioContext | null>(null);
@@ -46,9 +47,11 @@ export default function Kitchen() {
   const move = async (o: Order, to: OrderStatus, undoable = true) => {
     if (!pin) return;
     const from = o.status;
+    noteLocalChange();
     setOrders((cur) => cur?.map((x) => (x.id === o.id ? { ...x, status: to, readyAt: to === 'ready' ? new Date().toISOString() : x.readyAt } : x)) ?? cur);
     try {
       await api.setStatus(o.id, to, pin);
+      noteLocalChange();
       setToast(undoable && UNDO_TEXT[to] ? { text: `${o.token} ${UNDO_TEXT[to]}`, undo: { id: o.id, to: from } } : null);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) { localStorage.removeItem(PIN_KEY); setPin(null); }
@@ -61,12 +64,14 @@ export default function Kitchen() {
   const rail = list.filter((o) => o.status === 'new' || o.status === 'cooking');
   const ready = list.filter((o) => o.status === 'ready').sort((a, b) => (b.readyAt ?? '').localeCompare(a.readyAt ?? ''));
   const due = list.filter((o) => o.status === 'awaiting_cash');
+  const fresh = useFreshIds(list.map((o) => `${o.id}:${o.status === 'cooking' ? 'new' : o.status}`));
+  const isFresh = (o: Order) => fresh.has(`${o.id}:${o.status === 'cooking' ? 'new' : o.status}`);
   const tray = useMemo(() => {
     const m = new Map<string, number>();
     for (const o of rail) for (const l of o.lines) m.set(l.itemId, (m.get(l.itemId) ?? 0) + l.qty);
     return [...m.entries()].sort((a, b) => (itemById(a[0])?.cat ?? '').localeCompare(itemById(b[0])?.cat ?? ''));
   }, [rail]);
-  const clock = new Date(now).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
+  const clock = !now ? '' : new Date(now).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
 
   return (
     <div className="kitchen">
@@ -86,7 +91,7 @@ export default function Kitchen() {
       <div className="railwrap">
         <div className="rail" />
         <div className="chits">
-          {rail.map((o) => <Chit key={o.id} o={o} now={now} onGo={() => move(o, o.status === 'new' ? 'cooking' : 'ready')} />)}
+          {rail.map((o) => <Chit key={o.id} o={o} now={now} fresh={isFresh(o)} onGo={() => move(o, o.status === 'new' ? 'cooking' : 'ready')} />)}
         </div>
         {orders && rail.length === 0 && <div className="empty"><div><b>अभी कोई ऑर्डर नहीं</b>New orders drop onto this rail with a chime.</div></div>}
       </div>
@@ -95,7 +100,7 @@ export default function Kitchen() {
         {due.length > 0 && <>
           <div className="pass-h due"><Rupee /><b>पैसे लेने हैं</b><span>{due.length}</span></div>
           {due.map((o) => (
-            <div className="plate due" key={o.id}>
+            <div className={`plate due ${isFresh(o) ? 'fresh' : ''}`} key={o.id}>
               <div className="row1"><span className="tok">{o.token}</span>{o.type === 'dine_in' ? <Dine /> : <Bag />}<span className="w amt">₹{o.total}</span></div>
               <div className="nm2">{o.payMethod === 'card' ? 'कार्ड मशीन' : 'नकद'}{o.customerName ? ` · ${o.customerName}` : ''} · {o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}</div>
               <button onClick={() => move(o, 'new', false)}><Check />पैसे मिल गए</button>
@@ -107,7 +112,7 @@ export default function Kitchen() {
         {ready.map((o) => {
           const w = o.readyAt ? minutesSince(o.readyAt, now) : 0;
           return (
-            <div className="plate" key={o.id}>
+            <div className={`plate ${isFresh(o) ? 'fresh' : ''}`} key={o.id}>
               <div className="row1"><span className="tok">{o.token}</span>{o.type === 'dine_in' ? <Dine /> : <Bag />}<span className="w"><i className={w >= 3 ? 'long' : ''} />{w}′</span></div>
               <div className="nm2">{o.customerName ? `${o.customerName} · ` : ''}{o.lines.map((l) => `${l.qty} ${l.hi}`).join(', ')}</div>
               <button onClick={() => move(o, 'handed_over')}><Hand />दे दिया</button>
@@ -136,11 +141,11 @@ export default function Kitchen() {
   );
 }
 
-function Chit({ o, now, onGo }: { o: Order; now: number; onGo: () => void }) {
+function Chit({ o, now, fresh, onGo }: { o: Order; now: number; fresh: boolean; onGo: () => void }) {
   const m = minutesSince(o.paidAt ?? o.createdAt, now);
   const age = m >= LATE_MIN ? 'late' : m >= WARN_MIN ? 'warn' : '';
   return (
-    <div className={`chit ${o.status} ${age}`} data-testid={`chit-${o.token}`}>
+    <div className={`chit ${o.status} ${age} ${fresh ? 'fresh' : ''}`} data-testid={`chit-${o.token}`}>
       <span className="clip" />
       <div className="age"><i style={{ width: `${Math.min(100, (m / 15) * 100)}%` }} /></div>
       <div className="ch-h"><span className="tok">{o.token}</span>{o.type === 'dine_in' ? <Dine /> : <Bag />}<span className="min">{m}′</span></div>

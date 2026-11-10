@@ -31,17 +31,26 @@ export function useLiveOrders(intervalMs = 1500) {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [online, setOnline] = useState(true);
   const busy = useRef(false);
+  const localAt = useRef(0);
   const refresh = useCallback(async () => {
     if (busy.current) return;
     busy.current = true;
-    try { setOrders(await api.live()); setOnline(true); } catch { setOnline(false); } finally { busy.current = false; }
+    const started = Date.now();
+    try {
+      const data = await api.live();
+      // A poll that began before the latest tap on this screen carries stale state; dropping it
+      // stops the order from flickering back (and replaying its animation) after a tap.
+      if (started >= localAt.current) setOrders(data);
+      setOnline(true);
+    } catch { setOnline(false); } finally { busy.current = false; }
   }, []);
+  const noteLocalChange = useCallback(() => { localAt.current = Date.now(); }, []);
   useEffect(() => {
     refresh();
     const t = setInterval(refresh, intervalMs);
     return () => clearInterval(t);
   }, [refresh, intervalMs]);
-  return { orders, setOrders, online, refresh };
+  return { orders, setOrders, online, refresh, noteLocalChange };
 }
 
 export function useOrder(id: string | null, intervalMs = 1500) {
@@ -67,6 +76,22 @@ export function chime(ctx: AudioContext | null, notes = [880, 1320]) {
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
     o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.55);
   });
+}
+
+// Ids that appeared for the first time within the last `ms`. Used so entrance animations play once
+// per order, not again whenever a list re-sorts and React moves the card.
+export function useFreshIds(ids: string[], ms = 1500): Set<string> {
+  const firstSeen = useRef(new Map<string, number>());
+  const [, tick] = useState(0);
+  const now = Date.now();
+  for (const id of ids) if (!firstSeen.current.has(id)) firstSeen.current.set(id, now);
+  const fresh = new Set(ids.filter((id) => now - firstSeen.current.get(id)! < ms));
+  useEffect(() => {
+    if (!fresh.size) return;
+    const t = setTimeout(() => tick((n) => n + 1), ms);
+    return () => clearTimeout(t);
+  });
+  return fresh;
 }
 
 export const newKey = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);

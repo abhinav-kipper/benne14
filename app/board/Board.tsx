@@ -12,9 +12,10 @@ const Flame = () => <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c
 
 export default function Board() {
   const { orders, online } = useLiveOrders(1500);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0); // set in the browser; a server-rendered time would mismatch (React #418)
   const [promo, setPromo] = useState(0);
   useEffect(() => {
+    setNow(Date.now());
     const t = setInterval(() => { setNow(Date.now()); setPromo((p) => (p + 1) % PROMOS.length); }, 8000);
     return () => clearInterval(t);
   }, []);
@@ -24,7 +25,7 @@ export default function Board() {
   const prep = list.filter((o) => o.status === 'new' || o.status === 'cooking');
   const hero = ready[0];
   const p = itemById(PROMOS[promo])!;
-  const clock = new Date(now).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
+  const clock = !now ? '' : new Date(now).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
 
   return (
     <div className="board">
