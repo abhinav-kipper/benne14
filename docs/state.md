@@ -8,6 +8,8 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Up next
 
+- **Payments: read `docs/payments.md`** (live setup, test mode, Paytm card-machine cloud integration = next, Paytm gateway blocked by their maintenance, Razorpay parked).
+
 - **Before launch: set `TEST_MODE=0` in Vercel** (test mode: cash counts as paid, ₹1 test item, red ribbon on the kiosk).
 
 0. Test real UPI with a ₹44 masala tea from GPay, PhonePe and Paytm; check the soundbox announces and the payee shows correctly.
@@ -34,6 +36,10 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 - Real dish photos (current ones are Wikimedia placeholders; filter coffee has none).
 
 ## Gotchas
+
+- The Claude environment has the live Supabase keys: anything run locally can hit the real DB. For local runs blank them (`NEXT_PUBLIC_SUPABASE_URL= SUPABASE_SECRET_KEY=`); e2e already does and refuses otherwise.
+- Don't stop servers with `pkill -f next…` / a loop whose pattern appears in the same command line: it kills the shell. Put the loop in a script file and run the file.
+- Live preview (stable branch link): https://benne14-git-feat-v1-skeleton-abhinav-mudgal-s-projects.vercel.app — check `/api/health`.
 
 - Free-tier Supabase pauses after inactivity; `/api/health` then shows a 521/522. Restore it in the dashboard.
 - e2e tests blank the Supabase vars and refuse to run unless the store is `memory`, so they never write to the real DB.
