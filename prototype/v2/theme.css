@@ -1,0 +1,47 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+/* Benne 14 v2 — "Ivory & Leaf": warm ivory, deep green, one sans. English only. No motion. */
+:root{
+  --bg:#FAF6EE; --card:#FFFFFF; --soft:#F3EDE1; --line:#E7DFD0;
+  --ink:#1D2A22; --ink-2:#56625A; --ink-3:#7A847D;
+  --green:#1F5E3B; --green-2:#174A2E; --on-green:#FFFFFF; --green-soft:#E5EFE7; --green-fg:#1F5E3B;
+  --butter:#F4CB55; --butter-soft:#FBEFC8; --on-butter:#2B2310;
+  --chilli:#B4472F; --chilli-soft:#F7E2DC;
+  --amber:#B7791F; --amber-soft:#FBEBD0;
+  --r-s:10px; --r-m:16px; --r-l:22px; --r-xl:28px; --pill:999px;
+  --lift:0 1px 2px rgba(29,42,34,.06),0 8px 24px -12px rgba(29,42,34,.18);
+  --sans:"Plus Jakarta Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+img{display:block}
+.screen{width:800px;height:1280px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.price{font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.was{font-weight:500;color:var(--ink-3);text-decoration:line-through;margin-left:8px;font-size:.7em}
+.label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+
+/* brand */
+.mark{display:flex;align-items:center;gap:12px}
+.mark .seal{width:52px;height:52px;border-radius:50%;background:var(--green);color:var(--on-green);display:grid;place-items:center;font-weight:800;font-size:20px;letter-spacing:-.02em}
+.mark b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.mark small{display:block;font-size:13px;color:var(--ink-3);margin-top:3px}
+
+/* buttons */
+.btn{height:80px;border-radius:var(--r-l);background:var(--green);color:var(--on-green);display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:22px;font-weight:700;width:100%}
+.btn .amt{font-size:26px;font-weight:800}
+.btn.ghost{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line);justify-content:center}
+.back{height:60px;padding:0 22px 0 16px;border-radius:var(--pill);background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);font-size:18px;font-weight:600;display:inline-flex;align-items:center;gap:8px}
+.add{width:56px;height:56px;border-radius:50%;background:var(--green);color:var(--on-green);font-size:30px;font-weight:500;display:grid;place-items:center;flex-shrink:0}
+.qty{display:inline-flex;align-items:center;height:56px;border-radius:var(--pill);background:var(--green-soft);color:var(--green)}
+.qty button{width:52px;height:56px;font-size:26px;font-weight:600;color:var(--green)}
+.qty span{min-width:22px;text-align:center;font-weight:800;font-size:20px}
+
+/* cart bar */
+.cartbar{position:absolute;left:24px;right:24px;bottom:24px;height:92px;border-radius:var(--r-l);background:var(--green);color:var(--on-green);display:flex;align-items:center;padding:0 16px 0 28px;gap:16px;box-shadow:var(--lift)}
+.cartbar .n{width:44px;height:44px;border-radius:50%;background:var(--butter);color:var(--on-butter);display:grid;place-items:center;font-weight:800;font-size:20px}
+.cartbar .t{font-size:20px;font-weight:600}
+.cartbar .go{margin-left:auto;height:60px;padding:0 24px;border-radius:var(--r-m);background:var(--card);color:var(--green);display:flex;align-items:center;gap:12px;font-size:20px;font-weight:800}
+
+.veg{width:16px;height:16px;border:1.5px solid var(--green);border-radius:3px;display:inline-grid;place-items:center;vertical-align:-2px;margin-right:6px}
+.veg::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--green)}
+.nophoto{width:100%;height:100%;display:grid;place-items:center;background:var(--butter-soft);color:var(--amber);font-weight:700;font-size:15px}

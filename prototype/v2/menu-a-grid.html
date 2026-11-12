@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Menu A — rail + photo grid</title><link rel="stylesheet" href="theme.css"><style>
+.screen{flex-direction:row}
+aside{width:200px;background:var(--card);border-right:1px solid var(--line);padding:32px 18px;display:flex;flex-direction:column;gap:28px}
+.cat{height:64px;border-radius:var(--r-m);padding:0 18px;display:flex;align-items:center;font-size:19px;font-weight:600;color:var(--ink-2)}
+.cat.on{background:var(--green-soft);color:var(--green);font-weight:800}
+main{flex:1;padding:32px 28px 140px;overflow:hidden}
+h1{font-size:40px;font-weight:800;letter-spacing:-.03em}
+.sub{font-size:17px;color:var(--ink-2);margin:6px 0 24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:var(--card);border-radius:var(--r-l);overflow:hidden;box-shadow:var(--lift)}
+.card .ph{height:200px}.card img{width:100%;height:100%;object-fit:cover}
+.card .b{padding:16px 18px 18px}
+.card h3{font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.2;min-height:46px}
+.card .row{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.card .price{font-size:22px}
+</style></head><body><div class="screen">
+<aside><div class="mark"><span class="seal">14</span><div><b>Benne 14</b><small>Bangalore dosa</small></div></div>
+<div id="cats" style="display:flex;flex-direction:column;gap:6px"></div></aside>
+<main><h1>Dosas</h1><p class="sub">Made fresh on the tawa. Tap a dish to customise.</p><div class="grid" id="g"></div></main>
+<div class="cartbar"><span class="n">3</span><span class="t">items · ₹314</span><span class="go">View order →</span></div>
+</div><script src="data.js"></script><script>
+cats.innerHTML=MENU.categories.map((c,i)=>`<div class="cat ${i?'':'on'}">${c.name}</div>`).join('');
+const card=it=>`<div class="card"><div class="ph">${img(it)}</div><div class="b"><h3><span class="veg"></span>${it.name}</h3><div class="row"><span class="price">₹${it.price}<span class="was">₹${it.mrp}</span></span>${ctl(it)}</div></div></div>`;
+g.innerHTML=MENU.items.filter(i=>i.cat=='dosa').map(card).join('')+'<h2 style="grid-column:1/-1;font-size:28px;font-weight:800;letter-spacing:-.02em;margin-top:10px">Idli &amp; Vada</h2>'+MENU.items.filter(i=>i.cat=='idli').slice(0,2).map(card).join('');
+</script></body></html>

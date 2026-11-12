@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Menu C — featured + compact grid</title><link rel="stylesheet" href="theme.css"><style>
+header{padding:32px 32px 0;display:flex;align-items:center;justify-content:space-between}
+.tabs{display:flex;gap:28px;padding:22px 32px 0;border-bottom:1px solid var(--line)}
+.tab{padding:0 0 16px;font-size:19px;font-weight:600;color:var(--ink-3);border-bottom:3px solid transparent}
+.tab.on{color:var(--ink);border-color:var(--green);font-weight:800}
+.body{padding:24px 32px 140px;overflow:hidden}
+.feat{display:grid;grid-template-columns:300px 1fr;background:var(--card);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--lift)}
+.feat .ph{height:300px}.feat img{width:100%;height:100%;object-fit:cover}
+.feat .b{padding:28px;display:flex;flex-direction:column}
+.tag{align-self:flex-start;background:var(--butter-soft);color:var(--on-butter);font-size:13px;font-weight:700;padding:6px 12px;border-radius:var(--pill)}
+.feat h2{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:14px 0 8px}
+.feat p{font-size:17px;color:var(--ink-2);line-height:1.45}
+.feat .row{margin-top:auto;display:flex;align-items:center;justify-content:space-between}
+.feat .price{font-size:28px}
+h3.h{font-size:22px;font-weight:800;margin:30px 0 14px;letter-spacing:-.02em}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mini{background:var(--card);border-radius:var(--r-l);padding:10px 10px 14px;box-shadow:var(--lift)}
+.mini .ph{height:150px;border-radius:var(--r-m);overflow:hidden}.mini img{width:100%;height:100%;object-fit:cover}
+.mini b{display:block;font-size:17px;font-weight:700;margin:12px 4px 10px;line-height:1.25;min-height:42px}
+.mini .row{display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+.mini .price{font-size:19px}.mini .add,.mini .qty{transform:scale(.85);transform-origin:right center}
+</style></head><body><div class="screen">
+<header><div class="mark"><span class="seal">14</span><div><b>Benne 14</b><small>Authentic Bangalore dosa</small></div></div></header>
+<div class="tabs" id="tabs"></div><div class="body" id="b"></div>
+<div class="cartbar"><span class="n">3</span><span class="t">items · ₹314</span><span class="go">View order →</span></div>
+</div><script src="data.js"></script><script>
+tabs.innerHTML=MENU.categories.map((c,i)=>`<span class="tab ${i?'':'on'}">${c.name}</span>`).join('');
+const sp=MENU.items[0];
+b.innerHTML=`<div class="feat"><div class="ph">${img(sp)}</div><div class="b"><span class="tag">House favourite</span><h2>${sp.name}</h2><p>${sp.desc}</p><div class="row"><span class="price">₹${sp.price}<span class="was">₹${sp.mrp}</span></span>${ctl(sp)}</div></div></div><h3 class="h">More to try</h3><div class="grid">`+MENU.items.slice(1,7).map(it=>`<div class="mini"><div class="ph">${img(it)}</div><b>${it.name}</b><div class="row"><span class="price">₹${it.price}</span>${ctl(it)}</div></div>`).join('')+'</div>';
+</script></body></html>

@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin — Today</title><link rel="stylesheet" href="theme.css"><style>
+.screen{width:390px;height:844px}
+.top{padding:20px 20px 12px;display:flex;align-items:center;justify-content:space-between}
+.top h1{font-size:26px;font-weight:800;letter-spacing:-.03em}.top small{display:block;font-size:13px;color:var(--ink-3);margin-top:2px}
+.body{flex:1;padding:4px 20px 14px;overflow:hidden;display:flex;flex-direction:column;gap:12px}
+.hero{background:var(--green);color:#fff;border-radius:var(--r-l);padding:20px}
+.hero .label{color:rgba(255,255,255,.75)}
+.hero b{display:block;font-size:42px;font-weight:800;letter-spacing:-.03em;margin-top:6px}
+.hero p{font-size:14px;opacity:.85;margin-top:4px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k{background:var(--card);border-radius:var(--r-m);padding:14px 16px;box-shadow:var(--lift)}
+.k b{display:block;font-size:24px;font-weight:800;margin-top:4px}.k small{font-size:13px;color:var(--ink-2)}
+.card{background:var(--card);border-radius:var(--r-l);padding:16px;box-shadow:var(--lift)}
+.card h3{font-size:16px;font-weight:800;margin-bottom:12px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:70px}
+.bars i{flex:1;background:var(--green-soft);border-radius:5px 5px 0 0}.bars i.on{background:var(--green)}
+.hrs{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:6px}
+.best li{list-style:none;display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.best li:first-child{border:0}.best b{font-weight:800}
+.nav{height:76px;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--line)}
+.nav span{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink-3);gap:4px}
+.nav span::before{content:"";width:22px;height:4px;border-radius:2px;background:transparent}
+.nav .on{color:var(--green)}.nav .on::before{background:var(--green)}
+</style></head><body><div class="screen">
+<div class="top"><div><h1>Today</h1><small>Thursday, 12 Nov · open since 7:00</small></div><span class="mark"><span class="seal" style="width:38px;height:38px;font-size:14px">14</span></span></div>
+<div class="body">
+<div class="hero"><span class="label">Sales so far</span><b>₹18,460</b><p>↑ 12% vs last Thursday at this time</p></div>
+<div class="kpis"><div class="k"><small>Orders</small><b>64</b></div><div class="k"><small>Avg. order</small><b>₹288</b></div><div class="k"><small>UPI</small><b>₹13,920</b></div><div class="k"><small>Card + cash</small><b>₹4,540</b></div></div>
+<div class="card"><h3>Orders by hour</h3><div class="bars"><i style="height:30%"></i><i style="height:62%"></i><i style="height:88%"></i><i style="height:70%"></i><i style="height:40%"></i><i style="height:36%"></i><i class="on" style="height:58%"></i></div><div class="hrs"><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>Now</span></div></div>
+<div class="card best"><h3>Best sellers</h3><ul><li><span>Filter Coffee</span><b>41</b></li><li><span>Ghee Podi Benne Dosa</span><b>28</b></li><li><span>Masala Dosa</span><b>19</b></li></ul></div>
+</div>
+<div class="nav"><span class="on">Today</span><span>Orders</span><span>Menu</span></div>
+</div></body></html>

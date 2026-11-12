@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>UPI QR</title><link rel="stylesheet" href="theme.css"><style>
+.top{padding:28px 32px}
+.c{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px 48px;text-align:center}
+h1{font-size:40px;font-weight:800;letter-spacing:-.03em}
+.c>p{font-size:19px;color:var(--ink-2);margin-top:8px}
+.qr{margin-top:36px;background:var(--card);border-radius:var(--r-xl);padding:32px;box-shadow:var(--lift)}
+.qr img{width:400px;height:400px}
+.qr b{display:block;font-size:44px;font-weight:800;margin-top:20px}
+.qr small{font-size:15px;color:var(--ink-3)}
+.wait{margin-top:36px;display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;color:var(--green);background:var(--green-soft);padding:14px 22px;border-radius:var(--pill)}
+.wait i{width:10px;height:10px;border-radius:50%;background:var(--green)}
+.alt{margin-top:auto;font-size:17px;color:var(--ink-2)}
+.alt a{color:var(--green);font-weight:700;text-decoration:underline;text-underline-offset:4px}
+</style></head><body><div class="screen">
+<div class="top"><button class="back">← Payment options</button></div>
+<div class="c"><h1>Scan to pay</h1><p>Open any UPI app on your phone and scan this code.</p>
+<div class="qr"><img src="../assets/upi-demo-qr.svg" alt="UPI QR code"><b>₹330</b><small>Benne 14 · Indirapuram</small></div>
+<div class="wait"><i></i>Waiting for payment…</div>
+<p class="alt">Having trouble? <a>Pay at the counter instead</a></p></div>
+</div></body></html>

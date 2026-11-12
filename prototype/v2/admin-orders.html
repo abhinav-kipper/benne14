@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Admin — Orders</title><link rel="stylesheet" href="theme.css"><style>
+.screen{width:390px;height:844px}
+.top{padding:20px 20px 12px}
+.top h1{font-size:26px;font-weight:800;letter-spacing:-.03em}
+.search{margin-top:12px;height:48px;border-radius:var(--r-m);background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line);display:flex;align-items:center;padding:0 14px;font-size:15px;color:var(--ink-3)}
+.days{display:flex;gap:6px;margin-top:12px}
+.days span{white-space:nowrap;height:36px;padding:0 12px;border-radius:var(--pill);display:grid;place-items:center;font-size:14px;font-weight:700;color:var(--ink-2);box-shadow:inset 0 0 0 1.5px var(--line)}
+.days .on{background:var(--ink);color:#fff;box-shadow:none}
+.body{flex:1;padding:4px 20px;overflow:hidden}
+.o{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.o .tk{width:62px;font-size:17px;font-weight:800}
+.o .d{flex:1;min-width:0}.o .d b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.o .d small{font-size:13px;color:var(--ink-3)}
+.o .r{text-align:right}.o .r b{display:block;font-size:16px;font-weight:800}
+.st{font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px}
+.st.p{background:var(--green-soft);color:var(--green)}.st.c{background:var(--soft);color:var(--ink-2)}.st.r{background:var(--chilli-soft);color:var(--chilli)}
+.sheet{background:var(--card);border-radius:var(--r-l) var(--r-l) 0 0;box-shadow:0 -10px 30px -12px rgba(29,42,34,.25);padding:18px 20px 16px}
+.sheet h3{font-size:18px;font-weight:800}.sheet p{font-size:14px;color:var(--ink-2);margin:4px 0 14px}
+.sheet .bt{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sheet button{height:50px;border-radius:var(--r-m);font-size:15px;font-weight:700;background:var(--soft)}
+.sheet button.rf{background:var(--chilli-soft);color:var(--chilli)}
+.nav{height:76px;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--line)}
+.nav span{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink-3);gap:4px}
+.nav span::before{content:"";width:22px;height:4px;border-radius:2px;background:transparent}
+.nav .on{color:var(--green)}.nav .on::before{background:var(--green)}
+</style></head><body><div class="screen">
+<div class="top"><h1>Orders</h1><div class="search">Search token, name or amount</div><div class="days"><span class="on">Today</span><span>Yesterday</span><span>This week</span><span>Date…</span></div></div>
+<div class="body" id="b"></div>
+<div class="sheet"><h3>A-042 · Rahul · ₹330</h3><p>1 Ghee Podi Benne Dosa, 2 Filter Coffee · UPI · 12:36</p><div class="bt"><button>Reprint bill</button><button class="rf">Refund</button></div></div>
+<div class="nav"><span>Today</span><span class="on">Orders</span><span>Menu</span></div>
+</div><script>
+const O=[["A-047","Masala Dosa, Filter Coffee","12:41 · Cash","₹239","c","Cooking"],["A-046","2 Plain Dosa","12:40 · UPI","₹290","c","Cooking"],["A-042","Rahul · Benne Dosa +2","12:36 · UPI","₹330","p","Picked up"],["A-041","3 Mallige Idli +2","12:33 · Card","₹398","p","Picked up"],["A-040","2 Plain Dosa, Masala Tea","12:29 · UPI","₹332","p","Picked up"],["A-039","Aman · Masala Dosa","12:27 · UPI","₹180","r","Refunded"]];
+b.innerHTML=O.map(o=>`<div class="o"><span class="tk">${o[0]}</span><div class="d"><b>${o[1]}</b><small>${o[2]}</small></div><div class="r"><b>${o[3]}</b><span class="st ${o[4]}">${o[5]}</span></div></div>`).join('');
+</script></body></html>

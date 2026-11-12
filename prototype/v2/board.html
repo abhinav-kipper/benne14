@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>TV board</title><link rel="stylesheet" href="theme.css"><style>
+.screen{width:1920px;height:1080px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);grid-template-rows:110px 1fr 120px}
+.top{grid-column:1/3;display:flex;align-items:center;padding:0 56px;border-bottom:1px solid var(--line);background:var(--card)}
+.top .mark .seal{width:64px;height:64px;font-size:24px}.top .mark b{font-size:32px}.top .mark small{font-size:17px}
+.top .clock{margin-left:auto;font-size:40px;font-weight:800;color:var(--ink-2)}
+h2{font-size:44px;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:16px;margin-bottom:32px}
+h2 i{width:20px;height:20px;border-radius:50%}
+.ready{padding:48px 56px;border-right:1px solid var(--line)}
+.ready h2 i{background:var(--green)}
+.big{background:var(--green);color:#fff;border-radius:36px;padding:40px 52px;display:flex;align-items:center;justify-content:space-between}
+.big .n{white-space:nowrap;font-size:190px;font-weight:800;letter-spacing:-.05em;line-height:.9}
+.big .w{white-space:nowrap;font-size:44px;font-weight:700;text-align:right}.big .w small{display:block;font-size:26px;font-weight:500;opacity:.85;margin-top:10px}
+.more{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+.more div{background:var(--green-soft);color:var(--green);border-radius:28px;padding:22px 36px;display:flex;align-items:baseline;justify-content:space-between}
+.more b{white-space:nowrap;font-size:84px;font-weight:800;letter-spacing:-.04em}.more span{font-size:28px;font-weight:700}
+.prep{padding:48px 56px}.prep h2 i{background:var(--butter)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.pc{height:150px;border-radius:28px;background:var(--card);box-shadow:var(--lift);display:flex;align-items:center;padding:0 32px}
+.pc b{white-space:nowrap;font-size:72px;font-weight:800;letter-spacing:-.04em}
+.pc span{margin-left:auto;white-space:nowrap;font-size:22px;font-weight:700;color:var(--ink-3)}
+.pc.soon span{color:var(--amber)}
+.foot{grid-column:1/3;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--ink-2);background:var(--soft)}
+</style></head><body><div class="screen">
+<div class="top"><div class="mark"><span class="seal">14</span><div><b>Benne 14</b><small>Authentic Bangalore dosa</small></div></div><span class="clock">12:42</span></div>
+<div class="ready"><h2><i></i>Ready — please collect</h2>
+<div class="big"><span class="n">A-042</span><span class="w">Rahul<small>at the counter</small></span></div>
+<div class="more"><div><b>A-039</b><span>Aman</span></div><div><b>A-038</b><span></span></div></div></div>
+<div class="prep"><h2><i></i>Cooking</h2><div class="grid">
+<div class="pc soon"><b>A-043</b><span>Almost</span></div><div class="pc"><b>A-044</b><span>~6 min</span></div><div class="pc"><b>A-045</b><span>~8 min</span></div><div class="pc"><b>A-046</b><span>~9 min</span></div><div class="pc"><b>A-047</b><span>~10 min</span></div></div></div>
+<div class="foot">Order at the kiosk · Pay by UPI, card or cash</div>
+</div></body></html>

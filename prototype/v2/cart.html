@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Your order</title><link rel="stylesheet" href="theme.css"><style>
+.top{display:flex;align-items:center;gap:20px;padding:28px 32px 20px}
+h1{font-size:38px;font-weight:800;letter-spacing:-.03em}
+.body{flex:1;padding:0 32px;overflow:hidden}
+.type{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;background:var(--soft);border-radius:var(--r-l);margin-bottom:8px}
+.type span{height:64px;border-radius:var(--r-m);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:19px;font-weight:700;color:var(--ink-2)}
+.type small{font-size:13px;font-weight:500;color:var(--ink-3)}
+.type .on{background:var(--card);color:var(--ink);box-shadow:var(--lift)}
+.line{display:grid;grid-template-columns:96px 1fr auto;gap:18px;padding:20px 0;border-bottom:1px solid var(--line);align-items:center}
+.line .ph{width:96px;height:96px;border-radius:var(--r-m);overflow:hidden}.line img{width:100%;height:100%;object-fit:cover}
+.line h3{font-size:20px;font-weight:700}
+.line .m{font-size:15px;color:var(--ink-2);margin:4px 0 8px}
+.line a{font-size:15px;font-weight:700;color:var(--green);text-decoration:underline;text-underline-offset:4px}
+.right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}.right .price{font-size:21px}
+.name{margin-top:22px;background:var(--card);border-radius:var(--r-l);padding:20px 22px;box-shadow:var(--lift)}
+.name label{font-size:17px;font-weight:700;display:block}
+.name .f{margin-top:12px;height:60px;border-radius:var(--r-m);box-shadow:inset 0 0 0 1.5px var(--line);display:flex;align-items:center;padding:0 18px;font-size:18px;color:var(--ink-3)}
+.name small{display:block;font-size:14px;color:var(--ink-3);margin-top:8px}
+.bill{margin-top:22px;padding:4px 4px}
+.row{display:flex;justify-content:space-between;font-size:17px;color:var(--ink-2);padding:6px 0}
+.row.save{color:var(--green);font-weight:700}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);margin-top:8px;padding-top:14px;font-size:20px;font-weight:700}
+.total b{font-size:34px;font-weight:800}
+.foot{padding:20px 32px 28px;border-top:1px solid var(--line);background:var(--card)}
+</style></head><body><div class="screen">
+<div class="top"><button class="back">← Menu</button><h1>Your order</h1></div>
+<div class="body">
+<div class="type"><span class="on">Eat here<small>We'll bring it to the counter</small></span><span>Take away<small>Packed to go</small></span></div>
+<div class="line"><div class="ph"><img src="../assets/food/ghee-podi-benne-dosa.jpg" alt=""></div><div><h3>Ghee Podi Benne Dosa</h3><div class="m">Regular spice · Extra butter · Less oil</div><a>Edit</a></div><div class="right"><span class="price">₹196</span><div class="qty"><button>−</button><span>1</span><button>+</button></div></div></div>
+<div class="line"><div class="ph"><div class="nophoto">Coffee</div></div><div><h3>Filter Coffee</h3><div class="m">₹59 each</div></div><div class="right"><span class="price">₹118</span><div class="qty"><button>−</button><span>2</span><button>+</button></div></div></div>
+<div class="name"><label>Your name <span style="color:var(--ink-3);font-weight:500">(optional)</span></label><div class="f">Type your name</div><small>We'll show it with your token when your food is ready.</small></div>
+<div class="bill"><div class="row"><span>Items (3)</span><span>₹314.00</span></div><div class="row save"><span>Launch offer</span><span>You saved ₹48</span></div><div class="row"><span>GST (5%)</span><span>₹15.70</span></div><div class="row"><span>Round off</span><span>+₹0.30</span></div>
+<div class="total"><span>Total</span><b>₹330</b></div></div>
+</div>
+<div class="foot"><button class="btn"><span>Continue to pay</span><span class="amt">₹330</span></button></div>
+</div></body></html>
