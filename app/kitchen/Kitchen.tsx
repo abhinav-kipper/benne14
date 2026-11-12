@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { itemById, noteTone, optionTone, photoOf, placeholderOf, type Tone } from '@/lib/menu';
 import { minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { api, ApiError, chime, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
@@ -71,6 +71,18 @@ export default function Kitchen() {
   // Payment shelf: claimed / counter payments first, then UPI QRs still open on the kiosk.
   const due = [...list.filter((o) => o.status === 'awaiting_cash'), ...list.filter((o) => o.status === 'pending_payment')];
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+
+  // Shelf density: when the payment + ready cards don't fit the column, step down to smaller cards
+  // (1 compact, 2 one-line rows, 3 two per row) so the oldest ready orders stay on screen.
+  // It starts again from full size whenever the number of cards changes.
+  const passRef = useRef<HTMLDivElement>(null);
+  const shelfKey = `${due.length}:${ready.length}`;
+  const [fit, setFit] = useState({ key: shelfKey, level: 0 });
+  const density = fit.key === shelfKey ? fit.level : 0;
+  useLayoutEffect(() => {
+    const el = passRef.current;
+    if (el && density < 3 && el.scrollHeight > el.clientHeight + 1) setFit({ key: shelfKey, level: density + 1 });
+  }, [shelfKey, density]);
   const [showHistory, setShowHistory] = useState(false);
   const fresh = useFreshIds(list.map((o) => `${o.id}:${o.status === 'cooking' ? 'new' : o.status}`));
   const isFresh = (o: Order) => fresh.has(`${o.id}:${o.status === 'cooking' ? 'new' : o.status}`);
@@ -105,9 +117,10 @@ export default function Kitchen() {
         {orders && rail.length === 0 && <div className="empty"><div><b>No orders right now</b>New orders drop onto this rail with a chime.</div></div>}
       </div>
 
-      <div className="pass">
+      <div className={`pass d${density}`} ref={passRef} data-testid="pass" data-density={density}>
         {due.length > 0 && <>
           <div className="pass-h due"><Rupee /><b>Collect payment</b><span>{due.length}</span></div>
+          <div className="shelf">
           {due.map((o) => (
             <div className={`plate due ${o.status === 'pending_payment' ? 'open' : ''} ${isFresh(o) ? 'fresh' : ''}`} key={o.id} data-testid={`due-${o.token}`}>
               <div className="row1"><span className="tok">{o.token}</span>{o.type === 'dine_in' ? <Dine /> : <Bag />}<span className="w amt">₹{o.total}</span></div>
@@ -118,19 +131,22 @@ export default function Kitchen() {
               </div>
             </div>
           ))}
+          </div>
           <div className="gap" />
         </>}
         <div className="pass-h"><Bell /><b>Ready at counter</b><span>{ready.length}</span></div>
+        <div className="shelf">
         {ready.map((o) => {
           const w = o.readyAt ? minutesSince(o.readyAt, now) : 0;
           return (
             <div className={`plate ${isFresh(o) ? 'fresh' : ''}`} key={o.id} data-testid={`ready-${o.token}`}>
               <div className="row1"><span className="tok">{o.token}</span>{o.type === 'dine_in' ? <Dine /> : <Bag />}<span className="w"><i className={w >= 3 ? 'long' : ''} />{w}′</span></div>
               <div className="nm2">{o.customerName ? `${o.customerName} · ` : ''}{o.lines.map((l) => `${l.qty} × ${l.name}`).join(', ')}</div>
-              <button onClick={() => move(o, 'handed_over')}><Hand />Handed over</button>
+              <button onClick={() => move(o, 'handed_over')} aria-label={`Order ${o.token} handed over`}><Hand /><span className="lbl">Handed over</span></button>
             </div>
           );
         })}
+        </div>
       </div>
 
       <div className="tray">
@@ -220,7 +236,7 @@ function PinGate({ onPin, note }: { onPin: (p: string) => void; note: string | n
 }
 
 // What the cook reads under a dish: extras and "more" in green (+), "less / no" in red (−), other notes in black.
-// Regular spice and regular sugar are the default, so they don't show.
+// Regular sugar is the default, so it doesn't show. (Spice was dropped; old orders may still carry it.)
 function lineTags(l: Order['lines'][number]): { key: string; text: string; tone?: Tone }[] {
   const mods = l.mods
     .map((m) => ({ key: `${m.groupId}:${m.id}`, text: m.groupId === 'spice' ? `${m.name} spice` : m.name, tone: optionTone(m.groupId, m.id) ?? (m.price > 0 ? 'add' as const : undefined) }))

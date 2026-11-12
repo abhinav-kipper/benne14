@@ -1,7 +1,7 @@
 // Order pricing. Runs on the server for every order; the kiosk uses the same code only to display totals.
 // All maths in paise (integers). GST is rounded to the nearest rupee (allowed under section 170 of the
 // CGST Act) and split equally into CGST and SGST, so the bill adds up exactly with no round-off line.
-import { GROUPS, ITEMS, NOTES, type MenuItem } from './menu';
+import { GROUPS, ITEMS, notesFor, type MenuItem } from './menu';
 
 export const GST_RATE = 0.05; // 2.5% CGST + 2.5% SGST, charged on top of menu prices (v1 assumption)
 export const MAX_QTY = 20;
@@ -26,7 +26,6 @@ export interface PricedLine {
   qty: number;
   unitPrice: number; // item + paid extras, rupees
   lineTotal: number; // rupees
-  mrpTotal: number; // what it would cost without the launch offer
   mods: PricedMod[];
   notes: { id: string; label: string }[];
 }
@@ -39,7 +38,7 @@ export interface PricedOrder {
   sgst: number;
   roundOff: number; // always 0 now: GST itself is rounded to the rupee (kept for stored orders)
   total: number; // whole rupees
-  savings: number;
+  savings: number; // always 0: no discounts for now (kept for stored orders)
 }
 
 export class OrderError extends Error {}
@@ -69,8 +68,8 @@ export function priceLine(line: CartLine, items: MenuItem[] = ITEMS): PricedLine
   }
 
   const notes = [...new Set(line.notes ?? [])].map((id) => {
-    const n = NOTES.find((x) => x.id === id);
-    if (!n || !item.notes) throw new OrderError(`Note ${id} not allowed for ${item.name}`);
+    const n = notesFor(item).find((x) => x.id === id);
+    if (!n) throw new OrderError(`Note ${id} not allowed for ${item.name}`);
     return { id: n.id, label: n.label };
   });
 
@@ -78,7 +77,6 @@ export function priceLine(line: CartLine, items: MenuItem[] = ITEMS): PricedLine
   return {
     itemId: item.id, name: item.name, qty: line.qty,
     unitPrice, lineTotal: unitPrice * line.qty,
-    mrpTotal: (item.mrp + mods.reduce((a, m) => a + m.price, 0)) * line.qty,
     mods, notes,
   };
 }
@@ -96,7 +94,7 @@ export function priceOrder(cart: CartLine[], items: MenuItem[] = ITEMS): PricedO
     sgst: rupees(gst / 2),
     roundOff: 0,
     total: rupees(sub + gst),
-    savings: lines.reduce((a, l) => a + (l.mrpTotal - l.lineTotal), 0),
+    savings: 0,
   };
 }
 

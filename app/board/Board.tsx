@@ -47,7 +47,7 @@ export default function Board() {
             <div className="callout">{hero.customerName ? <><b>{hero.customerName}</b>, your </> : 'Your '}order is <b>ready!</b><small>Please collect from the counter</small></div>
           </div>
         ) : (
-          <div className="calm">Your dosa is on the tawa.<small>Ready order numbers appear here. Keep an eye on the screen.</small></div>
+          <div className="calm">Fresh orders are being made.<small>Ready order numbers appear here. Keep an eye on the screen.</small></div>
         )}
         <div className="more">
           {ready.slice(1, 3).map((o) => (
@@ -75,7 +75,7 @@ export default function Board() {
       <div className="promo" key={p.id}>
         <img src={photoOf(p.id)} alt="" />
         <div><div className="t">{p.name}</div><div className="sub">{p.desc}</div></div>
-        <div className="p"><s>₹{p.mrp}</s><b>₹{p.price}</b></div>
+        <div className="p"><b>₹{p.price}</b></div>
         <div className="dots">{PROMOS.map((id, i) => <i key={id} className={i === promo ? 'on' : ''} />)}</div>
       </div>
     </div>

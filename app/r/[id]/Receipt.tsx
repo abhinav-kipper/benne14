@@ -4,7 +4,7 @@ import { useOrder } from '@/lib/client';
 
 const HEAD: Record<string, React.ReactNode> = {
   pending_payment: 'Waiting for your payment.',
-  awaiting_cash: 'Confirming your payment at the counter. Then your dosa goes on the tawa.',
+  awaiting_cash: 'Confirming your payment at the counter. Then we start your order.',
   new: 'Order received! It goes on the tawa next.',
   cooking: <>Your order is <b>on the tawa</b>.</>,
   ready: <><b>Ready!</b> Please collect it from the counter.</>,
@@ -70,7 +70,6 @@ export default function Receipt({ id }: { id: string }) {
           <span>{unpaid ? 'To pay' : <>Paid by {PAY[o.payMethod]}</>}</span>
           <b data-testid="bill-total">{money(o.total)}</b>
         </div>
-        {o.savings > 0 && <div className="saved">Launch offer: you saved ₹{o.savings}</div>}
       </div>
       <div className="foot">Benne 14 · Authentic Bangalore Dosa · Indirapuram<br />Prices in rupees. GST rounded to the nearest rupee.</div>
     </div>

@@ -85,6 +85,25 @@
 .kitchen .plate.due .pay-actions .drop{width:72px;flex:none;background:var(--s1);border-color:var(--line);color:var(--cream-2);font-size:16px}
 .kitchen .plate button svg{width:22px;height:22px;color:currentColor}
 .kitchen .pass .gap{height:10px}
+/* Denser shelves when many orders wait (see the density note in Kitchen.tsx) */
+.kitchen .pass.d1 .plate,.kitchen .pass.d2 .plate.due,.kitchen .pass.d3 .plate.due{padding:8px 10px;margin-bottom:8px;border-radius:12px}
+.kitchen .pass.d1 .plate .tok,.kitchen .pass.d2 .plate.due .tok,.kitchen .pass.d3 .plate.due .tok{font-size:34px}
+.kitchen .pass.d1 .plate .nm2,.kitchen .pass.d2 .plate.due .nm2,.kitchen .pass.d3 .plate.due .nm2{margin:4px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kitchen .pass.d1 .plate button,.kitchen .pass.d2 .plate.due button,.kitchen .pass.d3 .plate.due button{height:42px;font-size:16px}
+.kitchen .pass.d1 .plate .amt,.kitchen .pass.d2 .plate.due .amt,.kitchen .pass.d3 .plate.due .amt{font-size:24px}
+.kitchen .pass.d2 .plate:not(.due),.kitchen .pass.d3 .plate:not(.due){display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;margin-bottom:6px;border-radius:10px}
+.kitchen .pass.d2 .plate:not(.due) .row1,.kitchen .pass.d3 .plate:not(.due) .row1{flex:1;min-width:0}
+.kitchen .pass.d2 .plate:not(.due) .tok{font-size:32px}
+.kitchen .pass.d2 .plate:not(.due) .nm2,.kitchen .pass.d3 .plate:not(.due) .nm2,
+.kitchen .pass.d2 .plate:not(.due) .lbl,.kitchen .pass.d3 .plate:not(.due) .lbl{display:none}
+.kitchen .pass.d2 .plate:not(.due) button,.kitchen .pass.d3 .plate:not(.due) button{width:56px;height:44px;flex:none}
+.kitchen .pass.d3 .shelf:last-child{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.kitchen .pass.d3 .plate:not(.due){margin:0;padding:4px 4px 4px 8px;gap:4px}
+.kitchen .pass.d3 .plate:not(.due) .tok{font-size:26px}
+.kitchen .pass.d3 .plate:not(.due) svg:not(button svg),.kitchen .pass.d3 .plate:not(.due) .w i{display:none}
+.kitchen .pass.d3 .plate:not(.due) .w{font-size:15px}
+.kitchen .pass.d3 .plate:not(.due) button{width:44px;height:40px}
+.kitchen .pass.d1 .pass-h,.kitchen .pass.d2 .pass-h,.kitchen .pass.d3 .pass-h{margin-bottom:8px}
 @keyframes slidein{0%{transform:translateX(60px);opacity:0}100%{transform:none;opacity:1}}
 
 .kitchen .tray{grid-column:1;grid-row:3;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--s1);border-top:1px solid var(--line);position:relative}

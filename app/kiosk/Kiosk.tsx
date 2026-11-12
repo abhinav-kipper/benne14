@@ -1,8 +1,9 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CART_UPSELL, CATEGORIES, GROUPS, NOTES, PAIRING, itemById, photoOf, visibleItems, type MenuItem } from '@/lib/menu';
+import { CART_UPSELL, CATEGORIES, GROUPS, PAIRING, itemById, notesFor, photoOf, visibleItems, type MenuItem } from '@/lib/menu';
 import { priceLine, priceOrder, type CartLine } from '@/lib/pricing';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
+import { orderedSentence } from '@/lib/wording';
 import { api, ApiError, newKey, useOrder } from '@/lib/client';
 
 type Screen = 'home' | 'menu' | 'cart' | 'pay' | 'upi' | 'done';
@@ -10,7 +11,7 @@ interface Line extends CartLine { uid: string }
 
 const IDLE_MS = 75_000; // "Still there?" after this long without a touch
 const IDLE_GRACE_S = 15;
-const DONE_RESET_S = 15; // the token screen clears itself so the next customer starts fresh
+const DONE_RESET_S = 120; // the order-number screen clears itself so the next customer starts fresh
 
 const sameChoices = (a: CartLine, b: CartLine) =>
   a.itemId === b.itemId && JSON.stringify(a.choices) === JSON.stringify(b.choices) && JSON.stringify([...a.notes].sort()) === JSON.stringify([...b.notes].sort());
@@ -22,7 +23,7 @@ function Photo({ item, big }: { item: MenuItem; big?: boolean }) {
 
 export default function Kiosk({ mock = false, testMode = false }: { mock?: boolean; testMode?: boolean }) {
   const [screen, setScreen] = useState<Screen>('home');
-  const [type, setType] = useState<OrderType>('takeaway');
+  const [type, setType] = useState<OrderType | null>(null); // asked at the end, in the cart
   const [lines, setLines] = useState<Line[]>([]);
   const [sheet, setSheet] = useState<{ itemId: string; editing?: string } | null>(null);
   const [name, setName] = useState('');
@@ -32,7 +33,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   const checkoutKey = useRef(newKey());
 
   const reset = useCallback(() => {
-    setScreen('home'); setLines([]); setSheet(null); setName(''); setOrderId(null); setPlaced(null); setIdle(false);
+    setScreen('home'); setType(null); setLines([]); setSheet(null); setName(''); setOrderId(null); setPlaced(null); setIdle(false);
     checkoutKey.current = newKey();
   }, []);
 
@@ -60,9 +61,9 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
 
   return (
     <div className="kiosk">
-      {screen === 'home' && <Home onPick={(t) => { setType(t); setScreen('menu'); }} />}
+      {screen === 'home' && <Home onStart={() => setScreen('menu')} />}
       {screen === 'menu' && (
-        <MenuScreen testMode={testMode} type={type} onType={() => setScreen('home')} qtyOf={qtyOf}
+        <MenuScreen testMode={testMode} qtyOf={qtyOf}
           onOpen={(id) => setSheet({ itemId: id })} onQuick={quickAdd}
           lines={lines} setQty={setQty} count={count} total={priced?.total ?? 0} onCart={() => setScreen('cart')} />
       )}
@@ -72,7 +73,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
           onAdd={quickAdd} onBack={() => setScreen('menu')} onPay={() => setScreen('pay')} />
       )}
       {screen === 'cart' && !priced && <EmptyRedirect go={() => setScreen('menu')} />}
-      {screen === 'pay' && priced && (
+      {screen === 'pay' && priced && type && (
         <Pay priced={priced} lines={lines} type={type} name={name} onBack={() => setScreen('cart')}
           onChoose={async (m: PayMethod) => {
             const o = await api.placeOrder({ key: checkoutKey.current, type, name: name.trim() || null, payMethod: m, lines: lines.map(({ uid: _u, ...l }) => l) });
@@ -115,10 +116,10 @@ const BagIcon = () => (
   <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"><path d="M12 22h40l-3 34H15z" /><path d="M23 22v-4a9 9 0 0 1 18 0v4" /><path d="M26 38c4 4 8 4 12 0" /></svg>
 );
 
-function Home({ onPick }: { onPick: (t: OrderType) => void }) {
+function Home({ onStart }: { onStart: () => void }) {
   const cols = [['masala-dosa', 'medu-vada', 'thatte-idli'], ['mallige-idli', 'ghee-podi-benne-dosa', 'masala-tea'], ['plain-benne-dosa', 'ghee-podi-thatte-idli', 'plain-dosa']];
   return (
-    <div className="screen k-home">
+    <div className="screen k-home" onClick={onStart}>
       <div className="top">
         <div className="logo">Benne <i>14</i><small>AUTHENTIC BANGALORE DOSA</small></div>
       </div>
@@ -129,24 +130,17 @@ function Home({ onPick }: { onPick: (t: OrderType) => void }) {
         <h1 className="disp">Fresh off<br />the <em>tawa.</em></h1>
         <div className="tag">Hot and crisp, straight from the tawa to your plate.</div>
       </div>
-      <div className="choose">
-        <button className="choice dine" onClick={() => onPick('dine_in')} data-testid="dine-in">
-          <DineIcon /><span className="arr">→</span>
-          <div><b>Dine in</b><div className="sub">Eat here</div></div>
-        </button>
-        <button className="choice take" onClick={() => onPick('takeaway')} data-testid="takeaway">
-          <BagIcon /><span className="arr">→</span>
-          <div><b>Takeaway</b><div className="sub">Pack it to go</div></div>
-        </button>
-      </div>
-      <div className="foot">Tap to start your order</div>
+      <button className="start" data-testid="start">
+        <span><b>Tap to order</b><small>Dosas, idli, vada, filter coffee</small></span><span className="arr">→</span>
+      </button>
+      <div className="foot">Dine in or takeaway, you choose at the end</div>
     </div>
   );
 }
 
 /* ---------------- Menu ---------------- */
 function MenuScreen(p: {
-  type: OrderType; onType: () => void; qtyOf: (id: string) => number;
+  qtyOf: (id: string) => number;
   onOpen: (id: string) => void; onQuick: (id: string) => void; lines: Line[]; setQty: (uid: string, q: number) => void;
   count: number; total: number; onCart: () => void; testMode: boolean;
 }) {
@@ -188,21 +182,17 @@ function MenuScreen(p: {
             </button>
           ))}
         </div>
-        <div className="rail-foot">
-          <button className="type" onClick={p.onType}><b>{p.type === 'dine_in' ? 'Dine in' : 'Takeaway'}</b><small>Change</small></button>
-        </div>
       </aside>
       <main ref={main} onScroll={onScroll}>
         <section className="hero" onClick={() => p.onOpen(sp.id)} data-testid="hero">
           <Photo item={sp} />
-          <div className="offer"><div><b>14%</b><small>Launch<br />off</small></div></div>
           <div className="txt">
             <span className="chip">House special</span>
             <h1 className="disp">Ghee Podi<br />Benne Dosa</h1>
             <div className="meta">
               <p className="hdesc">{sp.desc}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-                <div><span className="price">₹{sp.price}</span>{sp.mrp > sp.price && <span className="mrp">₹{sp.mrp}</span>}</div>{stepper(sp)}
+                <div><span className="price">₹{sp.price}</span></div>{stepper(sp)}
               </div>
             </div>
           </div>
@@ -217,7 +207,7 @@ function MenuScreen(p: {
                   <div>
                     <h4>{i.name}</h4>
                     <p className="hdesc">{i.desc}</p>
-                    <span className="price">₹{i.price}</span>{i.mrp > i.price && <span className="mrp">₹{i.mrp}</span>}
+                    <span className="price">₹{i.price}</span>
                   </div>
                   {stepper(i)}
                 </div>
@@ -274,7 +264,7 @@ function ItemSheet({ itemId, editing, pairingInCart, onClose, onAdd }: {
               {item.special && <span className="chip">House special</span>}
               <h1 className="disp" style={{ marginTop: 14 }}>{item.name}</h1>
             </div>
-            <div style={{ textAlign: 'right' }}><span className="price" style={{ fontSize: 44 }}>₹{item.price}</span><br />{item.mrp > item.price && <span className="mrp">₹{item.mrp}</span>}</div>
+            <div style={{ textAlign: 'right' }}><span className="price" style={{ fontSize: 44 }}>₹{item.price}</span></div>
           </div>
         </div>
         <div className="body">
@@ -290,7 +280,6 @@ function ItemSheet({ itemId, editing, pairingInCart, onClose, onAdd }: {
                     {g.options.map((o, i) => (
                       <button key={o.id} className={`opt ${on.includes(o.id) ? 'on' : ''}`} onClick={() => pick(gid, o.id)}>
                         <b>{o.name}</b>
-                        {gid === 'spice' && <span className="heat">{[0, 1, 2].map((k) => <i key={k} className={k <= i ? 'f' : ''} />)}</span>}
                       </button>
                     ))}
                   </div>
@@ -310,7 +299,7 @@ function ItemSheet({ itemId, editing, pairingInCart, onClose, onAdd }: {
             <div className="grp">
               <div className="gh"><h3 className="disp">Note for the kitchen</h3><small>Tap any</small></div>
               <div className="notes">
-                {NOTES.map((n) => (
+                {notesFor(item).map((n) => (
                   <button key={n.id} className={`note ${notes.includes(n.id) ? 'on' : ''}`}
                     onClick={() => setNotes((cur) => (cur.includes(n.id) ? cur.filter((x) => x !== n.id) : [...cur, n.id]))}>{n.label}</button>
                 ))}
@@ -339,7 +328,7 @@ function ItemSheet({ itemId, editing, pairingInCart, onClose, onAdd }: {
 
 /* ---------------- Cart ---------------- */
 function Cart(p: {
-  lines: Line[]; type: OrderType; setType: (t: OrderType) => void; name: string; setName: (n: string) => void;
+  lines: Line[]; type: OrderType | null; setType: (t: OrderType) => void; name: string; setName: (n: string) => void;
   priced: ReturnType<typeof priceOrder>; setQty: (uid: string, q: number) => void; onEdit: (uid: string) => void;
   onAdd: (id: string) => void; onBack: () => void; onPay: () => void;
 }) {
@@ -349,10 +338,6 @@ function Cart(p: {
       <div className="top">
         <button className="back" onClick={p.onBack}><span>←</span>Menu</button>
         <h1 className="disp">Your order</h1>
-        <div className="seg">
-          <button className={p.type === 'dine_in' ? 'on' : ''} onClick={() => p.setType('dine_in')}>Dine-in</button>
-          <button className={p.type === 'takeaway' ? 'on' : ''} onClick={() => p.setType('takeaway')}>Takeaway</button>
-        </div>
       </div>
       <div className="body">
         {p.lines.map((l, i) => {
@@ -390,7 +375,6 @@ function Cart(p: {
           </div>
         )}
         <div className="bill">
-          {p.priced.savings > 0 && <div className="saved"><span>Launch offer applied</span><b>You saved ₹{p.priced.savings}</b></div>}
           <div className="rows">
             <div className="row"><span>Item total · {p.priced.itemCount} {p.priced.itemCount === 1 ? 'item' : 'items'}</span><span className="v">₹{p.priced.subtotal.toFixed(2)}</span></div>
             <div className="row muted"><span>CGST 2.5%</span><span className="v">₹{p.priced.cgst.toFixed(2)}</span></div>
@@ -404,7 +388,14 @@ function Cart(p: {
         </div>
       </div>
       <div className="foot">
-        <button className="btn-benne" onClick={p.onPay} data-testid="continue-to-pay"><span>Continue to pay</span><span className="amt">₹{p.priced.total} →</span></button>
+        <div className="eat">
+          <span className="q">{p.type ? 'Eating' : 'Dine in or takeaway?'}</span>
+          <button className={p.type === 'dine_in' ? 'on' : ''} onClick={() => p.setType('dine_in')} data-testid="dine-in"><DineIcon />Dine in</button>
+          <button className={p.type === 'takeaway' ? 'on' : ''} onClick={() => p.setType('takeaway')} data-testid="takeaway"><BagIcon />Takeaway</button>
+        </div>
+        <button className="btn-benne" onClick={p.onPay} disabled={!p.type} data-testid="continue-to-pay">
+          <span>{p.type ? 'Continue to pay' : 'Choose dine in or takeaway'}</span><span className="amt">₹{p.priced.total} →</span>
+        </button>
         <small>UPI · Card · Cash at counter</small>
       </div>
     </div>
@@ -437,7 +428,7 @@ function Pay({ priced, lines, type, name, onBack, onChoose }: {
           <div className="sh"><span>{type === 'dine_in' ? 'Dine-in' : 'Takeaway'}</span><span>{name.trim() || 'Guest'}</span></div>
           {lines.slice(0, 4).map((l) => <div className="li" key={l.uid}><b>{l.qty}×</b>{itemById(l.itemId)!.name}</div>)}
           {lines.length > 4 && <div className="li"><b>+</b>{lines.length - 4} more</div>}
-          <div className="sf">{priced.savings > 0 ? <div className="stamp"><b>₹{priced.savings}</b>saved</div> : <i />}<span>₹{priced.total}</span></div>
+          <div className="sf"><i /><span>₹{priced.total}</span></div>
         </div>
       </div>
       <button className="tile upi" onClick={() => choose('upi')} disabled={!!busy} data-testid="pay-upi">
@@ -545,7 +536,7 @@ function Done({ orderId, first, onDone }: { orderId: string; first: Order | null
         : atCounter
         ? <div className="paid due"><i>₹</i>Pay ₹{o.total} at the counter · {o.payMethod === 'card' ? 'card machine' : 'cash'}</div>
         : <div className="paid"><i>✓</i>Payment received · ₹{o.total} via {o.payMethod === 'upi' ? 'UPI' : o.payMethod}</div>}
-      <div className="thanks"><h1>Thank you{o.customerName ? <>, <b>{o.customerName}</b></> : ''}! {atCounter ? (o.payMethod === 'upi' ? 'Your dosa goes on the tawa as soon as the payment is confirmed.' : 'Your dosa goes on the tawa as soon as you pay.') : 'Your dosa is going on the tawa.'}</h1></div>
+      <div className="thanks" data-testid="thanks"><h1>Thank you{o.customerName ? <>, <b>{o.customerName}</b></> : ''}!</h1><p>{orderedSentence(o)}</p></div>
       <div className="token" data-testid="token">
         <div className="tt"><span>Benne 14 · Order no.</span><span>{o.type === 'dine_in' ? 'Dine-in' : 'Takeaway'}</span></div>
         <div className="num">{o.token}</div>
