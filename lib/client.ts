@@ -20,6 +20,7 @@ export const api = {
     call<Order>('/api/orders', { method: 'POST', body: JSON.stringify(b) }),
   order: (id: string) => call<Order>(`/api/orders/${id}`),
   live: () => call<Order[]>('/api/orders'),
+  today: () => call<Order[]>('/api/orders?view=today'),
   checkPin: (pin: string) => call<{ ok: true }>('/api/staff', { method: 'POST', headers: { 'x-staff-pin': pin } }),
   claim: (id: string, action: 'paid' | 'cancel') => call<Order>(`/api/orders/${id}/claim`, { method: 'POST', body: JSON.stringify({ action }) }),
   mockPay: (id: string) => call<Order>(`/api/orders/${id}/pay`, { method: 'POST' }),
@@ -53,6 +54,20 @@ export function useLiveOrders(intervalMs = 1500) {
     return () => clearInterval(t);
   }, [refresh, intervalMs]);
   return { orders, setOrders, online, refresh, noteLocalChange };
+}
+
+// Today's orders, newest first, for the history views. Polls only while `on` (e.g. the panel is open).
+export function useTodayOrders(on: boolean, intervalMs = 5000) {
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  useEffect(() => {
+    if (!on) return;
+    let stop = false;
+    const tick = async () => { try { const d = await api.today(); if (!stop) setOrders(d); } catch { /* keep last known */ } };
+    tick();
+    const t = setInterval(tick, intervalMs);
+    return () => { stop = true; clearInterval(t); };
+  }, [on, intervalMs]);
+  return orders;
 }
 
 export function useOrder(id: string | null, intervalMs = 1500) {

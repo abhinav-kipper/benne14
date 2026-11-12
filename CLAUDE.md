@@ -22,9 +22,9 @@ Commands: `npm run dev` · `npm run typecheck` · `npm test` · `npm run e2e`.
 ## Design source of truth
 
 - `prototype/` holds the approved screens as static HTML. Port them faithfully; don't redesign while building.
-- Tokens in `prototype/theme.css` (light is the default theme; dark is kept). Fonts: Big Shoulders (display, prices; Google renamed it from Big Shoulders Display), Familjen Grotesk (body), Tiro Devanagari Hindi (Hindi).
+- Tokens in `prototype/theme.css` (light is the default theme; dark is kept). Fonts: Big Shoulders (display, prices; Google renamed it from Big Shoulders Display), Familjen Grotesk (body). Load both with the `latin-ext` subset: it carries the ₹ glyph.
 - Yellow (`--benne`) is for fills and buttons; text/outlines in yellow use `--benne-fg`.
-- Avoid generic "AI-looking" UI: no pill-chip clutter for information, no gradients-on-everything, no emoji as icons. Use real objects (tokens, chits, paper slips), short human wording, Hindi where the reader is Hindi-first (kitchen staff).
+- Avoid generic "AI-looking" UI: no pill-chip clutter for information, no gradients-on-everything, no emoji as icons. Use real objects (tokens, chits, paper slips), short human wording. **English only** (owner's call): no Hindi in the app. The `prototype/` still has the old Hindi screens.
 - When a screen needs to change: update the prototype, re-render (`THEME=light node prototype/shots-all.js`), get it approved, then build.
 
 ## Rules

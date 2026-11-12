@@ -28,7 +28,7 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await kiosk.getByTestId('pay-upi').click();
   await kiosk.getByTestId('simulate-paid').click();
   const token = (await kiosk.getByTestId('token').locator('.num').textContent())!;
-  expect(token).toMatch(/^A-\d{3}$/);
+  expect(token).toMatch(/^\d+$/); // plain order numbers: 1, 2, 3…
 
   // Kitchen: the chit lands on the rail; start, then ready.
   const kitchen = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -36,16 +36,16 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await kitchen.goto('/kitchen');
   const chit = kitchen.getByTestId(`chit-${token}`);
   await expect(chit).toBeVisible({ timeout: 5000 });
-  await expect(chit).toContainText('घी पोडी बेन्ने डोसा');
-  await expect(chit).toContainText('+ बेन्ने');
-  await kitchen.getByTestId(`go-${token}`).click(); // शुरू करो
-  await expect(kitchen.getByTestId(`go-${token}`)).toContainText('तैयार');
+  await expect(chit).toContainText('Ghee Podi Benne Dosa');
+  await expect(chit.locator('.tg.more')).toHaveText('+Extra benne'); // additions in green with a +
+  await kitchen.getByTestId(`go-${token}`).click(); // Start
+  await expect(kitchen.getByTestId(`go-${token}`)).toContainText('Ready');
 
   // Board shows it cooking, then ready with the name.
   const board = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   await board.goto('/board');
   await expect(board.getByTestId(`board-prep-${token}`)).toBeVisible({ timeout: 5000 });
-  await kitchen.getByTestId(`go-${token}`).click(); // तैयार
+  await kitchen.getByTestId(`go-${token}`).click(); // Ready
   await expect(board.getByTestId('board-hero')).toContainText(token, { timeout: 5000 });
   await expect(board.getByTestId('board-hero')).toContainText('Rahul');
 
@@ -54,13 +54,23 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   expect(id).toBeTruthy();
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await phone.goto(`/r/${id}`);
-  await expect(phone.getByTestId('receipt-status')).toContainText('तैयार');
-  await expect(phone.locator('.tot b')).toHaveText('₹330');
+  await expect(phone.getByTestId('receipt-status')).toContainText('Ready');
+  await expect(phone.getByTestId('bill-total')).toHaveText('₹330.00');
+  await expect(phone.getByTestId('bill')).not.toContainText('Round off');
 
   // Hand it over so the next test starts with a clear board, like a real shift.
-  await kitchen.locator('.plate', { hasText: token }).getByRole('button').click({ timeout: 5000 }); // दे दिया
-  await expect(kitchen.locator('.plate', { hasText: token })).toHaveCount(0, { timeout: 5000 });
+  await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 }); // Handed over
+  await expect(kitchen.getByTestId(`ready-${token}`)).toHaveCount(0, { timeout: 5000 });
   await expect(board.getByTestId('board-hero')).toHaveCount(0, { timeout: 5000 });
+  // …and it moves to the history: the board's Collected row and the kitchen's Today panel.
+  await expect(board.getByTestId('board-done')).toContainText(token, { timeout: 15000 });
+  await kitchen.getByTestId('open-history').click();
+  await expect(kitchen.getByTestId(`hist-${token}`)).toContainText('Collected');
+  await kitchen.getByTestId(`hist-${token}`).getByRole('button', { name: 'Back to counter' }).click();
+  await expect(kitchen.getByTestId(`ready-${token}`)).toBeVisible({ timeout: 5000 });
+  await kitchen.getByRole('button', { name: 'Close' }).click();
+  await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 });
+  await expect(kitchen.getByTestId(`ready-${token}`)).toHaveCount(0, { timeout: 5000 });
 });
 
 test('cash order waits for the counter before reaching the rail', async ({ browser }) => {
@@ -78,17 +88,17 @@ test('cash order waits for the counter before reaching the rail', async ({ brows
   const kitchen = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   await staff(kitchen);
   await kitchen.goto('/kitchen');
-  await expect(kitchen.locator('.plate.due', { hasText: token })).toBeVisible({ timeout: 5000 });
+  await expect(kitchen.getByTestId(`due-${token}`)).toBeVisible({ timeout: 5000 });
   await expect(kitchen.getByTestId(`chit-${token}`)).toHaveCount(0);
-  await kitchen.locator('.plate.due', { hasText: token }).getByRole('button', { name: /पैसे मिल गए/ }).click();
+  await kitchen.getByTestId(`due-${token}`).getByRole('button', { name: 'Paid' }).click();
   await expect(kitchen.getByTestId(`chit-${token}`)).toBeVisible({ timeout: 5000 });
   // and the cook can take it all the way through without the chit jumping around
-  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // शुरू करो
-  await expect(kitchen.getByTestId(`go-${token}`)).toContainText('तैयार');
-  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // तैयार
-  await expect(kitchen.locator('.plate', { hasText: token })).toBeVisible({ timeout: 5000 });
-  await kitchen.locator('.plate', { hasText: token }).getByRole('button').click({ timeout: 5000 }); // दे दिया
-  await expect(kitchen.locator('.plate', { hasText: token })).toHaveCount(0, { timeout: 5000 });
+  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // Start
+  await expect(kitchen.getByTestId(`go-${token}`)).toContainText('Ready');
+  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // Ready
+  await expect(kitchen.getByTestId(`ready-${token}`)).toBeVisible({ timeout: 5000 });
+  await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 }); // Handed over
+  await expect(kitchen.getByTestId(`ready-${token}`)).toHaveCount(0, { timeout: 5000 });
 });
 
 test('status changes need the staff PIN', async ({ request }) => {
@@ -101,7 +111,7 @@ test('kitchen PIN is checked when typed and remembered after that', async ({ bro
   await page.goto('/kitchen');
   const gate = page.getByTestId('pin-gate');
   for (const d of '1111') await gate.getByRole('button', { name: d, exact: true }).click();
-  await expect(page.getByTestId('pin-msg')).toContainText('गलत PIN');
+  await expect(page.getByTestId('pin-msg')).toContainText('Wrong PIN');
   await expect(gate).toBeVisible();
   for (const d of PIN) await gate.getByRole('button', { name: d, exact: true }).click();
   await expect(gate).toHaveCount(0);
@@ -119,24 +129,24 @@ test("UPI: customer taps I've paid, counter confirms on the soundbox", async ({ 
   await kiosk.getByTestId('continue-to-pay').click();
   await kiosk.getByTestId('pay-upi').click();
   await expect(kiosk.locator('.qrcard img')).toBeVisible();
-  const token = (await kiosk.locator('.qrcard .who small').textContent())!.match(/A-\d{3}/)![0];
+  const token = (await kiosk.locator('.qrcard .who small').textContent())!.match(/Order (\d+)/)![1];
 
   const kitchen = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   await staff(kitchen);
   await kitchen.goto('/kitchen');
-  await expect(kitchen.getByTestId(`due-${token}`)).toContainText('QR खुला है', { timeout: 5000 }); // QR still open
+  await expect(kitchen.getByTestId(`due-${token}`)).toContainText('QR still open', { timeout: 5000 });
 
   await kiosk.getByTestId('i-paid').click();
   await expect(kiosk.locator('.paid.due')).toContainText('being checked');
-  await expect(kitchen.getByTestId(`due-${token}`)).toContainText('साउंडबॉक्स सुनें', { timeout: 5000 });
+  await expect(kitchen.getByTestId(`due-${token}`)).toContainText('listen for the soundbox', { timeout: 5000 });
   await expect(kitchen.getByTestId(`chit-${token}`)).toHaveCount(0);
-  await kitchen.getByTestId(`due-${token}`).getByRole('button', { name: /पैसे मिल गए/ }).click();
+  await kitchen.getByTestId(`due-${token}`).getByRole('button', { name: 'Paid' }).click();
   await expect(kitchen.getByTestId(`chit-${token}`)).toBeVisible({ timeout: 5000 });
   await expect(kiosk.locator('.paid:not(.due)')).toContainText('Payment received', { timeout: 6000 });
 
   // tidy up for the next test
   await kitchen.getByTestId(`go-${token}`).click(); await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 });
-  await kitchen.locator('.plate', { hasText: token }).getByRole('button').click({ timeout: 5000 });
+  await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 });
 });
 
 test('UPI: cancelling at the kiosk clears it from the payment shelf', async ({ browser }) => {
@@ -148,13 +158,28 @@ test('UPI: cancelling at the kiosk clears it from the payment shelf', async ({ b
   await kiosk.getByTestId('cartbar').click();
   await kiosk.getByTestId('continue-to-pay').click();
   await kiosk.getByTestId('pay-upi').click();
-  const token = (await kiosk.locator('.qrcard .who small').textContent())!.match(/A-\d{3}/)![0];
+  const token = (await kiosk.locator('.qrcard .who small').textContent())!.match(/Order (\d+)/)![1];
   const kitchen = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   await staff(kitchen);
   await kitchen.goto('/kitchen');
   await expect(kitchen.getByTestId(`due-${token}`)).toBeVisible({ timeout: 5000 });
   await kiosk.getByRole('button', { name: 'Cancel order' }).click();
   await expect(kitchen.getByTestId(`due-${token}`)).toHaveCount(0, { timeout: 5000 });
+});
+
+test('kiosk returns to the start screen by itself after the order number', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.clock.install();
+  await page.goto('/kiosk');
+  await page.getByTestId('dine-in').click();
+  await page.getByTestId('item-medu-vada').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await page.getByTestId('continue-to-pay').click();
+  await page.getByTestId('pay-cash').click();
+  await expect(page.getByTestId('token')).toBeVisible();
+  await page.clock.runFor(16_000);
+  await expect(page.getByTestId('dine-in')).toBeVisible();
 });
 
 test('the ₹1 payment test item is refused when test mode is off', async ({ request }) => {

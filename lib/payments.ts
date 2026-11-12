@@ -25,7 +25,7 @@ export function upiLink(p: { upiId: string; name: string; amount: number; note: 
 export const DirectUpiProvider: PaymentProvider = {
   name: 'upi-direct',
   autoConfirms: false,
-  upiRequest: (o) => ({ payload: upiLink({ upiId: SHOP.upiId, name: SHOP.name, amount: o.total, note: `${SHOP.name} ${o.token}` }), expiresInSec: 300 }),
+  upiRequest: (o) => ({ payload: upiLink({ upiId: SHOP.upiId, name: SHOP.name, amount: o.total, note: `${SHOP.name} order ${o.token}` }), expiresInSec: 300 }),
 };
 
 export const MockProvider: PaymentProvider = {

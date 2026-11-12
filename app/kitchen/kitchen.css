@@ -13,12 +13,13 @@
 .kitchen .net i{width:10px;height:10px;border-radius:50%;background:var(--chilli)}
 .kitchen .clock{margin-left:auto;font-family:var(--display);font-weight:800;font-size:30px}
 
-.kitchen .railwrap{position:relative;overflow-x:auto;overflow-y:hidden;padding:0 16px 0 16px;background:#EEE7D9;scrollbar-width:none}
+/* scrolls both ways: a long order can be taller than the screen and its button must stay reachable */
+.kitchen .railwrap{position:relative;overflow:auto;padding:0 16px 0 16px;background:#EEE7D9;scrollbar-width:none}
 .kitchen .railwrap::-webkit-scrollbar{display:none}
 .kitchen .rail{position:absolute;left:0;right:0;top:28px;height:14px;min-width:100%;background:linear-gradient(180deg,#5A5A55,#2A2A27 55%,#4A4A45);box-shadow:0 3px 8px rgba(0,0,0,.35)}
 .kitchen .chits{position:relative;display:flex;gap:14px;align-items:flex-start;padding-top:34px;min-height:100%;width:max-content;min-width:100%}
 .kitchen .empty{position:absolute;inset:60px 0 0;display:grid;place-items:center;text-align:center;color:var(--cream-3)}
-.kitchen .empty b{display:block;font-family:var(--hi);font-weight:400;font-size:34px;color:var(--cream-2)}
+.kitchen .empty b{display:block;font-weight:700;font-size:32px;color:var(--cream-2)}
 .chit{flex:0 0 232px;background:var(--chit);color:var(--ink);border-radius:2px 2px 6px 6px;position:relative;box-shadow:0 14px 24px -14px rgba(60,45,20,.45);transform-origin:top center}
 .chit.fresh{animation:drop .6s cubic-bezier(.2,.9,.3,1.15) both}
 .chit:nth-child(3n+2){transform:rotate(.6deg)}.chit:nth-child(3n){transform:rotate(-.5deg)}
@@ -36,14 +37,16 @@
 .chit .ln + .ln{border-top:1px solid #E1D9C9}
 .chit .qty{width:44px;height:44px;border-radius:9px;background:var(--ink);color:var(--chit);display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:30px}
 .chit .qty.one{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
-.chit .nm{font-family:var(--hi);font-size:26px;line-height:1.15;padding-top:6px}
-.chit .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:flex-start}
-.chit .tg{font-family:var(--hi);font-size:17px;line-height:1;height:32px;display:inline-flex;align-items:center;padding:2px 9px 0;border-radius:5px;white-space:nowrap}
-.chit .tg.add{background:#F6DE97;color:#5A4300}
-.chit .tg.hot{background:#F3C3B6;color:#7A2410}
-.chit .tg.opt{background:var(--chit-2);color:var(--ink)}
+.chit .ln > div{min-width:0}
+.chit .nm{font-size:22px;font-weight:700;line-height:1.15;padding-top:9px}
+.chit .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:flex-start}
+/* Tags wrap inside the chit instead of running past its edge. */
+.chit .tg{font-size:16px;font-weight:700;line-height:1.15;min-height:30px;max-width:100%;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:6px;overflow-wrap:anywhere;border:1.5px solid transparent}
+.chit .tg i{font-style:normal;font-weight:900;font-size:19px;line-height:1}
+.chit .tg.more{background:#DDF0E1;color:#1E5A31;border-color:#9CCDA9}
+.chit .tg.less{background:#FBE0D8;color:#8E2511;border-color:#EDA592}
 .chit .tg.note{background:var(--ink);color:var(--chit)}
-.chit .go{margin:12px 10px;height:80px;width:calc(100% - 20px);border-radius:10px;font-family:var(--hi);font-size:32px;display:flex;align-items:center;justify-content:center;gap:12px}
+.chit .go{margin:12px 10px;height:80px;width:calc(100% - 20px);border-radius:10px;font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:36px;display:flex;align-items:center;justify-content:center;gap:12px}
 .chit .go svg{width:28px;height:28px}
 .chit.new .clip{background:var(--benne);box-shadow:0 0 0 4px rgba(245,197,66,.25),inset 0 -3px 0 rgba(0,0,0,.2)}
 .chit.new .go{background:var(--benne);color:var(--benne-ink)}
@@ -58,7 +61,7 @@
 .kitchen .pass{grid-row:2/4;grid-column:2;background:var(--s2);border-left:1px solid var(--line);display:flex;flex-direction:column;padding:16px 14px;overflow-y:auto;scrollbar-width:none}
 .kitchen .pass-h{display:flex;align-items:center;gap:10px;margin:0 0 12px}
 .kitchen .pass-h svg{width:32px;height:32px;color:var(--benne-fg)}
-.kitchen .pass-h b{font-family:var(--hi);font-size:24px;font-weight:400}
+.kitchen .pass-h b{font-size:20px;font-weight:700;line-height:1.1}
 .kitchen .pass-h span{margin-left:auto;min-width:32px;height:32px;padding:0 8px;border-radius:16px;background:var(--ok);color:#fff;display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:19px}
 .kitchen .pass-h.due span{background:var(--chilli)}
 .kitchen .plate{background:#FFFFFF;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
@@ -72,14 +75,14 @@
 .kitchen .plate .w i.long{background:var(--warn)}
 .kitchen .plate .nm2{font-size:14px;color:var(--cream-3);margin:6px 0 10px;line-height:1.35}
 .kitchen .plate .amt{font-family:var(--display);font-weight:900;font-size:30px;color:var(--cream)}
-.kitchen .plate button{width:100%;height:54px;border-radius:10px;border:1.5px solid var(--line);background:var(--s2);color:var(--cream);font-family:var(--hi);font-size:22px;display:flex;align-items:center;justify-content:center;gap:8px}
+.kitchen .plate button{width:100%;height:54px;border-radius:10px;border:1.5px solid var(--line);background:var(--s2);color:var(--cream);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
 .kitchen .plate.due button{background:var(--benne);border-color:var(--benne);color:var(--benne-ink)}
 .kitchen .plate.open{opacity:.7;border-style:dashed}
 .kitchen .plate.open .tok{color:var(--cream-3)}
 .kitchen .plate .how{color:var(--cream);font-weight:600}
 .kitchen .pay-actions{display:flex;gap:8px}
 .kitchen .pay-actions button:first-child{flex:1}
-.kitchen .plate.due .pay-actions .drop{width:72px;flex:none;background:var(--s1);border-color:var(--line);color:var(--cream-2);font-size:18px}
+.kitchen .plate.due .pay-actions .drop{width:72px;flex:none;background:var(--s1);border-color:var(--line);color:var(--cream-2);font-size:16px}
 .kitchen .plate button svg{width:22px;height:22px;color:currentColor}
 .kitchen .pass .gap{height:10px}
 @keyframes slidein{0%{transform:translateX(60px);opacity:0}100%{transform:none;opacity:1}}
@@ -89,22 +92,48 @@
 .kitchen .onfire svg{width:24px;height:24px}
 .kitchen .dish{position:relative;width:62px;height:62px;border-radius:50%;flex-shrink:0}
 .kitchen .dish img,.kitchen .dish .ph{width:62px;height:62px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 0 0 3px #FFFFFF}
-.kitchen .dish .ph{background:var(--s3);display:grid;place-items:center;font-family:var(--hi);color:var(--benne-fg);font-size:15px}
+.kitchen .dish .ph{background:var(--s3);display:grid;place-items:center;font-weight:700;color:var(--benne-fg);font-size:13px}
 .kitchen .dish b{position:absolute;right:-6px;bottom:-4px;min-width:30px;height:30px;padding:0 6px;border-radius:15px;background:var(--benne);color:var(--benne-ink);display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:20px;box-shadow:0 0 0 3px var(--s1)}
-.kitchen .tray .quiet{font-family:var(--hi);font-size:20px;color:var(--cream-3)}
+.kitchen .tray .quiet{font-size:18px;font-weight:600;color:var(--cream-3)}
 .kitchen .toast{position:absolute;right:18px;top:19px;display:flex;align-items:center;gap:12px;height:54px;padding:0 6px 0 14px;border-radius:12px;background:var(--cream);color:var(--bg);font-size:16px;font-weight:600;animation:slidein .3s}
 .kitchen .toast svg{width:22px;height:22px;color:#7FC793}
-.kitchen .toast button{height:42px;padding:0 16px;border-radius:9px;background:var(--bg);color:var(--benne-fg);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;font-family:var(--hi)}
+.kitchen .toast button{height:42px;padding:0 16px;border-radius:9px;background:var(--bg);color:var(--benne-fg);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px}
 .kitchen .toast.err{background:var(--chilli);color:#fff}
 
 /* PIN gate */
 .pin{position:absolute;inset:0;z-index:20;background:var(--bg);display:grid;place-items:center}
 .pin .box{text-align:center}
 .pin h2{font-size:56px}
-.pin p{font-family:var(--hi);font-size:24px;color:var(--cream-2);margin:6px 0 22px}
+.pin p{font-size:22px;font-weight:600;color:var(--cream-2);margin:6px 0 22px}
 .pin .dots{display:flex;gap:14px;justify-content:center;margin-bottom:22px}
 .pin .dots i{width:20px;height:20px;border-radius:50%;border:2px solid var(--cream-3)}
 .pin .dots i.f{background:var(--cream);border-color:var(--cream)}
 .pin .pad{display:grid;grid-template-columns:repeat(3,96px);gap:12px;justify-content:center}
 .pin .pad button{height:80px;border-radius:14px;background:var(--s1);border:1.5px solid var(--line);font-family:var(--display);font-weight:800;font-size:36px}
 .pin .bad{color:var(--chilli);font-weight:600;height:24px;margin-top:12px}
+
+/* Today's orders */
+.hist{position:absolute;inset:0;z-index:15}
+.hist .scrim{position:absolute;inset:0;background:rgba(40,30,15,.35)}
+.hist .panel{position:absolute;top:0;right:0;bottom:0;width:860px;background:var(--bg);box-shadow:-30px 0 60px rgba(60,45,20,.25);display:flex;flex-direction:column;animation:slidein .25s}
+.hist .hh{display:flex;align-items:center;gap:20px;padding:18px 22px;border-bottom:1px solid var(--line);background:var(--s1)}
+.hist h2{font-size:44px}
+.hist .sum{font-size:17px;color:var(--cream-2);display:flex;gap:8px;align-items:baseline}
+.hist .sum b{font-family:var(--display);font-weight:900;font-size:28px;color:var(--cream)}
+.hist .x{margin-left:auto;width:56px;height:56px;border-radius:12px;border:1.5px solid var(--line);font-size:30px;color:var(--cream-2)}
+.hist .rows{flex:1;overflow-y:auto;padding:8px 22px 20px;scrollbar-width:none}
+.hist .none{padding:60px 0;text-align:center;font-size:20px;color:var(--cream-3)}
+.hist .hr{display:grid;grid-template-columns:76px minmax(0,1fr) 92px 112px 150px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.hist .hr .tok{font-family:var(--display);font-weight:900;font-size:40px;line-height:.9;text-align:center}
+.hist .hr .l1{font-size:15px;color:var(--cream-2);display:flex;gap:10px}
+.hist .hr .l1 b{color:var(--cream)}
+.hist .hr .l2{font-size:15px;color:var(--cream-3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist .hr .amt{font-family:var(--display);font-weight:800;font-size:26px;text-align:right}
+.hist .hr .amt small{display:block;font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--cream-3);text-transform:uppercase}
+.hist .hr .st{justify-self:start;font-size:14px;font-weight:700;padding:6px 10px;border-radius:6px;background:var(--s2);color:var(--cream-2)}
+.hist .hr .st.handed_over{background:#DDF0E1;color:#1E5A31}
+.hist .hr .st.ready{background:var(--benne);color:var(--benne-ink)}
+.hist .hr .st.cooking,.hist .hr .st.new{background:#FDEBC4;color:#6B4A00}
+.hist .hr .st.cancelled,.hist .hr .st.pending_payment{background:#FBE0D8;color:#8E2511}
+.hist .hr.cancelled .tok,.hist .hr.cancelled .amt,.hist .hr.pending_payment .tok,.hist .hr.pending_payment .amt{color:var(--cream-3);text-decoration:line-through}
+.hist .hr button{height:48px;border-radius:10px;border:1.5px solid var(--line);background:var(--s1);font-size:15px;font-weight:700}

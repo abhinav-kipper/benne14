@@ -28,10 +28,12 @@ export async function POST(req: Request) {
   }
 }
 
-// Live orders for the kitchen and the board.
-export async function GET() {
+// Live orders for the kitchen and the board; ?view=today gives today's full history, newest first.
+export async function GET(req: Request) {
   try {
-    return json(await getStore().listLive());
+    const store = getStore();
+    if (new URL(req.url).searchParams.get('view') === 'today') return json(await store.listToday());
+    return json(await store.listLive());
   } catch (e) {
     return fail(e);
   }

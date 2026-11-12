@@ -23,10 +23,13 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 - Menu in code (`lib/menu.ts`); a price change is a one-line edit + deploy.
 - Live updates by polling every 1.5 s (no Supabase Realtime yet).
-- UPI goes straight to the shop's Paytm UPI ID (`lib/shop.ts`); the customer taps "I've paid" and staff confirm on the soundbox ("पैसे मिल गए"). No automatic confirmation until the Paytm API (needs API access + merchant key). `PAYMENTS=mock` for tests/demos.
-- Card and cash both wait on the kitchen's "पैसे लेने हैं" shelf until staff confirm.
+- UPI goes straight to the shop's Paytm UPI ID (`lib/shop.ts`); the customer taps "I've paid" and staff confirm on the soundbox ("Paid"). No automatic confirmation until the Paytm API (needs API access + merchant key). `PAYMENTS=mock` for tests/demos.
+- Card and cash both wait on the kitchen's "Collect payment" shelf until staff confirm.
 - Kitchen protected by one shared 4-digit `STAFF_PIN`.
-- Language toggle switches dish names only.
+- English only everywhere (owner's call, 2026-11-12). The `prototype/` HTML and the video still have the old Hindi.
+- Order numbers are plain daily numbers (1, 2, 3…). Old "A-042" rows are shown as "42" by the app; `supabase/migrations/0002_plain_tokens.sql` makes new rows store plain numbers (optional to run).
+- GST (5%, on top) is rounded to the nearest rupee and split into CGST/SGST, so bills have no round-off line.
+- History: kitchen "Today's orders" panel (with "Back to counter" for collected orders) and a "Collected" row on the TV board, from `GET /api/orders?view=today`.
 - Order lines stored as a JSON snapshot on `orders` (no `order_items` table yet).
 
 ## Open questions (owner)
@@ -46,6 +49,8 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 - Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
 
 ## Done
+
+- 2026-11-12 — Owner feedback round: English only, no 14% sticker on the start screen, ₹ drawn by the brand fonts, green +/red − tags on kitchen chits, today's history on kitchen and board, plain order numbers, no round-off on bills, start screen returns 15 s after the order number.
 
 - 2026-11-12 — Test mode (default on): cash counts as paid, ₹1 payment test item, kiosk ribbon.
 - 2026-11-12 — Real UPI to the shop's Paytm ("I've paid" + counter confirm on the payment shelf); kitchen PIN checked when typed.

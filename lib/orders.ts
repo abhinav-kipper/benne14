@@ -10,7 +10,7 @@ export type OrderStatus = 'pending_payment' | 'awaiting_cash' | 'new' | 'cooking
 
 export interface Order {
   id: string;
-  token: string; // A-042
+  token: string; // today's order number: "42"
   tokenDay: string; // YYYY-MM-DD in IST
   type: OrderType;
   customerName: string | null;
@@ -58,10 +58,16 @@ export const LIVE: OrderStatus[] = ['awaiting_cash', 'new', 'cooking', 'ready'];
 // so staff can match a soundbox announcement even if the customer forgot to tap "I've paid".
 export const UPI_OPEN_MIN = 15;
 
+// Most orders the history view loads for one day.
+export const HISTORY_MAX = 300;
+
 export function istDay(d = new Date()): string {
   return new Date(d.getTime() + 5.5 * 3600_000).toISOString().slice(0, 10);
 }
 
-export const formatToken = (n: number) => `A-${String(n).padStart(3, '0')}`;
+export const formatToken = (n: number) => String(n);
+
+// Orders placed before plain numbers were stored as "A-042"; show them as "42" too.
+export const plainToken = (t: string) => t.replace(/^[A-Z]-0*(?=\d)/, '');
 
 export const minutesSince = (iso: string, now = Date.now()) => Math.max(0, Math.floor((now - Date.parse(iso)) / 60000));

@@ -1,6 +1,6 @@
 // Supabase-backed store. Server only: uses the service role key; tables have RLS with no public policies.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { canMove, istDay, LIVE, UPI_OPEN_MIN, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
+import { canMove, HISTORY_MAX, istDay, LIVE, plainToken, UPI_OPEN_MIN, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
 import { StoreError } from './memory';
 
 interface Row {
@@ -12,7 +12,7 @@ interface Row {
 }
 
 const toOrder = (r: Row): Order => ({
-  id: r.id, token: r.token, tokenDay: r.token_day, type: r.type, customerName: r.customer_name,
+  id: r.id, token: plainToken(r.token), tokenDay: r.token_day, type: r.type, customerName: r.customer_name,
   payMethod: r.pay_method, status: r.status, lines: r.lines, itemCount: r.item_count,
   subtotal: +r.subtotal, cgst: +r.cgst, sgst: +r.sgst, roundOff: +r.round_off, total: +r.total, savings: +r.savings,
   createdAt: r.created_at, updatedAt: r.updated_at, paidAt: r.paid_at, readyAt: r.ready_at,
@@ -47,6 +47,12 @@ export class SupabaseStore {
       .eq('token_day', istDay())
       .or(`status.in.(${LIVE.join(',')}),and(status.eq.handed_over,updated_at.gt.${since}),and(status.eq.pending_payment,created_at.gt.${openQr})`)
       .order('created_at');
+    if (error) throw new StoreError(error.message, 500);
+    return (data as Row[]).map(toOrder);
+  }
+
+  async listToday() {
+    const { data, error } = await this.db.from('orders').select('*').eq('token_day', istDay()).order('created_at', { ascending: false }).limit(HISTORY_MAX);
     if (error) throw new StoreError(error.message, 500);
     return (data as Row[]).map(toOrder);
   }

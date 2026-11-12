@@ -1,4 +1,4 @@
-// The menu lives in code for v1 (prices from the Benne 14 launch menu, 14% off applied).
+// English only (the owner asked for no Hindi). The menu lives in code for v1 (prices from the Benne 14 launch menu, 14% off applied).
 // A price change is a one-line edit + deploy until the owner admin (M4) moves this into the DB.
 
 export type CategoryId = 'dosa' | 'idli' | 'drinks' | 'test';
@@ -6,14 +6,16 @@ export type CategoryId = 'dosa' | 'idli' | 'drinks' | 'test';
 export interface Category {
   id: CategoryId;
   name: string;
-  hi: string;
 }
+
+// How a choice reads on the kitchen chit: 'add' = more of something (green +), 'less' = less or none (red −).
+export type Tone = 'add' | 'less';
 
 export interface ModOption {
   id: string;
   name: string;
-  hi?: string;
   price: number; // rupees added per unit
+  tone?: Tone;
 }
 
 export interface ModGroup {
@@ -28,8 +30,7 @@ export interface MenuItem {
   id: string;
   cat: CategoryId;
   name: string;
-  hi: string;
-  desc: string; // homely Hindi line
+  desc: string; // short homely line
   price: number;
   mrp: number;
   photo?: string; // /food/<id>.jpg
@@ -43,58 +44,58 @@ export interface MenuItem {
 export interface KitchenNote {
   id: string;
   label: string;
-  hi: string; // what the cook reads
+  tone?: Tone;
 }
 
 export const CATEGORIES: Category[] = [
-  { id: 'dosa', name: 'Dosas', hi: 'डोसा' },
-  { id: 'idli', name: 'Idli & Vada', hi: 'इडली · वड़ा' },
-  { id: 'drinks', name: 'Coffee & Tea', hi: 'कॉफ़ी · चाय' },
-  { id: 'test', name: 'Payment test', hi: 'पेमेंट टेस्ट' }, // only has items in test mode
+  { id: 'dosa', name: 'Dosas' },
+  { id: 'idli', name: 'Idli & Vada' },
+  { id: 'drinks', name: 'Coffee & Tea' },
+  { id: 'test', name: 'Payment test' }, // only has items in test mode
 ];
 
 export const GROUPS: Record<string, ModGroup> = {
   spice: {
     id: 'spice', name: 'Podi spice', kind: 'one', defaultId: 'regular',
     options: [
-      { id: 'mild', name: 'Mild', hi: 'कम तीखा', price: 0 },
-      { id: 'regular', name: 'Regular', hi: 'नॉर्मल', price: 0 },
-      { id: 'fiery', name: 'Fiery', hi: 'तीखा', price: 0 },
+      { id: 'mild', name: 'Mild', price: 0, tone: 'less' },
+      { id: 'regular', name: 'Regular', price: 0 },
+      { id: 'fiery', name: 'Fiery', price: 0, tone: 'add' },
     ],
   },
   dosaExtras: {
     id: 'dosaExtras', name: 'Make it extra', kind: 'many',
     options: [
-      { id: 'benne', name: 'Extra benne', hi: '+ बेन्ने', price: 25 },
-      { id: 'podi', name: 'Extra podi', hi: '+ पोडी', price: 15 },
-      { id: 'palya', name: 'Extra palya', hi: '+ पल्या', price: 30 },
-      { id: 'sambar', name: 'Sambar bowl', hi: '+ सांभर कटोरी', price: 20 },
+      { id: 'benne', name: 'Extra benne', price: 25, tone: 'add' },
+      { id: 'podi', name: 'Extra podi', price: 15, tone: 'add' },
+      { id: 'palya', name: 'Extra palya', price: 30, tone: 'add' },
+      { id: 'sambar', name: 'Sambar bowl', price: 20, tone: 'add' },
     ],
   },
   idliExtras: {
     id: 'idliExtras', name: 'Make it extra', kind: 'many',
     options: [
-      { id: 'sambar', name: 'Sambar bowl', hi: '+ सांभर कटोरी', price: 20 },
-      { id: 'ghee', name: 'Extra ghee', hi: '+ घी', price: 15 },
+      { id: 'sambar', name: 'Sambar bowl', price: 20, tone: 'add' },
+      { id: 'ghee', name: 'Extra ghee', price: 15, tone: 'add' },
     ],
   },
   sugar: {
     id: 'sugar', name: 'Sugar', kind: 'one', defaultId: 'regular',
     options: [
-      { id: 'regular', name: 'Regular sugar', hi: 'नॉर्मल चीनी', price: 0 },
-      { id: 'less', name: 'Less sugar', hi: 'कम चीनी', price: 0 },
-      { id: 'none', name: 'No sugar', hi: 'बिना चीनी', price: 0 },
+      { id: 'regular', name: 'Regular sugar', price: 0 },
+      { id: 'less', name: 'Less sugar', price: 0, tone: 'less' },
+      { id: 'none', name: 'No sugar', price: 0, tone: 'less' },
     ],
   },
 };
 
 export const NOTES: KitchenNote[] = [
-  { id: 'no-onion', label: 'No onion', hi: 'प्याज़ नहीं' },
-  { id: 'less-oil', label: 'Less oil', hi: 'कम तेल' },
-  { id: 'extra-crisp', label: 'Extra crisp', hi: 'ज़्यादा कुरकुरा' },
-  { id: 'chutney-separate', label: 'Chutney separate', hi: 'चटनी अलग' },
-  { id: 'cut-half', label: 'Cut in half', hi: 'आधा काटना' },
-  { id: 'extra-sambar', label: 'Extra sambar', hi: 'सांभर ज़्यादा' },
+  { id: 'no-onion', label: 'No onion', tone: 'less' },
+  { id: 'less-oil', label: 'Less oil', tone: 'less' },
+  { id: 'extra-crisp', label: 'Extra crisp', tone: 'add' },
+  { id: 'chutney-separate', label: 'Chutney separate' },
+  { id: 'cut-half', label: 'Cut in half' },
+  { id: 'extra-sambar', label: 'Extra sambar', tone: 'add' },
 ];
 
 const dosa = ['spice', 'dosaExtras'];
@@ -102,38 +103,42 @@ const idli = ['idliExtras'];
 
 export const ITEMS: MenuItem[] = [
   // ₹1 + 5% GST rounds to exactly ₹1: for checking real UPI payments end to end. Test mode only.
-  { id: 'test-1', cat: 'test', name: 'Payment test', hi: 'पेमेंट टेस्ट', price: 1, mrp: 1, groups: [], notes: false, testOnly: true, placeholder: '₹1',
-    desc: 'सिर्फ़ पेमेंट जाँचने के लिए। असली ₹1 लगेगा।' },
-  { id: 'ghee-podi-benne-dosa', cat: 'dosa', name: 'Ghee Podi Benne Dosa', hi: 'घी पोडी बेन्ने डोसा', price: 171, mrp: 199, special: true, groups: dosa, notes: true,
-    desc: 'घी में लिपटा, पोडी में लोटा, ऊपर से मक्खन का प्यारा सा टुकड़ा। माँ वाला प्यार, बेंगलुरु वाला स्वाद।' },
-  { id: 'masala-dosa', cat: 'dosa', name: 'Masala Dosa', hi: 'मसाला डोसा', price: 180, mrp: 209, groups: dosa, notes: true,
-    desc: 'बाहर से कुरकुरा, अंदर आलू का गरमा-गरम मसाला। बिल्कुल घर जैसा।' },
-  { id: 'plain-benne-dosa', cat: 'dosa', name: 'Plain Benne Dosa', hi: 'प्लेन बेन्ने डोसा', price: 137, mrp: 159, groups: dosa, notes: true,
-    desc: 'नरम बीच, कुरकुरे किनारे, और ढेर सारा मक्खन। बेंगलुरु की असली पहचान।' },
-  { id: 'plain-dosa', cat: 'dosa', name: 'Plain Dosa', hi: 'प्लेन डोसा', price: 145, mrp: 169, groups: dosa, notes: true,
-    desc: 'सीधा-सादा, सुनहरा, हल्का। साथ में नारियल चटनी और सांभर।' },
-  { id: 'mallige-idli', cat: 'idli', name: 'Mallige Idli', hi: 'मल्लिगे इडली', price: 76, mrp: 89, groups: idli, notes: true,
-    desc: 'चमेली जैसी मुलायम, गरम सांभर के साथ। एक खाओगे, दो और मँगाओगे।' },
-  { id: 'thatte-idli', cat: 'idli', name: 'Thatte Idli', hi: 'थट्टे इडली', price: 76, mrp: 89, groups: idli, notes: true,
-    desc: 'थाली जितनी बड़ी, बादल जितनी नरम। दो चटनियों के साथ।' },
-  { id: 'ghee-podi-thatte-idli', cat: 'idli', name: 'Ghee Podi Thatte Idli', hi: 'घी पोडी थट्टे इडली', price: 94, mrp: 109, groups: idli, notes: true,
-    desc: 'घी में डूबी, पोडी में लिपटी। आपकी सुबह बना देगी।' },
-  { id: 'medu-vada', cat: 'idli', name: 'Udupi Medu Vada', hi: 'उडुपी मेदु वड़ा', price: 76, mrp: 89, groups: idli, notes: true,
-    desc: 'बाहर से कुरकुरा, अंदर से रुई जैसा नरम। उडुपी वाला असली स्वाद।' },
-  { id: 'filter-coffee', cat: 'drinks', name: 'Bengaluru Filter Coffee', hi: 'फ़िल्टर कॉफ़ी', price: 59, mrp: 69, groups: ['sugar'], notes: false, placeholder: 'कॉफ़ी',
-    desc: 'स्टील के डबरा में झागदार गरम कॉफ़ी। बेंगलुरु की सुबह, आपके हाथ में।' },
-  { id: 'masala-tea', cat: 'drinks', name: 'Masala Tea', hi: 'मसाला चाय', price: 42, mrp: 49, groups: ['sugar'], notes: false,
-    desc: 'अदरक, इलायची, थोड़ी सी लौंग। दिल को सुकून देने वाली चाय।' },
+  { id: 'test-1', cat: 'test', name: 'Payment test', price: 1, mrp: 1, groups: [], notes: false, testOnly: true, placeholder: '₹1',
+    desc: 'Only for checking payments. Charges a real ₹1.' },
+  { id: 'ghee-podi-benne-dosa', cat: 'dosa', name: 'Ghee Podi Benne Dosa', price: 171, mrp: 199, special: true, groups: dosa, notes: true,
+    desc: 'Brushed with ghee, rolled in podi, topped with a knob of butter. Bangalore taste, made with love.' },
+  { id: 'masala-dosa', cat: 'dosa', name: 'Masala Dosa', price: 180, mrp: 209, groups: dosa, notes: true,
+    desc: 'Crisp outside, warm spiced potato inside. Just like home.' },
+  { id: 'plain-benne-dosa', cat: 'dosa', name: 'Plain Benne Dosa', price: 137, mrp: 159, groups: dosa, notes: true,
+    desc: 'Soft centre, crisp edges and plenty of butter. The real taste of Bangalore.' },
+  { id: 'plain-dosa', cat: 'dosa', name: 'Plain Dosa', price: 145, mrp: 169, groups: dosa, notes: true,
+    desc: 'Simple, golden and light. With coconut chutney and sambar.' },
+  { id: 'mallige-idli', cat: 'idli', name: 'Mallige Idli', price: 76, mrp: 89, groups: idli, notes: true,
+    desc: "Soft as jasmine, with hot sambar. Have one, you'll want two more." },
+  { id: 'thatte-idli', cat: 'idli', name: 'Thatte Idli', price: 76, mrp: 89, groups: idli, notes: true,
+    desc: 'Big as a plate, soft as a cloud. With two chutneys.' },
+  { id: 'ghee-podi-thatte-idli', cat: 'idli', name: 'Ghee Podi Thatte Idli', price: 94, mrp: 109, groups: idli, notes: true,
+    desc: "Soaked in ghee, coated in podi. It'll make your morning." },
+  { id: 'medu-vada', cat: 'idli', name: 'Udupi Medu Vada', price: 76, mrp: 89, groups: idli, notes: true,
+    desc: 'Crunchy outside, fluffy inside. Proper Udupi style.' },
+  { id: 'filter-coffee', cat: 'drinks', name: 'Bengaluru Filter Coffee', price: 59, mrp: 69, groups: ['sugar'], notes: false, placeholder: 'Coffee',
+    desc: 'Frothy and hot in a steel dabara. A Bangalore morning in your hands.' },
+  { id: 'masala-tea', cat: 'drinks', name: 'Masala Tea', price: 42, mrp: 49, groups: ['sugar'], notes: false,
+    desc: 'Ginger, cardamom and a pinch of clove. Chai that warms you up.' },
 ];
 
 // Items with a real photo in /public/food. Filter coffee is waiting for the restaurant's own photo.
 const PHOTOS = new Set(ITEMS.map((i) => i.id).filter((id) => id !== 'filter-coffee' && id !== 'test-1'));
-export const placeholderOf = (id: string) => ITEMS.find((i) => i.id === id)?.placeholder ?? 'कॉफ़ी';
+export const placeholderOf = (id: string) => ITEMS.find((i) => i.id === id)?.placeholder ?? 'Coffee';
 // Items the kiosk shows: test-only ones appear only in test mode.
 export const visibleItems = (testMode: boolean) => ITEMS.filter((i) => testMode || !i.testOnly);
 export const photoOf = (id: string) => (PHOTOS.has(id) ? `/food/${id}.jpg` : undefined);
 
 export const itemById = (id: string) => ITEMS.find((i) => i.id === id);
+
+// Tone of a choice on an order, looked up by id so orders saved before tones existed still colour correctly.
+export const optionTone = (groupId: string, id: string): Tone | undefined => GROUPS[groupId]?.options.find((o) => o.id === id)?.tone;
+export const noteTone = (id: string): Tone | undefined => NOTES.find((n) => n.id === id)?.tone;
 
 // Shown as "Goes well with" in the item sheet and "Kuch aur?" in the cart.
 export const PAIRING = 'filter-coffee';

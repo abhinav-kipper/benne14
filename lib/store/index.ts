@@ -10,6 +10,7 @@ export interface Store {
   placeOrder(input: PlaceOrderInput): Promise<Order>; // idempotent on input.key
   getOrder(id: string): Promise<Order | null>;
   listLive(): Promise<Order[]>; // today's orders the kitchen/board show, plus recently handed over
+  listToday(): Promise<Order[]>; // every order placed today, newest first (history on the kitchen and board)
   setStatus(id: string, to: OrderStatus): Promise<Order>;
 }
 

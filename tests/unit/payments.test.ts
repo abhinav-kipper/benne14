@@ -7,8 +7,8 @@ const params = (link: string) => Object.fromEntries(new URL(link.replace('upi://
 
 describe('UPI links', () => {
   it('pays the shop by name with the exact amount and the token in the note', () => {
-    const p = params(DirectUpiProvider.upiRequest({ token: 'A-042', total: 330 }).payload);
-    expect(p).toEqual({ pa: 'paytm.s3zpul3@pty', pn: 'Benne 14', am: '330.00', cu: 'INR', tn: 'Benne 14 A-042' });
+    const p = params(DirectUpiProvider.upiRequest({ token: '42', total: 330 }).payload);
+    expect(p).toEqual({ pa: 'paytm.s3zpul3@pty', pn: 'Benne 14', am: '330.00', cu: 'INR', tn: 'Benne 14 order 42' });
     expect(SHOP.name).toBe('Benne 14');
   });
 
@@ -18,7 +18,7 @@ describe('UPI links', () => {
   });
 
   it('keeps the mock pointed at a payee no real app will pay', () => {
-    expect(params(MockProvider.upiRequest({ token: 'A-001', total: 76 }).payload).pa).toBe('demo.benne14@mockupi');
+    expect(params(MockProvider.upiRequest({ token: '1', total: 76 }).payload).pa).toBe('demo.benne14@mockupi');
   });
 
   it("lets a customer's \"I've paid\" move the order to the counter check", () => {

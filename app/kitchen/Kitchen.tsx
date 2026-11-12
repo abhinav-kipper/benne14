@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { itemById, photoOf, placeholderOf } from '@/lib/menu';
+import { itemById, noteTone, optionTone, photoOf, placeholderOf, type Tone } from '@/lib/menu';
 import { minutesSince, type Order, type OrderStatus } from '@/lib/orders';
-import { api, ApiError, chime, useFreshIds, useLiveOrders } from '@/lib/client';
+import { api, ApiError, chime, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
 
 const WARN_MIN = 8;
 const LATE_MIN = 12;
@@ -18,7 +18,9 @@ const Rupee = () => <svg viewBox="0 0 34 34"><g fill="none" stroke="currentColor
 const Speaker = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" /><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" /></svg>;
 const Undo = () => <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" d="M9 7L4 12l5 5M4 12h10a6 6 0 0 1 0 12" /></svg>;
 
-const UNDO_TEXT: Partial<Record<OrderStatus, string>> = { cooking: 'शुरू किया', ready: 'तैयार', handed_over: 'दे दिया' };
+const List = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M8 6h12M8 12h12M8 18h12" /><circle cx="4" cy="6" r="1" fill="currentColor" /><circle cx="4" cy="12" r="1" fill="currentColor" /><circle cx="4" cy="18" r="1" fill="currentColor" /></svg>;
+
+const UNDO_TEXT: Partial<Record<OrderStatus, string>> = { cooking: 'started', ready: 'ready', handed_over: 'handed over' };
 
 export default function Kitchen() {
   const [pin, setPin] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function Kitchen() {
   const [now, setNow] = useState(0);
   useEffect(() => { setNow(Date.now()); const t = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(t); }, []);
 
-  // Sound: browsers only play audio after a tap, so the cook taps "आवाज़" once after opening.
+  // Sound: browsers only play audio after a tap, so the cook taps "Turn on sound" once after opening.
   const audio = useRef<AudioContext | null>(null);
   const [soundOn, setSoundOn] = useState(false);
   const seen = useRef<Set<string> | null>(null);
@@ -54,11 +56,11 @@ export default function Kitchen() {
     try {
       await api.setStatus(o.id, to, pin);
       noteLocalChange();
-      setToast(undoable && UNDO_TEXT[to] ? { text: `${o.token} ${UNDO_TEXT[to]}`, undo: { id: o.id, to: from } } : null);
+      setToast(undoable && UNDO_TEXT[to] ? { text: `Order ${o.token} ${UNDO_TEXT[to]}`, undo: { id: o.id, to: from } } : null);
     } catch (e) {
       // Only a PIN the server now rejects (e.g. changed in Vercel) sends the cook back to the PIN screen.
-      if (e instanceof ApiError && e.status === 401) { localStorage.removeItem(PIN_KEY); setPinNote('PIN बदल गया है, नया PIN डालें'); setPin(null); }
-      setToast({ text: e instanceof ApiError ? e.message : 'नेट नहीं है, फिर से टैप करें', err: true });
+      if (e instanceof ApiError && e.status === 401) { localStorage.removeItem(PIN_KEY); setPinNote('The PIN was changed. Enter the new PIN.'); setPin(null); }
+      setToast({ text: e instanceof ApiError ? e.message : 'No internet. Tap again.', err: true });
     }
     refresh();
   };
@@ -69,6 +71,7 @@ export default function Kitchen() {
   // Payment shelf: claimed / counter payments first, then UPI QRs still open on the kiosk.
   const due = [...list.filter((o) => o.status === 'awaiting_cash'), ...list.filter((o) => o.status === 'pending_payment')];
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const fresh = useFreshIds(list.map((o) => `${o.id}:${o.status === 'cooking' ? 'new' : o.status}`));
   const isFresh = (o: Order) => fresh.has(`${o.id}:${o.status === 'cooking' ? 'new' : o.status}`);
   const tray = useMemo(() => {
@@ -88,8 +91,9 @@ export default function Kitchen() {
           audio.current.resume();
           setSoundOn(true);
           chime(audio.current, [660]);
-        }}><Speaker />{soundOn ? 'आवाज़' : 'आवाज़ चालू करें'}</button>
-        {!online && <span className="net"><i />नेट नहीं है, जुड़ रहा है…</span>}
+        }}><Speaker />{soundOn ? 'Sound on' : 'Turn on sound'}</button>
+        <button className="ibtn" onClick={() => setShowHistory(true)} data-testid="open-history"><List />Today&apos;s orders</button>
+        {!online && <span className="net"><i />No internet, reconnecting…</span>}
         <div className="clock">{clock}</div>
       </div>
 
@@ -98,32 +102,32 @@ export default function Kitchen() {
         <div className="chits">
           {rail.map((o) => <Chit key={o.id} o={o} now={now} fresh={isFresh(o)} onGo={() => move(o, o.status === 'new' ? 'cooking' : 'ready')} />)}
         </div>
-        {orders && rail.length === 0 && <div className="empty"><div><b>अभी कोई ऑर्डर नहीं</b>New orders drop onto this rail with a chime.</div></div>}
+        {orders && rail.length === 0 && <div className="empty"><div><b>No orders right now</b>New orders drop onto this rail with a chime.</div></div>}
       </div>
 
       <div className="pass">
         {due.length > 0 && <>
-          <div className="pass-h due"><Rupee /><b>पैसे लेने हैं</b><span>{due.length}</span></div>
+          <div className="pass-h due"><Rupee /><b>Collect payment</b><span>{due.length}</span></div>
           {due.map((o) => (
             <div className={`plate due ${o.status === 'pending_payment' ? 'open' : ''} ${isFresh(o) ? 'fresh' : ''}`} key={o.id} data-testid={`due-${o.token}`}>
               <div className="row1"><span className="tok">{o.token}</span>{o.type === 'dine_in' ? <Dine /> : <Bag />}<span className="w amt">₹{o.total}</span></div>
-              <div className="nm2"><b className="how">{o.payMethod === 'upi' ? (o.status === 'pending_payment' ? 'UPI · QR खुला है' : 'UPI · साउंडबॉक्स सुनें') : o.payMethod === 'card' ? 'कार्ड मशीन' : 'नकद'}</b>{o.customerName ? ` · ${o.customerName}` : ''} · {o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}</div>
+              <div className="nm2"><b className="how">{o.payMethod === 'upi' ? (o.status === 'pending_payment' ? 'UPI · QR still open' : 'UPI · listen for the soundbox') : o.payMethod === 'card' ? 'Card machine' : 'Cash'}</b>{o.customerName ? ` · ${o.customerName}` : ''} · {o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}</div>
               <div className="pay-actions">
-                <button onClick={() => move(o, 'new', false)}><Check />पैसे मिल गए</button>
-                <button className="drop" onClick={() => { if (confirmCancel === o.id) { setConfirmCancel(null); move(o, 'cancelled', false); } else setConfirmCancel(o.id); }}>{confirmCancel === o.id ? 'पक्का?' : 'रद्द'}</button>
+                <button onClick={() => move(o, 'new', false)}><Check />Paid</button>
+                <button className="drop" onClick={() => { if (confirmCancel === o.id) { setConfirmCancel(null); move(o, 'cancelled', false); } else setConfirmCancel(o.id); }}>{confirmCancel === o.id ? 'Sure?' : 'Cancel'}</button>
               </div>
             </div>
           ))}
           <div className="gap" />
         </>}
-        <div className="pass-h"><Bell /><b>काउंटर पर</b><span>{ready.length}</span></div>
+        <div className="pass-h"><Bell /><b>Ready at counter</b><span>{ready.length}</span></div>
         {ready.map((o) => {
           const w = o.readyAt ? minutesSince(o.readyAt, now) : 0;
           return (
-            <div className={`plate ${isFresh(o) ? 'fresh' : ''}`} key={o.id}>
+            <div className={`plate ${isFresh(o) ? 'fresh' : ''}`} key={o.id} data-testid={`ready-${o.token}`}>
               <div className="row1"><span className="tok">{o.token}</span>{o.type === 'dine_in' ? <Dine /> : <Bag />}<span className="w"><i className={w >= 3 ? 'long' : ''} />{w}′</span></div>
-              <div className="nm2">{o.customerName ? `${o.customerName} · ` : ''}{o.lines.map((l) => `${l.qty} ${l.hi}`).join(', ')}</div>
-              <button onClick={() => move(o, 'handed_over')}><Hand />दे दिया</button>
+              <div className="nm2">{o.customerName ? `${o.customerName} · ` : ''}{o.lines.map((l) => `${l.qty} × ${l.name}`).join(', ')}</div>
+              <button onClick={() => move(o, 'handed_over')}><Hand />Handed over</button>
             </div>
           );
         })}
@@ -131,7 +135,7 @@ export default function Kitchen() {
 
       <div className="tray">
         <div className="onfire"><Flame /></div>
-        {tray.length === 0 && <span className="quiet">तवा खाली है</span>}
+        {tray.length === 0 && <span className="quiet">Nothing on the tawa</span>}
         {tray.map(([id, n]) => {
           const src = photoOf(id);
           return <div className="dish" key={id} title={itemById(id)?.name}>{src ? <img src={src} alt="" /> : <div className="ph">{placeholderOf(id)}</div>}<b>{n}</b></div>;
@@ -139,11 +143,12 @@ export default function Kitchen() {
         {toast && (
           <div className={`toast ${toast.err ? 'err' : ''}`}>
             {!toast.err && <Check />}{toast.text}
-            {toast.undo && <button onClick={() => { const u = toast.undo!; const o = list.find((x) => x.id === u.id); setToast(null); if (o) move({ ...o, status: o.status }, u.to, false); }}><Undo />वापस</button>}
+            {toast.undo && <button onClick={() => { const u = toast.undo!; const o = list.find((x) => x.id === u.id); setToast(null); if (o) move({ ...o, status: o.status }, u.to, false); }}><Undo />Undo</button>}
           </div>
         )}
       </div>
 
+      {showHistory && <History onClose={() => setShowHistory(false)} onRecall={(o) => move(o, 'ready', false)} />}
       {pinChecked && !pin && <PinGate note={pinNote} onPin={(p) => { localStorage.setItem(PIN_KEY, p); setPinNote(null); setPin(p); }} />}
     </div>
   );
@@ -161,30 +166,24 @@ function Chit({ o, now, fresh, onGo }: { o: Order; now: number; fresh: boolean; 
       <div className="perf" />
       <div className="items">
         {o.lines.map((l, i) => {
-          const extras = l.mods.filter((x) => x.price > 0);
-          const spice = l.mods.find((x) => x.groupId === 'spice' && x.id !== 'regular');
-          const sugar = l.mods.find((x) => x.groupId === 'sugar' && x.id !== 'regular');
-          const hasTags = extras.length || spice || sugar || l.notes.length;
+          const tags = lineTags(l);
           return (
             <div className="ln" key={i}>
               <span className={`qty ${l.qty === 1 ? 'one' : ''}`}>{l.qty}</span>
               <div>
-                <div className="nm">{l.hi}</div>
-                {hasTags ? (
+                <div className="nm">{l.name}</div>
+                {tags.length > 0 && (
                   <div className="tags">
-                    {spice && <span className="tg hot">{spice.hi}</span>}
-                    {extras.map((x) => <span className="tg add" key={x.id}>{x.hi}</span>)}
-                    {sugar && <span className="tg opt">{sugar.hi}</span>}
-                    {l.notes.map((n) => <span className="tg note" key={n.id}>{n.hi}</span>)}
+                    {tags.map((t) => <span className={`tg ${t.tone === 'add' ? 'more' : t.tone === 'less' ? 'less' : 'note'}`} key={t.key}>{t.tone && <i>{t.tone === 'add' ? '+' : '−'}</i>}{t.text}</span>)}
                   </div>
-                ) : null}
+                )}
               </div>
             </div>
           );
         })}
       </div>
       <button className="go" onClick={onGo} data-testid={`go-${o.token}`}>
-        {o.status === 'new' ? <><Flame />शुरू करो</> : <><Check />तैयार</>}
+        {o.status === 'new' ? <><Flame />Start</> : <><Check />Ready</>}
       </button>
     </div>
   );
@@ -197,7 +196,7 @@ function PinGate({ onPin, note }: { onPin: (p: string) => void; note: string | n
   const check = async (p: string) => {
     setBusy(true);
     try { await api.checkPin(p); onPin(p); }
-    catch (e) { setMsg(e instanceof ApiError && e.status === 401 ? 'गलत PIN, फिर से डालें' : 'नेट नहीं है, फिर से कोशिश करें'); setV(''); }
+    catch (e) { setMsg(e instanceof ApiError && e.status === 401 ? 'Wrong PIN. Try again.' : 'No internet. Try again.'); setV(''); }
     finally { setBusy(false); }
   };
   const press = (d: string) => {
@@ -211,10 +210,63 @@ function PinGate({ onPin, note }: { onPin: (p: string) => void; note: string | n
     <div className="pin" data-testid="pin-gate">
       <div className="box">
         <h2 className="disp">Kitchen</h2>
-        <p>स्टाफ़ PIN डालें</p>
+        <p>Enter the staff PIN</p>
         <div className="dots">{[0, 1, 2, 3].map((i) => <i key={i} className={i < v.length ? 'f' : ''} />)}</div>
         <div className="pad">{['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((d, i) => d ? <button key={i} onClick={() => press(d)} disabled={busy}>{d}</button> : <span key={i} />)}</div>
-        <div className="bad" data-testid="pin-msg">{busy ? 'जाँच रहे हैं…' : msg}</div>
+        <div className="bad" data-testid="pin-msg">{busy ? 'Checking…' : msg}</div>
+      </div>
+    </div>
+  );
+}
+
+// What the cook reads under a dish: extras and "more" in green (+), "less / no" in red (−), other notes in black.
+// Regular spice and regular sugar are the default, so they don't show.
+function lineTags(l: Order['lines'][number]): { key: string; text: string; tone?: Tone }[] {
+  const mods = l.mods
+    .map((m) => ({ key: `${m.groupId}:${m.id}`, text: m.groupId === 'spice' ? `${m.name} spice` : m.name, tone: optionTone(m.groupId, m.id) ?? (m.price > 0 ? 'add' as const : undefined) }))
+    .filter((t) => t.tone);
+  const notes = l.notes.map((n) => ({ key: `note:${n.id}`, text: n.label, tone: noteTone(n.id) }));
+  const rank = (t: { tone?: Tone }) => (t.tone === 'add' ? 0 : t.tone === 'less' ? 1 : 2);
+  return [...mods, ...notes].sort((a, b) => rank(a) - rank(b));
+}
+
+const STATUS_TEXT: Record<OrderStatus, string> = {
+  pending_payment: 'Not paid', awaiting_cash: 'Payment due', new: 'Waiting', cooking: 'Cooking',
+  ready: 'Ready', handed_over: 'Collected', cancelled: 'Cancelled',
+};
+const PAY_TEXT = { upi: 'UPI', card: 'Card', cash: 'Cash' } as const;
+const time = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
+
+// Today's orders, newest first. Staff can bring a collected order back to the counter shelf.
+function History({ onClose, onRecall }: { onClose: () => void; onRecall: (o: Order) => void }) {
+  const orders = useTodayOrders(true, 5000);
+  const list = orders ?? [];
+  const paid = list.filter((o) => !['pending_payment', 'awaiting_cash', 'cancelled'].includes(o.status));
+  const takings = paid.reduce((a, o) => a + o.total, 0);
+  return (
+    <div className="hist" data-testid="history">
+      <div className="scrim" onClick={onClose} />
+      <div className="panel">
+        <div className="hh">
+          <h2 className="disp">Today</h2>
+          <div className="sum"><b>{paid.length}</b> paid orders<span>·</span><b>₹{takings}</b></div>
+          <button className="x" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <div className="rows">
+          {orders && list.length === 0 && <div className="none">No orders yet today.</div>}
+          {list.map((o) => (
+            <div className={`hr ${o.status}`} key={o.id} data-testid={`hist-${o.token}`}>
+              <span className="tok">{o.token}</span>
+              <div className="mid">
+                <div className="l1"><b>{time(o.createdAt)}</b>{o.type === 'dine_in' ? 'Dine-in' : 'Takeaway'}{o.customerName ? ` · ${o.customerName}` : ''}</div>
+                <div className="l2">{o.lines.map((l) => `${l.qty} × ${l.name}`).join(', ')}</div>
+              </div>
+              <div className="amt">₹{o.total}<small>{PAY_TEXT[o.payMethod]}</small></div>
+              <span className={`st ${o.status}`}>{STATUS_TEXT[o.status]}</span>
+              {o.status === 'handed_over' ? <button onClick={() => onRecall(o)}>Back to counter</button> : <i />}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
