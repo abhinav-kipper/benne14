@@ -21,6 +21,7 @@ export const api = {
   order: (id: string) => call<Order>(`/api/orders/${id}`),
   live: () => call<Order[]>('/api/orders'),
   checkPin: (pin: string) => call<{ ok: true }>('/api/staff', { method: 'POST', headers: { 'x-staff-pin': pin } }),
+  claim: (id: string, action: 'paid' | 'cancel') => call<Order>(`/api/orders/${id}/claim`, { method: 'POST', body: JSON.stringify({ action }) }),
   mockPay: (id: string) => call<Order>(`/api/orders/${id}/pay`, { method: 'POST' }),
   setStatus: (id: string, to: OrderStatus, pin: string) =>
     call<Order>(`/api/orders/${id}/status`, { method: 'POST', body: JSON.stringify({ to }), headers: { 'x-staff-pin': pin } }),

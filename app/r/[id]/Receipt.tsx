@@ -4,7 +4,7 @@ import { useOrder } from '@/lib/client';
 
 const HEAD: Record<string, React.ReactNode> = {
   pending_payment: 'पेमेंट का इंतज़ार है।',
-  awaiting_cash: 'काउंटर पर पेमेंट कर दीजिए, फिर डोसा तवे पर।',
+  awaiting_cash: 'काउंटर पर पेमेंट पक्का हो रहा है, फिर डोसा तवे पर।',
   new: 'ऑर्डर मिल गया! अभी तवे पर जाएगा।',
   cooking: <>आपका डोसा <b>तवे पर</b> है।</>,
   ready: <><b>तैयार है!</b> काउंटर से ले लीजिए।</>,

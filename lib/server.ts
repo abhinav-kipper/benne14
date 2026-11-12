@@ -21,5 +21,6 @@ export function staffOk(req: Request): boolean {
   return !!pin && req.headers.get('x-staff-pin')?.trim() === pin;
 }
 
-// v1 takes no real money: the mock provider "confirms" payments when asked.
-export const paymentsAreMock = () => (process.env.PAYMENTS ?? 'mock') === 'mock';
+// PAYMENTS=mock (tests, demos): fake payee + "Simulate payment". Default is upi-direct: real QR to the shop's UPI ID.
+export const paymentsAreMock = () => paymentMode() === 'mock';
+export const paymentMode = (): 'mock' | 'upi-direct' => (process.env.PAYMENTS === 'mock' ? 'mock' : 'upi-direct');

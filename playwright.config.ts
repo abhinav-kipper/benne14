@@ -17,6 +17,6 @@ export default defineConfig({
     reuseExistingServer: false, // always a fresh in-memory store, so leftover orders never leak between runs
     // Blank the Supabase vars so tests never write to the real database, even on a machine that has
     // them set (tests/e2e/order-flow.spec.ts checks this before anything else runs).
-    env: { STAFF_PIN: '2468', NEXT_PUBLIC_SUPABASE_URL: '', SUPABASE_SECRET_KEY: '', SUPABASE_SERVICE_ROLE_KEY: '' },
+    env: { STAFF_PIN: '2468', PAYMENTS: 'mock', NEXT_PUBLIC_SUPABASE_URL: '', SUPABASE_SECRET_KEY: '', SUPABASE_SERVICE_ROLE_KEY: '' },
   },
 });

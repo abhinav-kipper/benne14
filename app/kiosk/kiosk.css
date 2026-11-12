@@ -255,6 +255,10 @@
 .k-upi .steps div{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:16px;font-weight:600;display:flex;flex-direction:column;gap:4px}
 .k-upi .steps b{font-family:var(--display);font-weight:900;font-size:30px;color:var(--benne-fg);line-height:1}
 .k-upi .steps span{font-size:15px;font-weight:400;color:var(--cream-3)}
+.k-upi .paidbtn{margin-top:22px;align-self:stretch;height:96px;border-radius:16px;background:var(--leaf);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 30px;text-align:left}
+.k-upi .paidbtn b{display:block;font-family:var(--display);font-weight:900;font-size:40px;text-transform:uppercase;line-height:.9}
+.k-upi .paidbtn .hi{font-size:20px;opacity:.85}
+.k-upi .paidbtn .arr{font-size:40px;font-weight:800}
 .k-upi .wait{margin-top:22px;display:flex;align-items:center;gap:14px;height:64px;padding:0 26px;border-radius:999px;background:var(--s1);border:1px solid var(--line)}
 .k-upi .pulse{width:14px;height:14px;border-radius:50%;background:var(--benne);box-shadow:0 0 0 6px rgba(245,197,66,.2),0 0 0 12px rgba(245,197,66,.08);animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{50%{box-shadow:0 0 0 9px rgba(245,197,66,.28),0 0 0 18px rgba(245,197,66,.1)}}

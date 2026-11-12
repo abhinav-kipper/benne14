@@ -7,7 +7,7 @@ export const metadata = { title: 'Benne 14 — Order here' };
 export default function KioskPage() {
   return (
     <Fit w={800} h={1280}>
-      <Kiosk />
+      <Kiosk mock={process.env.PAYMENTS === 'mock'} />
     </Fit>
   );
 }

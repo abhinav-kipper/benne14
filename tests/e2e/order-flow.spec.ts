@@ -79,7 +79,7 @@ test('cash order waits for the counter before reaching the rail', async ({ brows
   await kitchen.goto('/kitchen');
   await expect(kitchen.locator('.plate.due', { hasText: token })).toBeVisible({ timeout: 5000 });
   await expect(kitchen.getByTestId(`chit-${token}`)).toHaveCount(0);
-  await kitchen.locator('.plate.due', { hasText: token }).getByRole('button').click(); // पैसे मिल गए
+  await kitchen.locator('.plate.due', { hasText: token }).getByRole('button', { name: /पैसे मिल गए/ }).click();
   await expect(kitchen.getByTestId(`chit-${token}`)).toBeVisible({ timeout: 5000 });
   // and the cook can take it all the way through without the chit jumping around
   await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // शुरू करो
@@ -106,5 +106,53 @@ test('kitchen PIN is checked when typed and remembered after that', async ({ bro
   await expect(gate).toHaveCount(0);
   await page.reload();
   await expect(page.getByTestId('pin-gate')).toHaveCount(0); // not asked again
+});
+
+test("UPI: customer taps I've paid, counter confirms on the soundbox", async ({ browser }) => {
+  const kiosk = await browser.newPage({ viewport: { width: 800, height: 1280 } });
+  await kiosk.goto('/kiosk');
+  await kiosk.getByTestId('takeaway').click();
+  await kiosk.getByTestId('item-masala-tea').click();
+  await kiosk.getByTestId('add-to-order').click();
+  await kiosk.getByTestId('cartbar').click();
+  await kiosk.getByTestId('continue-to-pay').click();
+  await kiosk.getByTestId('pay-upi').click();
+  await expect(kiosk.locator('.qrcard img')).toBeVisible();
+  const token = (await kiosk.locator('.qrcard .who small').textContent())!.match(/A-\d{3}/)![0];
+
+  const kitchen = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  await staff(kitchen);
+  await kitchen.goto('/kitchen');
+  await expect(kitchen.getByTestId(`due-${token}`)).toContainText('QR खुला है', { timeout: 5000 }); // QR still open
+
+  await kiosk.getByTestId('i-paid').click();
+  await expect(kiosk.locator('.paid.due')).toContainText('being checked');
+  await expect(kitchen.getByTestId(`due-${token}`)).toContainText('साउंडबॉक्स सुनें', { timeout: 5000 });
+  await expect(kitchen.getByTestId(`chit-${token}`)).toHaveCount(0);
+  await kitchen.getByTestId(`due-${token}`).getByRole('button', { name: /पैसे मिल गए/ }).click();
+  await expect(kitchen.getByTestId(`chit-${token}`)).toBeVisible({ timeout: 5000 });
+  await expect(kiosk.locator('.paid:not(.due)')).toContainText('Payment received', { timeout: 6000 });
+
+  // tidy up for the next test
+  await kitchen.getByTestId(`go-${token}`).click(); await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 });
+  await kitchen.locator('.plate', { hasText: token }).getByRole('button').click({ timeout: 5000 });
+});
+
+test('UPI: cancelling at the kiosk clears it from the payment shelf', async ({ browser }) => {
+  const kiosk = await browser.newPage({ viewport: { width: 800, height: 1280 } });
+  await kiosk.goto('/kiosk');
+  await kiosk.getByTestId('takeaway').click();
+  await kiosk.getByTestId('item-masala-tea').click();
+  await kiosk.getByTestId('add-to-order').click();
+  await kiosk.getByTestId('cartbar').click();
+  await kiosk.getByTestId('continue-to-pay').click();
+  await kiosk.getByTestId('pay-upi').click();
+  const token = (await kiosk.locator('.qrcard .who small').textContent())!.match(/A-\d{3}/)![0];
+  const kitchen = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  await staff(kitchen);
+  await kitchen.goto('/kitchen');
+  await expect(kitchen.getByTestId(`due-${token}`)).toBeVisible({ timeout: 5000 });
+  await kiosk.getByRole('button', { name: 'Cancel order' }).click();
+  await expect(kitchen.getByTestId(`due-${token}`)).toHaveCount(0, { timeout: 5000 });
 });
 

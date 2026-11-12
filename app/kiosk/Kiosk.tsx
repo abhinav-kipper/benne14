@@ -21,7 +21,7 @@ function Photo({ item, big }: { item: MenuItem; big?: boolean }) {
   return src ? <img src={src} alt="" /> : <div className="nophoto" style={big ? { fontSize: 80 } : undefined}>कॉफ़ी</div>;
 }
 
-export default function Kiosk() {
+export default function Kiosk({ mock = false }: { mock?: boolean }) {
   const [screen, setScreen] = useState<Screen>('home');
   const [lang, setLang] = useState<Lang>('en');
   const [type, setType] = useState<OrderType>('takeaway');
@@ -83,7 +83,7 @@ export default function Kiosk() {
           }} />
       )}
       {screen === 'upi' && placed && (
-        <Upi order={placed} onPaid={() => setScreen('done')} onOther={() => { checkoutKey.current = newKey(); setOrderId(null); setPlaced(null); setScreen('pay'); }} onCancel={reset} />
+        <Upi order={placed} mock={mock} onPaid={() => setScreen('done')} onOther={() => { checkoutKey.current = newKey(); setOrderId(null); setPlaced(null); setScreen('pay'); }} onCancel={reset} />
       )}
       {screen === 'done' && orderId && <Done orderId={orderId} first={placed} onDone={reset} />}
 
@@ -492,17 +492,29 @@ function Pay({ priced, lines, type, name, onBack, onChoose }: {
 }
 
 /* ---------------- UPI scan ---------------- */
-function Upi({ order, onPaid, onOther, onCancel }: { order: Order; onPaid: () => void; onOther: () => void; onCancel: () => void }) {
+function Upi({ order, mock, onPaid, onOther, onCancel }: { order: Order; mock: boolean; onPaid: () => void; onOther: () => void; onCancel: () => void }) {
   const live = useOrder(order.id, 1500);
   const [left, setLeft] = useState(300);
+  const [claiming, setClaiming] = useState(false);
   useEffect(() => { const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000); return () => clearInterval(t); }, []);
-  useEffect(() => { if (live && live.status !== 'pending_payment') onPaid(); }, [live, onPaid]);
-  useEffect(() => { if (left === 0) onCancel(); }, [left, onCancel]);
+  // Staff may confirm on the soundbox before the customer taps: move on as soon as the order leaves pending.
+  useEffect(() => {
+    if (!live || live.status === 'pending_payment') return;
+    if (live.status === 'cancelled') onCancel(); else onPaid();
+  }, [live, onPaid, onCancel]);
+  // Release the order if the customer walks away or picks another way to pay.
+  const drop = (then: () => void) => { api.claim(order.id, 'cancel').catch(() => {}); then(); };
+  useEffect(() => { if (left === 0) drop(onCancel); }, [left]); // eslint-disable-line react-hooks/exhaustive-deps
+  const paid = async () => {
+    if (claiming) return;
+    setClaiming(true);
+    try { await api.claim(order.id, 'paid'); onPaid(); } catch { setClaiming(false); }
+  };
   const mm = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
   return (
     <div className="screen k-upi">
       <div className="bar">
-        <button className="back" onClick={onOther}><span>←</span>Other ways to pay</button>
+        <button className="back" onClick={() => drop(onOther)}><span>←</span>Other ways to pay</button>
         <div className="timer">QR valid for
           <div className="ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="#E2D8C7" strokeWidth="5" /><circle cx="32" cy="32" r="28" fill="none" stroke="#9C6A00" strokeWidth="5" strokeLinecap="round" strokeDasharray="176" strokeDashoffset={176 * (1 - left / 300)} /></svg><b>{mm}</b></div>
         </div>
@@ -514,17 +526,19 @@ function Upi({ order, onPaid, onOther, onCancel }: { order: Order; onPaid: () =>
         <img src={`/api/orders/${order.id}/upi`} alt="UPI QR code" />
         <div className="who"><div><b>Benne 14</b><small>Order {order.token} · UPI</small></div><span>₹{order.total}</span></div>
       </div>
-      <div className="apps">Works with Google Pay, PhonePe, Paytm, BHIM or any UPI app</div>
+      <div className="apps">Amount is filled in. Works with Google Pay, PhonePe, Paytm, BHIM or any UPI app</div>
       <div className="steps">
-        <div><b>1</b>Open any UPI app<span className="hi">ऐप खोलें</span></div>
-        <div><b>2</b>Scan this QR<span className="hi">QR स्कैन करें</span></div>
-        <div><b>3</b>Enter UPI PIN<span className="hi">PIN डालें, हो गया</span></div>
+        <div><b>1</b>Scan this QR<span className="hi">QR स्कैन करें</span></div>
+        <div><b>2</b>Enter UPI PIN<span className="hi">PIN डालें</span></div>
+        <div><b>3</b>Tap below<span className="hi">नीचे टैप करें</span></div>
       </div>
-      <div className="wait"><i className="pulse" /><b>Waiting for your payment</b><span className="hi">· पेमेंट होते ही आगे बढ़ेंगे</span></div>
+      <button className="paidbtn" onClick={paid} disabled={claiming} data-testid="i-paid">
+        <span><b>{claiming ? 'Getting your token…' : "I've paid"}</b><span className="hi">पेमेंट हो गया</span></span><span className="arr">✓</span>
+      </button>
       <div className="foot">
-        <span>Demo mode: no real money moves.</span>
-        <button className="sim" onClick={() => api.mockPay(order.id)} data-testid="simulate-paid">Simulate payment</button>
-        <button onClick={onCancel}>Cancel order</button>
+        <span>{mock ? 'Demo mode: no real money moves.' : 'Paid to Benne 14 · counter confirms on the soundbox'}</span>
+        {mock && <button className="sim" onClick={() => api.mockPay(order.id)} data-testid="simulate-paid">Simulate payment</button>}
+        <button onClick={() => drop(onCancel)}>Cancel order</button>
       </div>
     </div>
   );
@@ -544,15 +558,17 @@ function Done({ orderId, first, onDone }: { orderId: string; first: Order | null
   const stage = o.status === 'ready' || o.status === 'handed_over' ? 2 : o.status === 'cooking' ? 1 : 0;
   return (
     <div className="screen k-done">
-      {atCounter
+      {atCounter && o.payMethod === 'upi'
+        ? <div className="paid due"><i>₹</i>UPI payment of ₹{o.total} being checked at the counter</div>
+        : atCounter
         ? <div className="paid due"><i>₹</i>Pay ₹{o.total} at the counter · {o.payMethod === 'card' ? 'card machine' : 'cash'}</div>
-        : <div className="paid"><i>✓</i>Payment received · ₹{o.total} via UPI</div>}
-      <div className="thanks"><h1>शुक्रिया{o.customerName ? <>, <b>{o.customerName}</b></> : ''}! {atCounter ? 'पेमेंट होते ही डोसा तवे पर।' : 'आपका डोसा तवे पर है।'}</h1></div>
+        : <div className="paid"><i>✓</i>Payment received · ₹{o.total} via {o.payMethod === 'upi' ? 'UPI' : o.payMethod}</div>}
+      <div className="thanks"><h1>शुक्रिया{o.customerName ? <>, <b>{o.customerName}</b></> : ''}! {atCounter ? (o.payMethod === 'upi' ? 'पेमेंट पक्का होते ही डोसा तवे पर।' : 'पेमेंट होते ही डोसा तवे पर।') : 'आपका डोसा तवे पर है।'}</h1></div>
       <div className="token" data-testid="token">
         <div className="tt"><span>Benne 14 · Token</span><span>{o.type === 'dine_in' ? 'Dine-in' : 'Takeaway'}</span></div>
         <div className="num">{o.token}</div>
         <div className="perf" />
-        <div className="tb"><b>{o.customerName ? `${o.customerName} · ` : ''}{o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}</b><span>{atCounter ? 'Show at counter' : 'Ready in ~8 min'}</span></div>
+        <div className="tb"><b>{o.customerName ? `${o.customerName} · ` : ''}{o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}</b><span>{atCounter ? (o.payMethod === 'upi' ? 'Show UPI screen if asked' : 'Show at counter') : 'Ready in ~8 min'}</span></div>
       </div>
       <div className="watch">
         <svg viewBox="0 0 56 56" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round"><rect x="5" y="9" width="46" height="30" rx="4" /><path d="M20 47h16M28 39v8" /><path d="M15 24h8M28 24h13" strokeLinecap="round" /></svg>

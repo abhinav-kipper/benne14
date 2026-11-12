@@ -37,7 +37,8 @@ export default function Kitchen() {
   const seen = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (!orders) return;
-    const fresh = orders.filter((o) => o.status === 'new').map((o) => o.id);
+    // Chime for new kitchen orders and for UPI "I've paid" claims the counter must check.
+    const fresh = orders.filter((o) => o.status === 'new' || o.status === 'awaiting_cash').map((o) => `${o.id}:${o.status}`);
     if (seen.current && soundOn && fresh.some((id) => !seen.current!.has(id))) chime(audio.current);
     seen.current = new Set([...(seen.current ?? []), ...fresh]);
   }, [orders, soundOn]);
@@ -65,7 +66,9 @@ export default function Kitchen() {
   const list = orders ?? [];
   const rail = list.filter((o) => o.status === 'new' || o.status === 'cooking');
   const ready = list.filter((o) => o.status === 'ready').sort((a, b) => (b.readyAt ?? '').localeCompare(a.readyAt ?? ''));
-  const due = list.filter((o) => o.status === 'awaiting_cash');
+  // Payment shelf: claimed / counter payments first, then UPI QRs still open on the kiosk.
+  const due = [...list.filter((o) => o.status === 'awaiting_cash'), ...list.filter((o) => o.status === 'pending_payment')];
+  const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
   const fresh = useFreshIds(list.map((o) => `${o.id}:${o.status === 'cooking' ? 'new' : o.status}`));
   const isFresh = (o: Order) => fresh.has(`${o.id}:${o.status === 'cooking' ? 'new' : o.status}`);
   const tray = useMemo(() => {
@@ -102,10 +105,13 @@ export default function Kitchen() {
         {due.length > 0 && <>
           <div className="pass-h due"><Rupee /><b>पैसे लेने हैं</b><span>{due.length}</span></div>
           {due.map((o) => (
-            <div className={`plate due ${isFresh(o) ? 'fresh' : ''}`} key={o.id}>
+            <div className={`plate due ${o.status === 'pending_payment' ? 'open' : ''} ${isFresh(o) ? 'fresh' : ''}`} key={o.id} data-testid={`due-${o.token}`}>
               <div className="row1"><span className="tok">{o.token}</span>{o.type === 'dine_in' ? <Dine /> : <Bag />}<span className="w amt">₹{o.total}</span></div>
-              <div className="nm2">{o.payMethod === 'card' ? 'कार्ड मशीन' : 'नकद'}{o.customerName ? ` · ${o.customerName}` : ''} · {o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}</div>
-              <button onClick={() => move(o, 'new', false)}><Check />पैसे मिल गए</button>
+              <div className="nm2"><b className="how">{o.payMethod === 'upi' ? (o.status === 'pending_payment' ? 'UPI · QR खुला है' : 'UPI · साउंडबॉक्स सुनें') : o.payMethod === 'card' ? 'कार्ड मशीन' : 'नकद'}</b>{o.customerName ? ` · ${o.customerName}` : ''} · {o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}</div>
+              <div className="pay-actions">
+                <button onClick={() => move(o, 'new', false)}><Check />पैसे मिल गए</button>
+                <button className="drop" onClick={() => { if (confirmCancel === o.id) { setConfirmCancel(null); move(o, 'cancelled', false); } else setConfirmCancel(o.id); }}>{confirmCancel === o.id ? 'पक्का?' : 'रद्द'}</button>
+              </div>
             </div>
           ))}
           <div className="gap" />

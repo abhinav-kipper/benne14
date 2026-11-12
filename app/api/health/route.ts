@@ -1,5 +1,5 @@
 import { getStore, keyKind } from '@/lib/store';
-import { json } from '@/lib/server';
+import { json, paymentMode } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export async function GET() {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'missing',
     supabaseKey: keyKind(),
     staffPin: process.env.STAFF_PIN ? 'set' : 'missing',
-    payments: process.env.PAYMENTS ?? 'mock',
+    payments: paymentMode(),
   };
   try {
     const store = getStore();

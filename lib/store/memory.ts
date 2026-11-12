@@ -1,7 +1,7 @@
 // In-memory store: one Node process holds today's orders. Used for local dev, demos and tests.
 // (On Vercel each serverless instance has its own memory, so production must use Supabase.)
 import { randomUUID } from 'node:crypto';
-import { canMove, formatToken, istDay, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
+import { canMove, formatToken, istDay, UPI_OPEN_MIN, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
 
 export class StoreError extends Error {
   constructor(message: string, readonly status = 400) { super(message); }
@@ -48,8 +48,11 @@ export class MemoryStore {
   async listLive() {
     const day = istDay();
     const recent = Date.now() - 10 * 60_000;
+    const openQr = Date.now() - UPI_OPEN_MIN * 60_000;
     return [...this.orders.values()]
-      .filter((o) => o.tokenDay === day && (['awaiting_cash', 'new', 'cooking', 'ready'].includes(o.status) || (o.status === 'handed_over' && Date.parse(o.updatedAt) > recent)))
+      .filter((o) => o.tokenDay === day && (['awaiting_cash', 'new', 'cooking', 'ready'].includes(o.status)
+        || (o.status === 'handed_over' && Date.parse(o.updatedAt) > recent)
+        || (o.status === 'pending_payment' && Date.parse(o.createdAt) > openQr)))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 

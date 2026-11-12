@@ -20,14 +20,23 @@ describe('memory store', () => {
     expect(b.token).toBe('A-002');
   });
 
-  it('keeps unpaid orders out of the kitchen until paid; cash waits for the counter', async () => {
+  it('keeps unpaid orders off the cooking rail; they wait on the payment shelf', async () => {
     const upi = await s.placeOrder(input('checkout-upi1'));
     const cash = await s.placeOrder(input('checkout-cash', 'cash'));
     expect(upi.status).toBe('pending_payment');
     expect(cash.status).toBe('awaiting_cash');
-    expect((await s.listLive()).map((o) => o.token)).toEqual(['A-002']);
-    await s.setStatus(upi.id, 'new');
-    expect((await s.listLive()).map((o) => o.token)).toEqual(['A-001', 'A-002']);
+    const rail = async () => (await s.listLive()).filter((o) => o.status === 'new' || o.status === 'cooking').map((o) => o.token);
+    expect((await s.listLive()).map((o) => `${o.token}:${o.status}`)).toEqual(['A-001:pending_payment', 'A-002:awaiting_cash']);
+    expect(await rail()).toEqual([]);
+    await s.setStatus(upi.id, 'awaiting_cash'); // customer: "I've paid"
+    await s.setStatus(upi.id, 'new'); // counter: soundbox confirmed
+    expect(await rail()).toEqual(['A-001']);
+  });
+
+  it('drops an abandoned UPI QR from the shelf when cancelled', async () => {
+    const upi = await s.placeOrder(input('checkout-upi2'));
+    await s.setStatus(upi.id, 'cancelled');
+    expect(await s.listLive()).toEqual([]);
   });
 
   it('walks the kitchen flow and refuses impossible moves', async () => {

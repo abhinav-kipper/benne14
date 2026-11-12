@@ -8,6 +8,8 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Up next
 
+0. Test real UPI with a ₹44 masala tea from GPay, PhonePe and Paytm; check the soundbox announces and the payee shows correctly.
+
 1. Owner tries the preview on the real devices: kiosk tablet (portrait), kitchen tablet, TV.
 2. Rotate the Supabase secret key (it was pasted in chat) and pick a new STAFF_PIN before real use.
 3. Feedback round, then merge to `main` (production URL).
@@ -17,7 +19,7 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 - Menu in code (`lib/menu.ts`); a price change is a one-line edit + deploy.
 - Live updates by polling every 1.5 s (no Supabase Realtime yet).
-- Payments mocked (`PAYMENTS=mock`); the UPI screen has a "Simulate payment" button.
+- UPI goes straight to the shop's Paytm UPI ID (`lib/shop.ts`); the customer taps "I've paid" and staff confirm on the soundbox ("पैसे मिल गए"). No automatic confirmation until the Paytm API (needs API access + merchant key). `PAYMENTS=mock` for tests/demos.
 - Card and cash both wait on the kitchen's "पैसे लेने हैं" shelf until staff confirm.
 - Kitchen protected by one shared 4-digit `STAFF_PIN`.
 - Language toggle switches dish names only.
@@ -37,6 +39,7 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Done
 
+- 2026-11-12 — Real UPI to the shop's Paytm ("I've paid" + counter confirm on the payment shelf); kitchen PIN checked when typed.
 - 2026-11-10 — v1 live on the preview with Supabase; fixed kitchen cards jumping after a tap, hydration warning, friendly kiosk errors; e2e locked to the memory store.
 - 2026-10-25 — v1 slice: Next.js 15 app (kiosk, kitchen, board, phone bill), server-side pricing with GST, idempotent orders with daily tokens, staff PIN, 15 unit + 3 e2e tests, CI.
 - 2026-10-25 — Light theme for all prototype screens; build plan + CLAUDE.md.

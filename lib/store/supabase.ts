@@ -1,6 +1,6 @@
 // Supabase-backed store. Server only: uses the service role key; tables have RLS with no public policies.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { canMove, istDay, LIVE, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
+import { canMove, istDay, LIVE, UPI_OPEN_MIN, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
 import { StoreError } from './memory';
 
 interface Row {
@@ -42,9 +42,10 @@ export class SupabaseStore {
 
   async listLive() {
     const since = new Date(Date.now() - 10 * 60_000).toISOString();
+    const openQr = new Date(Date.now() - UPI_OPEN_MIN * 60_000).toISOString();
     const { data, error } = await this.db.from('orders').select('*')
       .eq('token_day', istDay())
-      .or(`status.in.(${LIVE.join(',')}),and(status.eq.handed_over,updated_at.gt.${since})`)
+      .or(`status.in.(${LIVE.join(',')}),and(status.eq.handed_over,updated_at.gt.${since}),and(status.eq.pending_payment,created_at.gt.${openQr})`)
       .order('created_at');
     if (error) throw new StoreError(error.message, 500);
     return (data as Row[]).map(toOrder);

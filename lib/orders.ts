@@ -40,7 +40,7 @@ export interface PlaceOrderInput {
 
 // Which status changes staff may make from which status.
 export const NEXT: Record<OrderStatus, OrderStatus[]> = {
-  pending_payment: ['new', 'cancelled'],
+  pending_payment: ['new', 'awaiting_cash', 'cancelled'], // awaiting_cash: customer says "I've paid", staff checks
   awaiting_cash: ['new', 'cancelled'],
   new: ['cooking', 'cancelled'],
   cooking: ['ready', 'new'],
@@ -53,6 +53,10 @@ export const canMove = (from: OrderStatus, to: OrderStatus) => NEXT[from].includ
 
 // Orders the kitchen and the board care about.
 export const LIVE: OrderStatus[] = ['awaiting_cash', 'new', 'cooking', 'ready'];
+
+// A UPI QR the customer hasn't confirmed yet still shows on the kitchen's payment shelf for this long,
+// so staff can match a soundbox announcement even if the customer forgot to tap "I've paid".
+export const UPI_OPEN_MIN = 15;
 
 export function istDay(d = new Date()): string {
   return new Date(d.getTime() + 5.5 * 3600_000).toISOString().slice(0, 10);
