@@ -16,8 +16,9 @@ export function fail(e: unknown) {
 // Staff actions (kitchen, counter) need the shop PIN. In production STAFF_PIN must be set;
 // for local demos on the in-memory store it falls back to 1414.
 export function staffOk(req: Request): boolean {
-  const pin = process.env.STAFF_PIN ?? (process.env.NODE_ENV === 'production' ? undefined : '1414');
-  return !!pin && req.headers.get('x-staff-pin') === pin;
+  // trim(): a PIN pasted into Vercel with a trailing space or newline would otherwise never match.
+  const pin = (process.env.STAFF_PIN ?? (process.env.NODE_ENV === 'production' ? '' : '1414')).trim();
+  return !!pin && req.headers.get('x-staff-pin')?.trim() === pin;
 }
 
 // v1 takes no real money: the mock provider "confirms" payments when asked.

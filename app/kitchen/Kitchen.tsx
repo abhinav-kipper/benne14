@@ -23,6 +23,7 @@ const UNDO_TEXT: Partial<Record<OrderStatus, string>> = { cooking: 'शुरू
 export default function Kitchen() {
   const [pin, setPin] = useState<string | null>(null);
   const [pinChecked, setPinChecked] = useState(false);
+  const [pinNote, setPinNote] = useState<string | null>(null);
   useEffect(() => { setPin(localStorage.getItem(PIN_KEY)); setPinChecked(true); }, []);
 
   const { orders, setOrders, online, refresh, noteLocalChange } = useLiveOrders(1500);
@@ -54,7 +55,8 @@ export default function Kitchen() {
       noteLocalChange();
       setToast(undoable && UNDO_TEXT[to] ? { text: `${o.token} ${UNDO_TEXT[to]}`, undo: { id: o.id, to: from } } : null);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) { localStorage.removeItem(PIN_KEY); setPin(null); }
+      // Only a PIN the server now rejects (e.g. changed in Vercel) sends the cook back to the PIN screen.
+      if (e instanceof ApiError && e.status === 401) { localStorage.removeItem(PIN_KEY); setPinNote('PIN बदल गया है, नया PIN डालें'); setPin(null); }
       setToast({ text: e instanceof ApiError ? e.message : 'नेट नहीं है, फिर से टैप करें', err: true });
     }
     refresh();
@@ -136,7 +138,7 @@ export default function Kitchen() {
         )}
       </div>
 
-      {pinChecked && !pin && <PinGate onPin={(p) => { localStorage.setItem(PIN_KEY, p); setPin(p); }} />}
+      {pinChecked && !pin && <PinGate note={pinNote} onPin={(p) => { localStorage.setItem(PIN_KEY, p); setPinNote(null); setPin(p); }} />}
     </div>
   );
 }
@@ -182,20 +184,31 @@ function Chit({ o, now, fresh, onGo }: { o: Order; now: number; fresh: boolean; 
   );
 }
 
-function PinGate({ onPin }: { onPin: (p: string) => void }) {
+function PinGate({ onPin, note }: { onPin: (p: string) => void; note: string | null }) {
   const [v, setV] = useState('');
-  const press = (d: string) => setV((cur) => {
-    const n = d === '⌫' ? cur.slice(0, -1) : (cur + d).slice(0, 4);
-    if (n.length === 4) setTimeout(() => onPin(n), 150);
-    return n;
-  });
+  const [msg, setMsg] = useState<string | null>(note);
+  const [busy, setBusy] = useState(false);
+  const check = async (p: string) => {
+    setBusy(true);
+    try { await api.checkPin(p); onPin(p); }
+    catch (e) { setMsg(e instanceof ApiError && e.status === 401 ? 'गलत PIN, फिर से डालें' : 'नेट नहीं है, फिर से कोशिश करें'); setV(''); }
+    finally { setBusy(false); }
+  };
+  const press = (d: string) => {
+    if (busy) return;
+    setMsg(null);
+    const n = d === '⌫' ? v.slice(0, -1) : (v + d).slice(0, 4);
+    setV(n);
+    if (n.length === 4 && v.length === 3) check(n);
+  };
   return (
-    <div className="pin">
+    <div className="pin" data-testid="pin-gate">
       <div className="box">
         <h2 className="disp">Kitchen</h2>
         <p>स्टाफ़ PIN डालें</p>
         <div className="dots">{[0, 1, 2, 3].map((i) => <i key={i} className={i < v.length ? 'f' : ''} />)}</div>
-        <div className="pad">{['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((d, i) => d ? <button key={i} onClick={() => press(d)}>{d}</button> : <span key={i} />)}</div>
+        <div className="pad">{['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((d, i) => d ? <button key={i} onClick={() => press(d)} disabled={busy}>{d}</button> : <span key={i} />)}</div>
+        <div className="bad" data-testid="pin-msg">{busy ? 'जाँच रहे हैं…' : msg}</div>
       </div>
     </div>
   );

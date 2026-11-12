@@ -94,3 +94,17 @@ test('status changes need the staff PIN', async ({ request }) => {
   const r = await request.post('/api/orders/00000000-0000-0000-0000-000000000000/status', { data: { to: 'cooking' } });
   expect(r.status()).toBe(401);
 });
+
+test('kitchen PIN is checked when typed and remembered after that', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  await page.goto('/kitchen');
+  const gate = page.getByTestId('pin-gate');
+  for (const d of '1111') await gate.getByRole('button', { name: d, exact: true }).click();
+  await expect(page.getByTestId('pin-msg')).toContainText('गलत PIN');
+  await expect(gate).toBeVisible();
+  for (const d of PIN) await gate.getByRole('button', { name: d, exact: true }).click();
+  await expect(gate).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId('pin-gate')).toHaveCount(0); // not asked again
+});
+
