@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { itemById, photoOf } from '@/lib/menu';
+import { itemById, photoOf, placeholderOf } from '@/lib/menu';
 import { minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { api, ApiError, chime, useFreshIds, useLiveOrders } from '@/lib/client';
 
@@ -134,7 +134,7 @@ export default function Kitchen() {
         {tray.length === 0 && <span className="quiet">तवा खाली है</span>}
         {tray.map(([id, n]) => {
           const src = photoOf(id);
-          return <div className="dish" key={id} title={itemById(id)?.name}>{src ? <img src={src} alt="" /> : <div className="ph">कॉफ़ी</div>}<b>{n}</b></div>;
+          return <div className="dish" key={id} title={itemById(id)?.name}>{src ? <img src={src} alt="" /> : <div className="ph">{placeholderOf(id)}</div>}<b>{n}</b></div>;
         })}
         {toast && (
           <div className={`toast ${toast.err ? 'err' : ''}`}>

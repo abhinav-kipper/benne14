@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CART_UPSELL, CATEGORIES, GROUPS, ITEMS, NOTES, PAIRING, itemById, photoOf, type MenuItem } from '@/lib/menu';
+import { CART_UPSELL, CATEGORIES, GROUPS, NOTES, PAIRING, itemById, photoOf, visibleItems, type MenuItem } from '@/lib/menu';
 import { priceLine, priceOrder, type CartLine } from '@/lib/pricing';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
 import { api, ApiError, newKey, useOrder } from '@/lib/client';
@@ -18,10 +18,10 @@ const sameChoices = (a: CartLine, b: CartLine) =>
 
 function Photo({ item, big }: { item: MenuItem; big?: boolean }) {
   const src = photoOf(item.id);
-  return src ? <img src={src} alt="" /> : <div className="nophoto" style={big ? { fontSize: 80 } : undefined}>कॉफ़ी</div>;
+  return src ? <img src={src} alt="" /> : <div className="nophoto" style={big ? { fontSize: 80 } : undefined}>{item.placeholder ?? 'कॉफ़ी'}</div>;
 }
 
-export default function Kiosk({ mock = false }: { mock?: boolean }) {
+export default function Kiosk({ mock = false, testMode = false }: { mock?: boolean; testMode?: boolean }) {
   const [screen, setScreen] = useState<Screen>('home');
   const [lang, setLang] = useState<Lang>('en');
   const [type, setType] = useState<OrderType>('takeaway');
@@ -64,7 +64,7 @@ export default function Kiosk({ mock = false }: { mock?: boolean }) {
     <div className="kiosk">
       {screen === 'home' && <Home lang={lang} setLang={setLang} onPick={(t) => { setType(t); setScreen('menu'); }} />}
       {screen === 'menu' && (
-        <MenuScreen lang={lang} setLang={setLang} type={type} onType={() => setScreen('home')} qtyOf={qtyOf}
+        <MenuScreen testMode={testMode} lang={lang} setLang={setLang} type={type} onType={() => setScreen('home')} qtyOf={qtyOf}
           onOpen={(id) => setSheet({ itemId: id })} onQuick={quickAdd}
           lines={lines} setQty={setQty} count={count} total={priced?.total ?? 0} onCart={() => setScreen('cart')} />
       )}
@@ -98,6 +98,7 @@ export default function Kiosk({ mock = false }: { mock?: boolean }) {
             setSheet(null);
           }} />
       )}
+      {testMode && <div className="k-test" data-testid="test-ribbon">TEST MODE · cash counts as paid</div>}
       {idle && <Idle onStay={() => { lastTouch.current = Date.now(); setIdle(false); }} onReset={reset} />}
     </div>
   );
@@ -160,11 +161,13 @@ function Home({ lang, setLang, onPick }: { lang: Lang; setLang: (l: Lang) => voi
 function MenuScreen(p: {
   lang: Lang; setLang: (l: Lang) => void; type: OrderType; onType: () => void; qtyOf: (id: string) => number;
   onOpen: (id: string) => void; onQuick: (id: string) => void; lines: Line[]; setQty: (uid: string, q: number) => void;
-  count: number; total: number; onCart: () => void;
+  count: number; total: number; onCart: () => void; testMode: boolean;
 }) {
-  const [active, setActive] = useState(CATEGORIES[0].id);
+  const items = visibleItems(p.testMode);
+  const cats = CATEGORIES.filter((c) => items.some((i) => i.cat === c.id));
+  const [active, setActive] = useState(cats[0].id);
   const main = useRef<HTMLElement>(null);
-  const sp = ITEMS.find((i) => i.special)!;
+  const sp = items.find((i) => i.special)!;
   const title = (i: MenuItem) => (p.lang === 'hi' ? i.hi : i.name);
   const sub = (i: MenuItem) => (p.lang === 'hi' ? i.name : i.hi);
 
@@ -183,8 +186,8 @@ function MenuScreen(p: {
 
   const onScroll = () => {
     const m = main.current; if (!m) return;
-    let cur = CATEGORIES[0].id;
-    for (const c of CATEGORIES) { const el = m.querySelector<HTMLElement>(`#cat-${c.id}`); if (el && el.offsetTop - 120 <= m.scrollTop) cur = c.id; }
+    let cur = cats[0].id;
+    for (const c of cats) { const el = m.querySelector<HTMLElement>(`#cat-${c.id}`); if (el && el.offsetTop - 120 <= m.scrollTop) cur = c.id; }
     setActive(cur);
   };
 
@@ -193,7 +196,7 @@ function MenuScreen(p: {
       <aside>
         <div className="brand"><div className="w">Benne<br /><i>14</i></div><small>Authentic<br />Bangalore Dosa</small></div>
         <div className="cats">
-          {CATEGORIES.map((c) => (
+          {cats.map((c) => (
             <button key={c.id} className={`cat ${active === c.id ? 'on' : ''}`}
               onClick={() => main.current?.querySelector(`#cat-${c.id}`)?.scrollIntoView({ behavior: 'smooth' })}>
               <div className="n disp">{c.name}</div><div className="k hi">{c.hi}</div>
@@ -218,22 +221,22 @@ function MenuScreen(p: {
             <div className="meta">
               <p className="hdesc">{sp.desc}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-                <div><span className="price">₹{sp.price}</span><span className="mrp">₹{sp.mrp}</span></div>{stepper(sp)}
+                <div><span className="price">₹{sp.price}</span>{sp.mrp > sp.price && <span className="mrp">₹{sp.mrp}</span>}</div>{stepper(sp)}
               </div>
             </div>
           </div>
         </section>
         <section className="list">
-          {CATEGORIES.map((c) => (
+          {cats.map((c) => (
             <div key={c.id}>
               <div className="sec" id={`cat-${c.id}`}><h3 className="disp">{c.name}</h3><span className="hi">{c.hi}</span></div>
-              {ITEMS.filter((i) => i.cat === c.id && !i.special).map((i) => (
+              {items.filter((i) => i.cat === c.id && !i.special).map((i) => (
                 <div className="item" key={i.id} role="button" onClick={() => p.onOpen(i.id)} data-testid={`item-${i.id}`}>
                   <div className="ph"><Photo item={i} /></div>
                   <div>
                     <h4>{title(i)}</h4><div className="k hi">{sub(i)}</div>
                     <p className="hdesc">{i.desc}</p>
-                    <span className="price">₹{i.price}</span><span className="mrp">₹{i.mrp}</span>
+                    <span className="price">₹{i.price}</span>{i.mrp > i.price && <span className="mrp">₹{i.mrp}</span>}
                   </div>
                   {stepper(i)}
                 </div>
@@ -291,7 +294,7 @@ function ItemSheet({ itemId, editing, pairingInCart, onClose, onAdd }: {
               <h1 className="disp" style={{ marginTop: 14 }}>{item.name}</h1>
               <div className="k hi">{item.hi}</div>
             </div>
-            <div style={{ textAlign: 'right' }}><span className="price" style={{ fontSize: 44 }}>₹{item.price}</span><br /><span className="mrp">₹{item.mrp}</span></div>
+            <div style={{ textAlign: 'right' }}><span className="price" style={{ fontSize: 44 }}>₹{item.price}</span><br />{item.mrp > item.price && <span className="mrp">₹{item.mrp}</span>}</div>
           </div>
         </div>
         <div className="body">

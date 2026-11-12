@@ -1,5 +1,6 @@
 import { getStore, keyKind } from '@/lib/store';
 import { json, paymentMode } from '@/lib/server';
+import { isTestMode } from '@/lib/testmode';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,7 @@ export async function GET() {
     supabaseKey: keyKind(),
     staffPin: process.env.STAFF_PIN ? 'set' : 'missing',
     payments: paymentMode(),
+    testMode: isTestMode() ? 'on: cash counts as paid' : 'off',
   };
   try {
     const store = getStore();

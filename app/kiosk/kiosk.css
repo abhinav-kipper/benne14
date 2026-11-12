@@ -321,3 +321,6 @@
 .k-idle .btns button{height:84px;border-radius:14px;font-size:22px;font-weight:700}
 .k-idle .btns .yes{background:var(--benne);color:var(--benne-ink)}
 .k-idle .btns .no{border:1.5px solid var(--line);color:var(--cream-2)}
+
+/* ---------- Test mode ribbon (preview deploys) ---------- */
+.k-test{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:60;background:var(--chilli);color:#fff;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 16px;border-radius:0 0 10px 10px;pointer-events:none}

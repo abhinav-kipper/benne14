@@ -8,6 +8,8 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Up next
 
+- **Before launch: set `TEST_MODE=0` in Vercel** (test mode: cash counts as paid, ₹1 test item, red ribbon on the kiosk).
+
 0. Test real UPI with a ₹44 masala tea from GPay, PhonePe and Paytm; check the soundbox announces and the payee shows correctly.
 
 1. Owner tries the preview on the real devices: kiosk tablet (portrait), kitchen tablet, TV.
@@ -39,6 +41,7 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Done
 
+- 2026-11-12 — Test mode (default on): cash counts as paid, ₹1 payment test item, kiosk ribbon.
 - 2026-11-12 — Real UPI to the shop's Paytm ("I've paid" + counter confirm on the payment shelf); kitchen PIN checked when typed.
 - 2026-11-10 — v1 live on the preview with Supabase; fixed kitchen cards jumping after a tap, hydration warning, friendly kiosk errors; e2e locked to the memory store.
 - 2026-10-25 — v1 slice: Next.js 15 app (kiosk, kitchen, board, phone bill), server-side pricing with GST, idempotent orders with daily tokens, staff PIN, 15 unit + 3 e2e tests, CI.

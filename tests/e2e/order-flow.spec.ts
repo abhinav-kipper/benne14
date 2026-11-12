@@ -6,6 +6,7 @@ const PIN = '2468';
 test.beforeAll(async ({ request }) => {
   const h = await (await request.get('/api/health')).json();
   if (h.store !== 'memory') throw new Error(`Refusing to run e2e against the ${h.store} store`);
+  if (!String(h.testMode).startsWith('off')) throw new Error('This suite checks the real counter flow; run it with TEST_MODE=0');
 });
 const staff = async (page: Page) => page.addInitScript((pin) => localStorage.setItem('benne14.staffPin', pin), PIN);
 
@@ -154,5 +155,10 @@ test('UPI: cancelling at the kiosk clears it from the payment shelf', async ({ b
   await expect(kitchen.getByTestId(`due-${token}`)).toBeVisible({ timeout: 5000 });
   await kiosk.getByRole('button', { name: 'Cancel order' }).click();
   await expect(kitchen.getByTestId(`due-${token}`)).toHaveCount(0, { timeout: 5000 });
+});
+
+test('the ₹1 payment test item is refused when test mode is off', async ({ request }) => {
+  const r = await request.post('/api/orders', { data: { key: 'off-rupee-0001', type: 'takeaway', name: null, payMethod: 'upi', lines: [{ itemId: 'test-1', qty: 1, choices: {}, notes: [] }] } });
+  expect(r.status()).toBe(400);
 });
 

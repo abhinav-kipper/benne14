@@ -1,7 +1,7 @@
 // The menu lives in code for v1 (prices from the Benne 14 launch menu, 14% off applied).
 // A price change is a one-line edit + deploy until the owner admin (M4) moves this into the DB.
 
-export type CategoryId = 'dosa' | 'idli' | 'drinks';
+export type CategoryId = 'dosa' | 'idli' | 'drinks' | 'test';
 
 export interface Category {
   id: CategoryId;
@@ -34,6 +34,8 @@ export interface MenuItem {
   mrp: number;
   photo?: string; // /food/<id>.jpg
   special?: boolean;
+  testOnly?: boolean; // only orderable while test mode is on (see lib/testmode.ts)
+  placeholder?: string; // shown instead of a photo
   groups: string[]; // ModGroup ids
   notes: boolean; // kitchen notes allowed
 }
@@ -48,6 +50,7 @@ export const CATEGORIES: Category[] = [
   { id: 'dosa', name: 'Dosas', hi: 'डोसा' },
   { id: 'idli', name: 'Idli & Vada', hi: 'इडली · वड़ा' },
   { id: 'drinks', name: 'Coffee & Tea', hi: 'कॉफ़ी · चाय' },
+  { id: 'test', name: 'Payment test', hi: 'पेमेंट टेस्ट' }, // only has items in test mode
 ];
 
 export const GROUPS: Record<string, ModGroup> = {
@@ -98,6 +101,9 @@ const dosa = ['spice', 'dosaExtras'];
 const idli = ['idliExtras'];
 
 export const ITEMS: MenuItem[] = [
+  // ₹1 + 5% GST rounds to exactly ₹1: for checking real UPI payments end to end. Test mode only.
+  { id: 'test-1', cat: 'test', name: 'Payment test', hi: 'पेमेंट टेस्ट', price: 1, mrp: 1, groups: [], notes: false, testOnly: true, placeholder: '₹1',
+    desc: 'सिर्फ़ पेमेंट जाँचने के लिए। असली ₹1 लगेगा।' },
   { id: 'ghee-podi-benne-dosa', cat: 'dosa', name: 'Ghee Podi Benne Dosa', hi: 'घी पोडी बेन्ने डोसा', price: 171, mrp: 199, special: true, groups: dosa, notes: true,
     desc: 'घी में लिपटा, पोडी में लोटा, ऊपर से मक्खन का प्यारा सा टुकड़ा। माँ वाला प्यार, बेंगलुरु वाला स्वाद।' },
   { id: 'masala-dosa', cat: 'dosa', name: 'Masala Dosa', hi: 'मसाला डोसा', price: 180, mrp: 209, groups: dosa, notes: true,
@@ -114,14 +120,17 @@ export const ITEMS: MenuItem[] = [
     desc: 'घी में डूबी, पोडी में लिपटी। आपकी सुबह बना देगी।' },
   { id: 'medu-vada', cat: 'idli', name: 'Udupi Medu Vada', hi: 'उडुपी मेदु वड़ा', price: 76, mrp: 89, groups: idli, notes: true,
     desc: 'बाहर से कुरकुरा, अंदर से रुई जैसा नरम। उडुपी वाला असली स्वाद।' },
-  { id: 'filter-coffee', cat: 'drinks', name: 'Bengaluru Filter Coffee', hi: 'फ़िल्टर कॉफ़ी', price: 59, mrp: 69, groups: ['sugar'], notes: false,
+  { id: 'filter-coffee', cat: 'drinks', name: 'Bengaluru Filter Coffee', hi: 'फ़िल्टर कॉफ़ी', price: 59, mrp: 69, groups: ['sugar'], notes: false, placeholder: 'कॉफ़ी',
     desc: 'स्टील के डबरा में झागदार गरम कॉफ़ी। बेंगलुरु की सुबह, आपके हाथ में।' },
   { id: 'masala-tea', cat: 'drinks', name: 'Masala Tea', hi: 'मसाला चाय', price: 42, mrp: 49, groups: ['sugar'], notes: false,
     desc: 'अदरक, इलायची, थोड़ी सी लौंग। दिल को सुकून देने वाली चाय।' },
 ];
 
 // Items with a real photo in /public/food. Filter coffee is waiting for the restaurant's own photo.
-const PHOTOS = new Set(ITEMS.map((i) => i.id).filter((id) => id !== 'filter-coffee'));
+const PHOTOS = new Set(ITEMS.map((i) => i.id).filter((id) => id !== 'filter-coffee' && id !== 'test-1'));
+export const placeholderOf = (id: string) => ITEMS.find((i) => i.id === id)?.placeholder ?? 'कॉफ़ी';
+// Items the kiosk shows: test-only ones appear only in test mode.
+export const visibleItems = (testMode: boolean) => ITEMS.filter((i) => testMode || !i.testOnly);
 export const photoOf = (id: string) => (PHOTOS.has(id) ? `/food/${id}.jpg` : undefined);
 
 export const itemById = (id: string) => ITEMS.find((i) => i.id === id);
