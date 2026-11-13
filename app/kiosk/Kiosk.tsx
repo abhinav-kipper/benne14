@@ -32,6 +32,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   const [code, setCode] = useState<DiscountRule | null>(null); // a discount code the server said works
   // What the cart asks for, as the owner switched it. Off until the server says otherwise.
   const [asks, setAsks] = useState<KioskSettings>({ codes: false, phone: false });
+  const [popular, setPopular] = useState<string[]>([]); // best sellers, for the cart's suggestions
   const [orderId, setOrderId] = useState<string | null>(null);
   const [placed, setPlaced] = useState<Order | null>(null);
   const [idle, setIdle] = useState(false);
@@ -48,6 +49,18 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
       .kiosk()
       .then(setAsks)
       .catch(() => {}); // keep the last answer if the request fails
+    api
+      .popular()
+      .then((r) => setPopular(r.ids))
+      .catch(() => {});
+  }, [screen, loadMenu]);
+  // …and every half minute while a customer is choosing, so a price or sold-out change made on the
+  // dashboard shows on the menu, the dish sheet and the cart's suggestions without waiting for the
+  // next customer. (The server prices the order from the same menu at checkout either way.)
+  useEffect(() => {
+    if (screen !== 'menu' && screen !== 'cart') return;
+    const t = setInterval(loadMenu, 30_000);
+    return () => clearInterval(t);
   }, [screen, loadMenu]);
   useAutoReload(screen === 'home'); // pick up a new version between customers, never mid-order
 
@@ -141,6 +154,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             name={name}
             setName={setName}
             asks={asks}
+            popular={popular}
             phone={phone}
             setPhone={setPhone}
             code={code}

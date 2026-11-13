@@ -267,6 +267,5 @@ export const optionTone = (groupId: string, id: string): Tone | undefined =>
   GROUPS[groupId]?.options.find((o) => o.id === id)?.tone;
 export const noteTone = (id: string): Tone | undefined => NOTES.find((n) => n.id === id)?.tone;
 
-// Shown as "Goes well with" in the item sheet and "Kuch aur?" in the cart.
+// Shown as "Goes well with" in the item sheet. The cart's "Anything else?" is worked out per order (lib/suggest.ts).
 export const PAIRING = 'filter-coffee';
-export const CART_UPSELL = ['medu-vada', 'mallige-idli', 'masala-tea'];

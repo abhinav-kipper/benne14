@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useCatalog } from '@/components/Catalog';
 import { CATEGORIES, visibleItems, type MenuItem } from '@/lib/menu';
-import { Photo, type Line } from './shared';
+import { Chevron, Photo, type Line } from './shared';
 
 export function MenuScreen(p: {
   qtyOf: (id: string) => number;
@@ -200,7 +200,9 @@ export function MenuScreen(p: {
               ₹{p.total}
               <small>incl. GST</small>
             </span>
-            <span className="arrow">→</span>
+            <span className="arrow">
+              <Chevron />
+            </span>
           </div>
         </button>
       )}

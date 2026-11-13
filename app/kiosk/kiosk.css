@@ -115,7 +115,7 @@
   cursor: pointer;
 }
 .k-home .start {
-  margin: auto 28px 18px;
+  margin: auto 28px 40px;
   height: 200px;
   border-radius: 24px;
   background: var(--benne);
@@ -138,37 +138,25 @@
   line-height: 0.85;
   text-transform: uppercase;
 }
-.k-home .start small {
-  display: block;
-  font-size: 22px;
-  font-weight: 600;
-  margin-top: 12px;
-  opacity: 0.75;
-}
 .k-home .start .arr {
   width: 104px;
   height: 104px;
-  border-radius: 20px;
+  border-radius: 50%;
   background: var(--benne-ink);
   color: var(--benne);
   display: grid;
   place-items: center;
-  font-size: 48px;
   animation: nudge 1.6s ease-in-out infinite;
+}
+.k-home .start .arr svg {
+  width: 52px;
+  height: 52px;
 }
 @keyframes nudge {
   50% {
     transform: translateX(8px);
   }
 }
-.k-home .foot {
-  text-align: center;
-  font-size: var(--t-min);
-  color: var(--cream-3);
-  padding-bottom: 22px;
-  letter-spacing: 0.04em;
-}
-
 /* ---------- Menu ---------- */
 .k-menu {
   display: flex;
@@ -405,12 +393,15 @@
 .k-menu .cartbar .arrow {
   width: 62px;
   height: 62px;
-  border-radius: 12px;
+  border-radius: 50%;
   background: var(--benne-ink);
   color: var(--benne);
   display: grid;
   place-items: center;
-  font-size: 28px;
+}
+.k-menu .cartbar .arrow svg {
+  width: 30px;
+  height: 30px;
 }
 .k-menu .shade {
   position: absolute;
@@ -982,10 +973,26 @@
 .k-cart .foot .btn-benne .amt {
   font-size: 44px;
 }
-.k-cart .foot small {
-  text-align: center;
-  font-size: var(--t-min);
-  color: var(--cream-3);
+.k-cart .foot .amt {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.k-cart .foot .amt .go {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--benne-ink);
+  color: var(--benne);
+  display: grid;
+  place-items: center;
+}
+.k-cart .foot .amt .go svg {
+  width: 26px;
+  height: 26px;
+}
+.k-cart .foot .btn-benne:disabled .go {
+  opacity: 0.5;
 }
 
 /* ---------- Pay ---------- */
@@ -1889,4 +1896,10 @@
 }
 .k-cart .name .apply:disabled {
   opacity: 0.35;
+}
+
+/* a dish without a photo shows its word; in the cart's small suggestion card it must fit the square */
+.k-cart .mini .nophoto {
+  font-size: 17px;
+  letter-spacing: 0;
 }
