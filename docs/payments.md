@@ -71,6 +71,29 @@ Transaction API V2.1, Transaction Webhook). Read on 2026-11-14.
 - Tests: `tests/unit/easebuzz.test.ts`, `tests/e2e/gateway.spec.ts` against `tests/support/fake-easebuzz.mjs`
   (a stand-in that signs and answers like Easebuzz; no real calls in CI).
 
+### Route E2 — Easebuzz InstaCollect "Dynamic QR" (what the shop's current kiosk uses; preferred, not built yet)
+
+Found 2026-11-14 after a real ₹1 test on Route E: the money was received (Easebuzz payment id on the
+order), but in Easebuzz's **Payment Gateway** product. The owner's Easebuzz app and current kiosk use a
+different Easebuzz product, **InstaCollect / QR** ("Static QR | Dynamic QR", the shop's virtual UPI ID
+ending `@mairtel`), and that is where the owner looks for the money. Same Easebuzz account, two
+products, separate keys and separate places in the dashboard.
+
+- Docs: <https://docs.easebuzz.in/> → Neobanking → InstaCollect Orders (Dynamic QR), and its webhooks.
+- `POST https://wire.easebuzz.in/api/v1/insta-collect/order/create/` (JSON; headers `WIRE-API-KEY` and
+  `Authorization` = sha512 of `key|unique_request_number|amount|per_transaction_amount|udf1…udf5|salt`)
+  with `unique_request_number` (5–32 chars, ours), `amount`, `customer_name`, `customer_phone`,
+  `allowed_collection_modes: ["upi"]`, `expiry_date` → the order's `virtual_account.upi_handle`,
+  `upi_qrcode_url` and a `payment_link` (UPI string). **We draw the QR on our own screen: no extra taps.**
+- Paid: webhook `ORDER_STATUS_UPDATE` with `status: completed` and the transaction (amount, UPI
+  reference, payer), signed (`key|unique_request_number|amount|per_transaction_amount|status|udf1…udf5|salt`);
+  and `GET …/insta-collect/order/{id}/` (hash `key|order_id|salt`) to ask directly. Cancel: `…/order/{id}/cancel`.
+- **Needs from Easebuzz:** the InstaCollect ("Wire") API key and salt. The Payment Gateway key is
+  refused there ("Invalid key", checked with one read-only call). Also ask: is there a test environment
+  for InstaCollect; must our server's IP be whitelisted (Vercel has no fixed IP); webhook setup; charges.
+- Plan: same shape as Route E (`settle()` asks Easebuzz before marking paid; fallback to the shop's own
+  QR), with a second provider behind the same kiosk screen.
+
 ### Route A — Paytm card machine, cloud "Connection via Payment Request" (most promising)
 - Works with the owner's existing Paytm Android EDC on the **same MID**; Paytm says EDC/DQR integration is free. Probably does **not** need the stuck online-merchant account.
 - Flow: server `POST /edc-integration-service/payment/request` with head `{clientId, reqHash}` and body `{mid, merchantTxnId, txnAmount (paise, no decimals), txnDate?}` → Paytm returns a 6-digit Payment Request ID (CPay) → any machine on that MID pulls it (amount pre-filled) → customer taps card → we poll `GET /edc-integration-service/txn/status` (IN_QUEUE / PENDING / FAILED / COMPLETED / EXPIRED / CANCELLED) → COMPLETED moves the order to the kitchen. No webhook documented: poll.
