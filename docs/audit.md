@@ -32,13 +32,13 @@ Legend: `[ ]` pending · `[x]` done · `[-]` decided not to do (with reason)
 
 ## C. Ease of use
 
-- [ ] C1 Leftover wording: "Take your token", "Getting your token…" → "order number".
-- [ ] C2 Idli and vada offer "Less oil" and "Extra crisp" notes; cart shows a "Regular sugar" tag for the default.
-- [ ] C3 Small, pale text: `--cream-3` grey is ~3.5:1 on the background (4.5:1 is the usual minimum); dashboard uses 10–13 px widely. Zoom is disabled everywhere (`maximumScale: 1`), including the phone bill and dashboard.
-- [ ] C4 Kiosk only fits a portrait 800×1280-shaped tablet; on landscape or 4:3 it letterboxes into a narrow strip. Confirm the tablet; decide whether to adapt.
-- [ ] C5 Photos are Wikimedia placeholders; filter coffee has none. Images (110–210 KB) and fonts are served with `max-age=0`.
-- [ ] C6 No PNG app icons (manifest has SVG only) and no favicon (a 404 on every page).
-- [ ] C7 Design weak spots: dashboard KPI tiles + switch rows look generic; a chit with 6 tags is cluttered; empty lower half of the item sheet and the board's left side when quiet; test ribbon overlaps headings.
+- [x] C1 Leftover wording: "Take your token", "Getting your token…" → "order number".
+- [x] C2 Idli and vada offer "Less oil" and "Extra crisp" notes; cart shows a "Regular sugar" tag for the default.
+- [x] C3 Small, pale text: `--cream-3` grey is ~3.5:1 on the background (4.5:1 is the usual minimum); dashboard uses 10–13 px widely. Zoom is disabled everywhere (`maximumScale: 1`), including the phone bill and dashboard.
+- [-] C4 (tablet is portrait Android 16:10: fits as built) Kiosk only fits a portrait 800×1280-shaped tablet; on landscape or 4:3 it letterboxes into a narrow strip. Confirm the tablet; decide whether to adapt.
+- [-] C5 (owner: photo upload comes with add/remove dishes; caching not chosen) Photos are Wikimedia placeholders; filter coffee has none. Images (110–210 KB) and fonts are served with `max-age=0`.
+- [x] C6 No PNG app icons (manifest has SVG only) and no favicon (a 404 on every page).
+- [x] C7 (done: calmer kitchen tags, corner test tag; dashboard restyle not chosen) Design weak spots: dashboard KPI tiles + switch rows look generic; a chit with 6 tags is cluttered; empty lower half of the item sheet and the board's left side when quiet; test ribbon overlaps headings.
 
 ## D. Code and long-term upkeep
 
@@ -95,3 +95,5 @@ production deploy; self-hosted fonts; distinctive, non-generic visual design on 
 | D8 | Not now |
 | D9 | Fix: refresh docs |
 | D10 | Fix: dependency update PRs, newer actions, dead fields. User deletes merged branches |
+
+2026-11-13 · B1 follow-up · owner noticed the TV's smaller ready orders had become plain tiles; they are tickets again (notches + dotted tear line) at every size. Rule: when shrinking something to fit, keep its object shape.

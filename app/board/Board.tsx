@@ -68,7 +68,11 @@ export default function Board() {
               <div className="tkt" key={o.id} data-testid={`board-ready-${o.token}`}><div className="num">{o.token}</div><div className="perf" /><div className="nm">{o.customerName ?? (o.type === 'dine_in' ? 'Table order' : 'Takeaway')}</div></div>
             ))
             : shown.map((o) => (
-              <div className="mini" key={o.id} data-testid={`board-ready-${o.token}`}><span className="num">{o.token}</span>{tier === 1 && o.customerName && <span className="nm">{o.customerName}</span>}</div>
+              // still a ticket at every size: number, tear line with notches, and a stub (with the name while there's room)
+              <div className="mini" key={o.id} data-testid={`board-ready-${o.token}`}>
+                <span className="num">{o.token}</span><div className="perf" />
+                <span className="nm">{tier === 1 ? o.customerName ?? (o.type === 'dine_in' ? 'Table order' : 'Takeaway') : ''}</span>
+              </div>
             ))}
           {rest.length > MINI_MAX && <div className="mini extra">+{rest.length - MINI_MAX + 1}</div>}
         </div>

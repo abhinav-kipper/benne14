@@ -295,8 +295,8 @@
 .k-idle .btns .yes{background:var(--benne);color:var(--benne-ink)}
 .k-idle .btns .no{border:1.5px solid var(--line);color:var(--cream-2)}
 
-/* ---------- Test mode ribbon (preview deploys) ---------- */
-.k-test{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:60;background:var(--chilli);color:#fff;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 16px;border-radius:0 0 10px 10px;pointer-events:none}
+/* ---------- Test mode tag: a small corner label, clear of every heading ---------- */
+.k-test{position:absolute;top:0;left:0;z-index:60;background:var(--chilli);color:#fff;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:18px;height:18px;padding:0 10px;border-radius:0 0 8px 0;pointer-events:none}
 
 /* ---------- Sold out (set from the owner's dashboard) ---------- */
 .k-menu .item.out .ph img,.k-menu .hero.out img{filter:grayscale(1);opacity:.55}
