@@ -8,6 +8,8 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Up next
 
+- **Audit checklist: `docs/audit.md`** (2026-11-13). Working through B (reliability), C (ease of use), D (code) with the owner choosing fixes; A (security/speed/hosting) is still open and blocks launch.
+
 - **Payments: read `docs/payments.md`** (live setup, test mode, Paytm card-machine cloud integration = next, Paytm gateway blocked by their maintenance, Razorpay parked).
 
 - **Before launch: set `TEST_MODE=0` in Vercel** (test mode: cash counts as paid, ₹1 test item, red ribbon on the kiosk).
