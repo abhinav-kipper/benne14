@@ -8,7 +8,6 @@ import { Photo, type Line } from './shared';
 export function MenuScreen(p: {
   qtyOf: (id: string) => number;
   onOpen: (id: string) => void;
-  onQuick: (id: string) => void;
   lines: Line[];
   setQty: (uid: string, q: number) => void;
   count: number;
@@ -23,26 +22,8 @@ export function MenuScreen(p: {
   const main = useRef<HTMLElement>(null);
   const sp = items.find((i) => i.special)!;
 
-  // + adds the dish as it comes with one tap and becomes the − 1 + stepper. "Customise" under it (and a tap
-  // on the dish) opens the sheet for extras and notes, so nobody has to guess that they exist.
-  const actions = (i: MenuItem) => (
-    <div className="act">
-      {stepper(i)}
-      {!i.soldOut && (i.groups.length > 0 || i.notes) && (
-        <button
-          className="custom"
-          onClick={(e) => {
-            e.stopPropagation();
-            p.onOpen(i.id);
-          }}
-          data-testid={`customise-${i.id}`}
-        >
-          Customise
-        </button>
-      )}
-    </div>
-  );
-  // The stepper adjusts the latest line for that dish.
+  // + opens the dish's sheet (extras, notes), so every dish is added the same way and each customised dish is
+  // its own line. Once a dish is in the order, the − 1 + stepper adjusts its latest line.
   const stepper = (i: MenuItem) => {
     if (i.soldOut) return <span className="soldout">Sold out</span>;
     const q = p.qtyOf(i.id);
@@ -53,7 +34,7 @@ export function MenuScreen(p: {
           aria-label={`Add ${i.name}`}
           onClick={(e) => {
             e.stopPropagation();
-            p.onQuick(i.id);
+            p.onOpen(i.id);
           }}
         >
           +
@@ -129,7 +110,7 @@ export function MenuScreen(p: {
                 <div>
                   <span className="price">₹{sp.price}</span>
                 </div>
-                {actions(sp)}
+                {stepper(sp)}
               </div>
             </div>
           </div>
@@ -163,7 +144,7 @@ export function MenuScreen(p: {
                       <p className="hdesc">{i.desc}</p>
                       <span className="price">₹{i.price}</span>
                     </div>
-                    {actions(i)}
+                    {stepper(i)}
                   </div>
                 ))}
             </div>

@@ -15,7 +15,7 @@ Measured: **10 taps** from the start screen to the QR for two dishes; **11** to 
 - [x] U1 **Price surprise.** The menu says ₹209; after adding one dish with extra benne (₹234) the bar says ₹246 with no explanation. GST first appears in the cart. Fix: say "+ 5% GST" where prices are shown and "incl. GST" on the bar, or make menu prices GST-inclusive (owner's decision).
 - [x] U2 **No way to cancel or start over** on the menu or cart. A customer who walks away leaves their cart for the next person for up to 90 s (75 s idle + 15 s prompt). Fix: a visible "Start over" on menu and cart; shorter idle while the cart is untouched.
 - [-] U3 (owner 2026-11-13: leave the cart's Edit link as is) **"Edit" in the cart is 25×18 px**, about a third of the minimum touch size, and there is no remove button (only − down to zero). Fix: a proper Edit button and a Remove.
-- [x] U4 **Every + opens the full sheet**, even for a dish the customer wants as it comes. Fix: + adds one straight away and turns into the − 1 + stepper; tapping the dish opens the sheet to customise. Saves a tap per dish.
+- [-] U4 (owner 2026-11-13: tried one-tap add, went back; see log) **Every + opens the full sheet**, even for a dish the customer wants as it comes. Fix: + adds one straight away and turns into the − 1 + stepper; tapping the dish opens the sheet to customise. Saves a tap per dish.
 - [x] U5 **Order-number screen is crowded and reads like an error.** The status pill is orange-red for a normal state ("being checked at the counter"), the ticket shouts "SHOW UPI SCREEN IF ASKED", and seven blocks compete. Fix: number first, one calm line about what happens next, tracker and phone QR below; neutral colour for normal states.
 - [ ] U6 **Name field sits in the lower third** of the cart; the Android keyboard will likely cover it. Check on the tablet; if so, move the field up or ask the name in its own small step.
 - [x] U7 **False promise on the pay screen** ("the money comes back to you automatically"). Same as `docs/audit.md` A4.
@@ -71,6 +71,6 @@ number is unmissable; sold-out and offline states are handled; the kitchen rail 
 - U7: "Payment stuck? Ask at the counter." U15: one "GST 5%" line in the cart. U11 + label: upsell line fits the order; "Dine in or takeaway?" stays as the label.
 
 2026-11-13 · round 1, owner's second look:
-- U4 follow-up: with one-tap add, nothing said extras and notes exist. Every dish that has them now carries a "Customise" link under its + (the special too). Customising a dish already in the order changes that one instead of adding a second.
+- U4: one-tap add is undone. With one tap there was no clear way to customise one of several of the same dish, so every + opens the dish's sheet again (as before round 1) and each customised dish is its own line. No "Customise" link.
 - U2: no "Start over" buttons. The kiosk clears itself: "Still there?" after 60 s without a touch (was 75 s), start screen 15 s later.
 - Order-number screen: stays 100 s so the bill can be scanned, then asks "Still there?" in place (the number and the bill code stay in view) and clears after 20 s. "I need more time" gives another minute; "New order" is always there. The running countdown bar is gone.

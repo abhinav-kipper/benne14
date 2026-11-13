@@ -85,7 +85,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
         ? cur.map((x) => (x === same ? { ...x, qty: Math.min(20, x.qty + l.qty) } : x))
         : [...cur, { ...l, uid: newKey() }];
     });
-  // One tap on + adds the dish as it comes: every pick-one choice at its default, no extras, no notes.
+  // The cart's suggestions add a dish as it comes: every pick-one choice at its default, no extras, no notes.
   // Written out in full so it merges with the same dish added from the sheet without changes.
   const quickAdd = (itemId: string) => {
     const item = catalog.items.find((i) => i.id === itemId);
@@ -94,9 +94,6 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
       if (catalog.groups[g].kind === 'one') choices[g] = [catalog.groups[g].defaultId!];
     addLine({ itemId, qty: 1, choices, notes: [] });
   };
-  // Opening a dish that is already in the order changes that one (its latest line) instead of adding another.
-  const openDish = (itemId: string) =>
-    setSheet({ itemId, editing: [...lines].reverse().find((l) => l.itemId === itemId)?.uid });
   const setQty = (uid: string, qty: number) =>
     setLines((cur) =>
       qty <= 0
@@ -113,8 +110,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
           <MenuScreen
             testMode={testMode}
             qtyOf={qtyOf}
-            onOpen={openDish}
-            onQuick={quickAdd}
+            onOpen={(id) => setSheet({ itemId: id })}
             lines={lines}
             setQty={setQty}
             count={count}
