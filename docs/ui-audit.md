@@ -29,13 +29,13 @@ Measured: **10 taps** from the start screen to the QR for two dishes; **11** to 
 
 ## 3. Feel: what makes good apps feel finished
 
-- [ ] U12 **Taps barely respond.** Few buttons have a pressed state, adding a dish gives no confirmation (no bump of the cart bar, no "added"), and screens swap with a plain fade. Fix: pressed states everywhere, a small motion when something is added, sheet and screen transitions with direction.
-- [ ] U13 **The menu wastes its first screen.** The left rail takes 21% of the width and is two-thirds empty with three sections; the special takes 440 px. Only three dishes show before scrolling. Fix: slimmer rail or top tabs, shorter special, so four or five dishes show.
-- [ ] U14 **Small text on the kiosk.** Eleven different places use 11–15 px (section labels, "Optional", "View order", helper lines). At arm's length the floor should be 16 px.
+- [x] U12 **Taps barely respond.** Few buttons have a pressed state, adding a dish gives no confirmation (no bump of the cart bar, no "added"), and screens swap with a plain fade. Fix: pressed states everywhere, a small motion when something is added, sheet and screen transitions with direction.
+- [-] U13 (owner 2026-11-13: keep the special as big as it is) **The menu wastes its first screen.** The left rail takes 21% of the width and is two-thirds empty with three sections; the special takes 440 px. Only three dishes show before scrolling. Fix: slimmer rail or top tabs, shorter special, so four or five dishes show.
+- [x] U14 **Small text on the kiosk.** Eleven different places use 11–15 px (section labels, "Optional", "View order", helper lines). At arm's length the floor should be 16 px.
 - [x] U15 **Cart bill is accountant-speak.** "CGST 2.5% / SGST 2.5%" as two lines; customers need "GST 5% ₹15" (the split belongs on the bill). The label "Eating" after choosing dine-in is odd.
-- [ ] U16 **Start screen is a still poster.** No motion to catch the eye from the queue, no hint of prices or bestsellers.
-- [ ] U17 **UPI screen repeats itself**: the headline, the line under it and three step boxes all say "scan and pay".
-- [ ] U18 **No design scale written down.** Colours are tokens, but type sizes (11, 12, 13, 14, 15, 16, 17, 18…), corner radii (6–28) and spacing are picked per screen. Fix: a short scale for type, spacing, radius, shadow and motion in `app/globals.css`, used everywhere.
+- [x] U16 **Start screen is a still poster.** No motion to catch the eye from the queue, no hint of prices or bestsellers.
+- [x] U17 **UPI screen repeats itself**: the headline, the line under it and three step boxes all say "scan and pay".
+- [x] U18 **No design scale written down.** Colours are tokens, but type sizes (11, 12, 13, 14, 15, 16, 17, 18…), corner radii (6–28) and spacing are picked per screen. Fix: a short scale for type, spacing, radius, shadow and motion in `app/globals.css`, used everywhere.
 
 ## 4. Kitchen, TV, dashboard
 
@@ -74,3 +74,15 @@ number is unmissable; sold-out and offline states are handled; the kitchen rail 
 - U4: one-tap add is undone. With one tap there was no clear way to customise one of several of the same dish, so every + opens the dish's sheet again (as before round 1) and each customised dish is its own line. No "Customise" link.
 - U2: no "Start over" buttons. The kiosk clears itself: "Still there?" after 60 s without a touch (was 75 s), start screen 15 s later.
 - Order-number screen: stays 90 s so the bill can be scanned, then shows the same "Still there?" box as the menu, with a longer count (30 s, the menu's is 15 s) and the order number repeated in it. "I need more time" gives another minute; "New order" is always there. The running countdown bar is gone.
+
+2026-11-13 · found while fixing (owner spotted the first):
+- The tapped menu section lights up at once (Coffee & Tea never did: the last section is too short to reach the top). The first section scrolls to the very top.
+- The menu keeps its place when the customer comes back from the cart.
+
+2026-11-13 · round 2, owner's choices:
+- U12: every kiosk button reacts while pressed; the order bar bumps when a dish is added.
+- U13: tried a shorter house special; the owner prefers it as big as before. Not changed.
+- U14: 16 px minimum for kiosk text (26 labels raised). Exceptions: the logo's tagline, the test-mode tag.
+- U16: the start screen's photo columns drift slowly.
+- U17: UPI screen: the three step boxes are gone; one line under the QR ("The amount is filled in. Pay in your app, then tap below.").
+- U18: scale written down in `docs/design-scale.md` and `app/globals.css`. Used by the new rules; older rules keep their values until a screen is next touched.

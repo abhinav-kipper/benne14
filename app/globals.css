@@ -65,6 +65,27 @@
   --paper: #ffffff;
   --display: 'Rupee', 'Big Shoulders', sans-serif;
   --body: 'Familjen Grotesk', sans-serif;
+
+  /* Design scale (docs/design-scale.md). New rules pick from these instead of inventing a value. */
+  --t-min: 16px; /* smallest text on a touch screen read at arm's length */
+  --t-sm: 18px;
+  --t-md: 22px;
+  --t-lg: 28px;
+  --t-xl: 40px;
+  --r-sm: 10px; /* steppers, small buttons */
+  --r-md: 14px; /* buttons, photos */
+  --r-lg: 18px; /* bars, panels */
+  --r-xl: 28px; /* cards, sheets */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 18px;
+  --sp-5: 30px;
+  --press: 0.97; /* how far a button sinks under the finger; big bars use --press-big */
+  --press-big: 0.985;
+  --fast: 0.09s; /* answer to a touch */
+  --move: 0.28s; /* something arriving or changing */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 html[data-theme='dark'] {
   --bg: #121210;

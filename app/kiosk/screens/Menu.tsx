@@ -1,6 +1,6 @@
 'use client';
 // The menu: categories on the left, the house special, then every dish with its quick + / − stepper.
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useCatalog } from '@/components/Catalog';
 import { CATEGORIES, visibleItems, type MenuItem } from '@/lib/menu';
 import { Photo, type Line } from './shared';
@@ -14,6 +14,7 @@ export function MenuScreen(p: {
   total: number;
   onCart: () => void;
   testMode: boolean;
+  scrollMemo: { current: number }; // where the customer was, kept while they visit the cart
 }) {
   const catalog = useCatalog();
   const items = visibleItems(p.testMode, catalog);
@@ -54,15 +55,44 @@ export function MenuScreen(p: {
     );
   };
 
+  // Back from the cart: the menu is where the customer left it, not at the top again.
+  useLayoutEffect(() => {
+    const m = main.current;
+    if (!m || !p.scrollMemo.current) return;
+    m.style.scrollBehavior = 'auto';
+    m.scrollTop = p.scrollMemo.current;
+    m.style.scrollBehavior = '';
+  }, [p.scrollMemo]);
+
+  // Which section is showing. A tapped section lights up at once and stays lit while the list glides to it
+  // (the last section is too short to reach the top, so position alone would never light it).
+  const tapped = useRef<{ id: string; t: ReturnType<typeof setTimeout> } | null>(null);
   const onScroll = () => {
     const m = main.current;
     if (!m) return;
+    p.scrollMemo.current = m.scrollTop;
+    if (tapped.current) {
+      clearTimeout(tapped.current.t); // still gliding: let go shortly after the last movement
+      tapped.current.t = setTimeout(() => (tapped.current = null), 200);
+      return;
+    }
     let cur = cats[0].id;
     for (const c of cats) {
       const el = m.querySelector<HTMLElement>(`#cat-${c.id}`);
       if (el && el.offsetTop - 120 <= m.scrollTop) cur = c.id;
     }
+    if (m.scrollTop >= m.scrollHeight - m.clientHeight - 2) cur = cats[cats.length - 1].id; // at the very end
     setActive(cur);
+  };
+  const goTo = (id: typeof active) => {
+    const m = main.current;
+    if (!m) return;
+    if (tapped.current) clearTimeout(tapped.current.t);
+    tapped.current = { id, t: setTimeout(() => (tapped.current = null), 400) };
+    setActive(id);
+    // the first section starts at the very top, with the house special
+    if (id === cats[0].id) m.scrollTo({ top: 0, behavior: 'smooth' });
+    else m.querySelector(`#cat-${id}`)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -82,11 +112,7 @@ export function MenuScreen(p: {
         </div>
         <div className="cats">
           {cats.map((c) => (
-            <button
-              key={c.id}
-              className={`cat ${active === c.id ? 'on' : ''}`}
-              onClick={() => main.current?.querySelector(`#cat-${c.id}`)?.scrollIntoView({ behavior: 'smooth' })}
-            >
+            <button key={c.id} className={`cat ${active === c.id ? 'on' : ''}`} onClick={() => goTo(c.id)}>
               <div className="n disp">{c.name}</div>
             </button>
           ))}
@@ -153,7 +179,7 @@ export function MenuScreen(p: {
       </main>
       <div className="shade" />
       {p.count > 0 && (
-        <button className="cartbar" onClick={p.onCart} data-testid="cartbar">
+        <button className="cartbar" key={p.count} onClick={p.onCart} data-testid="cartbar">
           <div className="count">
             <b>{p.count}</b>
             {p.count === 1 ? 'item' : 'items'}

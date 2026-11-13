@@ -44,7 +44,7 @@
   display: block;
   font-family: var(--body);
   font-weight: 600;
-  font-size: 11px;
+  font-size: 11px; /* part of the logo lock-up, not information: exempt from the 16 px floor */
   letter-spacing: 0.16em;
   color: var(--cream-2);
   margin-top: 8px;
@@ -163,7 +163,7 @@
 }
 .k-home .foot {
   text-align: center;
-  font-size: 14px;
+  font-size: var(--t-min);
   color: var(--cream-3);
   padding-bottom: 22px;
   letter-spacing: 0.04em;
@@ -200,7 +200,7 @@
 .k-menu .brand small {
   display: block;
   margin-top: 10px;
-  font-size: 11px;
+  font-size: 11px; /* part of the logo lock-up, not information: exempt from the 16 px floor */
   color: var(--cream-3);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -361,7 +361,7 @@
   animation: rise 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 .k-menu .cartbar .count {
-  font-size: 13px;
+  font-size: var(--t-min);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -380,7 +380,7 @@
   gap: 16px;
 }
 .k-menu .cartbar .go small {
-  font-size: 14px;
+  font-size: var(--t-min);
   font-weight: 700;
   letter-spacing: 0.12em;
   opacity: 0.7;
@@ -395,7 +395,7 @@
 .k-menu .cartbar .tot small {
   display: block;
   font-family: var(--body);
-  font-size: 13px;
+  font-size: var(--t-min);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -514,7 +514,7 @@
 .k-sheet .incl {
   display: block;
   font-family: var(--body);
-  font-size: 14px;
+  font-size: var(--t-min);
   color: var(--cream-3);
   margin-top: 6px;
   letter-spacing: 0.02em;
@@ -536,7 +536,7 @@
   font-size: 28px;
 }
 .k-sheet .gh small {
-  font-size: 12px;
+  font-size: var(--t-min);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--cream-3);
@@ -752,7 +752,7 @@
   gap: 6px;
 }
 .k-cart .mods span {
-  font-size: 14px;
+  font-size: var(--t-min);
   padding: 5px 10px;
   border-radius: 6px;
   background: var(--s2);
@@ -764,7 +764,7 @@
 .k-cart .edit {
   display: inline-block;
   margin-top: 12px;
-  font-size: 15px;
+  font-size: var(--t-min);
   font-weight: 600;
   color: var(--cream-2);
   text-decoration: underline;
@@ -781,7 +781,7 @@
   font-size: 32px;
 }
 .k-cart .right .each {
-  font-size: 13px;
+  font-size: var(--t-min);
   color: var(--cream-3);
   margin-top: -12px;
 }
@@ -881,7 +881,7 @@
   padding: 14px 0 18px;
 }
 .k-cart .total span {
-  font-size: 15px;
+  font-size: var(--t-min);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -913,7 +913,7 @@
   color: var(--cream);
 }
 .k-cart .name span {
-  font-size: 14px;
+  font-size: var(--t-min);
   color: var(--cream-3);
 }
 .k-cart .name input {
@@ -984,7 +984,7 @@
 }
 .k-cart .foot small {
   text-align: center;
-  font-size: 14px;
+  font-size: var(--t-min);
   color: var(--cream-3);
 }
 
@@ -1004,7 +1004,7 @@
   margin: 44px 0 40px;
 }
 .k-pay .amount .eyebrow {
-  font-size: 14px;
+  font-size: var(--t-min);
 }
 .k-pay .amount b {
   display: block;
@@ -1035,7 +1035,7 @@
 .k-pay .slip .sh {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: var(--t-min);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1100,7 +1100,7 @@
   padding: 34px 36px;
 }
 .k-pay .upi .lead {
-  font-size: 15px;
+  font-size: var(--t-min);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1157,7 +1157,7 @@
 }
 .k-pay .half small {
   display: block;
-  font-size: 15px;
+  font-size: var(--t-min);
   margin-top: 8px;
   line-height: 1.35;
 }
@@ -1206,7 +1206,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 15px;
+  font-size: var(--t-min);
   color: var(--cream-2);
 }
 .k-upi .ring {
@@ -1232,7 +1232,7 @@
 .k-upi h1 {
   font-size: 96px;
   line-height: 0.85;
-  margin-top: 30px;
+  margin-top: 56px;
   text-align: center;
 }
 .k-upi .sub {
@@ -1241,7 +1241,7 @@
   text-align: center;
 }
 .k-upi .qrcard {
-  margin-top: 40px;
+  margin-top: 56px;
   background: #ffffff;
   border-radius: 28px;
   padding: 36px 36px 24px;
@@ -1278,7 +1278,7 @@
 }
 .k-upi .qrcard .who small {
   display: block;
-  font-size: 13px;
+  font-size: var(--t-min);
   color: #6e6757;
   margin-top: 2px;
 }
@@ -1317,42 +1317,12 @@
   border-radius: 0 0 18px 0;
 }
 .k-upi .apps {
-  margin-top: 28px;
-  font-size: 17px;
+  margin-top: 40px;
+  font-size: var(--t-md);
   color: var(--cream-2);
 }
-.k-upi .steps {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 26px;
-  align-self: stretch;
-}
-.k-upi .steps div {
-  background: var(--s1);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 14px 16px;
-  font-size: 16px;
-  font-weight: 600;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.k-upi .steps b {
-  font-family: var(--display);
-  font-weight: 900;
-  font-size: 30px;
-  color: var(--benne-fg);
-  line-height: 1;
-}
-.k-upi .steps span {
-  font-size: 15px;
-  font-weight: 400;
-  color: var(--cream-3);
-}
 .k-upi .paidbtn {
-  margin-top: 22px;
+  margin-top: auto;
   align-self: stretch;
   height: 96px;
   border-radius: 16px;
@@ -1422,7 +1392,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 15px;
+  font-size: var(--t-min);
   color: var(--cream-3);
   gap: 12px;
 }
@@ -1517,7 +1487,7 @@
   display: flex;
   justify-content: space-between;
   padding: 22px 30px 0;
-  font-size: 13px;
+  font-size: var(--t-min);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1622,7 +1592,7 @@
   color: var(--cream-3);
 }
 .st span {
-  font-size: 15px;
+  font-size: var(--t-min);
   color: var(--cream-3);
 }
 .st.done i {
@@ -1685,7 +1655,7 @@
   font-size: 30px;
 }
 .k-done .receipt p {
-  font-size: 15px;
+  font-size: var(--t-min);
   color: var(--cream-3);
   margin: 4px 0 0;
 }
@@ -1786,7 +1756,7 @@
   color: var(--cream-3);
 }
 .k-menu .soldout {
-  font-size: 13px;
+  font-size: var(--t-min);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1801,7 +1771,7 @@
   opacity: 0.55;
 }
 .k-cart .line .gone {
-  font-size: 15px;
+  font-size: var(--t-min);
   font-weight: 700;
   color: var(--chilli);
   margin: 2px 0 6px;
@@ -1813,4 +1783,69 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--cream-2);
+}
+
+/* ---------- Round 2 (docs/ui-audit.md): touch feedback, "added" bump, start-screen motion ---------- */
+/* Every button answers the finger. :where keeps this weaker than a screen's own :active rule. */
+.kiosk :where(button, [role='button']) {
+  transition:
+    transform var(--fast) var(--ease),
+    filter var(--fast) var(--ease);
+}
+.kiosk :where(button:not(:disabled)):active {
+  transform: scale(var(--press));
+  filter: brightness(0.94);
+}
+.kiosk :where(.cartbar, .btn-benne, .paidbtn, .start, .tile):active {
+  transform: scale(var(--press-big));
+}
+.k-menu .item:not(.out):active,
+.k-menu .cat:active {
+  background: var(--s2);
+}
+/* the order bar bumps each time its count changes, so an added dish is seen to land */
+.k-menu .cartbar {
+  animation: bump var(--move) var(--ease);
+}
+@keyframes bump {
+  0% {
+    transform: translateY(10px) scale(0.98);
+  }
+  55% {
+    transform: translateY(-4px) scale(1.012);
+  }
+  100% {
+    transform: none;
+  }
+}
+/* the start screen's photo columns drift slowly, to catch an eye in the queue */
+.k-home .col {
+  animation: drift 16s ease-in-out infinite alternate;
+}
+.k-home .col:nth-child(2) {
+  animation-duration: 20s;
+  animation-direction: alternate-reverse;
+}
+.k-home .col:nth-child(3) {
+  animation-duration: 18s;
+  animation-delay: -6s;
+}
+@keyframes drift {
+  from {
+    transform: translateY(-26px);
+  }
+  to {
+    transform: translateY(26px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-home .col,
+  .k-menu .cartbar {
+    animation: none;
+  }
+}
+/* shared labels (globals.css) are 12 px for the staff screens; on the kiosk they meet the 16 px floor */
+.kiosk .chip,
+.kiosk .eyebrow {
+  font-size: var(--t-min);
 }

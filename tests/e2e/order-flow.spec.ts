@@ -344,3 +344,55 @@ test('the ₹1 payment test item is refused when test mode is off', async ({ req
   });
   expect(r.status()).toBe(400);
 });
+
+test('menu: a tapped section lights up, and the menu is where you left it after the cart', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  const on = page.locator('.k-menu .cat.on');
+  for (const name of ['Coffee & Tea', 'Idli & Vada', 'Coffee & Tea', 'Dosas']) {
+    await page.locator('.k-menu .cat', { hasText: name }).click();
+    await expect(on).toHaveText(name);
+    await page.waitForTimeout(900); // still lit once the list has stopped moving
+    await expect(on).toHaveText(name);
+  }
+  await page.locator('.k-menu .cat', { hasText: 'Coffee & Tea' }).click();
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await page.locator('.k-cart .back').click();
+  await expect(page.getByTestId('item-masala-tea')).toBeInViewport(); // not back at the top
+  await expect(on).toHaveText('Coffee & Tea');
+});
+
+test('kiosk reads at arm’s length: no text under 16 px on any screen', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  // text smaller than 16 px on the screen showing, apart from the logo's own tagline
+  const small = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('.kiosk *')]
+        .filter((e) => e.offsetParent && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim()))
+        .filter((e) => parseFloat(getComputedStyle(e).fontSize) < 16)
+        .filter((e) => !e.closest('.logo, .brand, .k-test'))
+        .map((e) => e.textContent!.trim().slice(0, 30)),
+    );
+  expect(await small()).toEqual([]);
+  await page.getByTestId('start').click();
+  expect(await small()).toEqual([]);
+  await page.getByTestId('item-masala-dosa').click();
+  expect(await small()).toEqual([]);
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  expect(await small()).toEqual([]);
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('continue-to-pay').click();
+  expect(await small()).toEqual([]);
+  await page.getByTestId('pay-upi').click();
+  await expect(page.locator('.k-upi')).toContainText('The amount is filled in.');
+  await expect(page.locator('.k-upi .steps')).toHaveCount(0); // one instruction, not three ways of saying it
+  expect(await small()).toEqual([]);
+  await page.getByTestId('i-paid').click();
+  await expect(page.getByTestId('token')).toBeVisible();
+  expect(await small()).toEqual([]);
+});

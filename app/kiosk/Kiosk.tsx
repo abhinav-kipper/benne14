@@ -31,6 +31,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   const [placed, setPlaced] = useState<Order | null>(null);
   const [idle, setIdle] = useState(false);
   const checkoutKey = useRef(newKey());
+  const menuScroll = useRef(0);
 
   // The owner's changes (prices, names, sold out) are picked up each time the kiosk shows the start
   // screen, i.e. for every new customer. If it can't load, the kiosk keeps the last menu it had.
@@ -50,6 +51,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     setPlaced(null);
     setIdle(false);
     checkoutKey.current = newKey();
+    menuScroll.current = 0;
   }, []);
 
   // Idle watch: any touch resets the timer; on non-home screens ask "Still there?" before clearing.
@@ -109,6 +111,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
         {screen === 'menu' && (
           <MenuScreen
             testMode={testMode}
+            scrollMemo={menuScroll}
             qtyOf={qtyOf}
             onOpen={(id) => setSheet({ itemId: id })}
             lines={lines}
