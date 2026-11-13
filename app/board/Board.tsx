@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { itemById, mergeCatalog, photoOf, setActiveCatalog } from '@/lib/menu';
+import { useMenu } from '@/components/Catalog';
+import { itemById, photoOf } from '@/lib/menu';
 import { minutesSince } from '@/lib/orders';
-import { api, useAutoReload, useCollected, useLiveOrders } from '@/lib/client';
+import { useAutoReload, useCollected, useLiveOrders } from '@/lib/client';
 
 const PROMOS = ['ghee-podi-thatte-idli', 'ghee-podi-benne-dosa', 'medu-vada'];
 const PREP_MAX = 6;
@@ -16,13 +17,12 @@ export default function Board() {
   const done = useCollected(10_000);
   useAutoReload(); // nothing is typed on the TV, so it can reload the moment a new version is out
   // Promo prices and names follow the owner's menu changes (checked every 5 minutes).
-  const [, setMenuVersion] = useState(0);
+  const { catalog, reload } = useMenu();
   useEffect(() => {
-    const load = () => api.menu().then((o) => { setActiveCatalog(mergeCatalog(o)); setMenuVersion((v) => v + 1); }).catch(() => {});
-    load();
-    const t = setInterval(load, 5 * 60_000);
+    reload();
+    const t = setInterval(reload, 5 * 60_000);
     return () => clearInterval(t);
-  }, []);
+  }, [reload]);
   const [now, setNow] = useState(0); // set in the browser; a server-rendered time would mismatch (React #418)
   const [promo, setPromo] = useState(0);
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function Board() {
   const rest = ready.slice(1);
   const tier = rest.length <= 2 ? 0 : rest.length <= 6 ? 1 : rest.length <= 12 ? 2 : 3;
   const shown = rest.length > MINI_MAX ? rest.slice(0, MINI_MAX - 1) : rest;
-  const p = itemById(PROMOS[promo])!;
+  const p = itemById(PROMOS[promo], catalog)!;
   const clock = !now ? '' : new Date(now).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
 
   return (

@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { canMove, formatToken, HANDED_MIN, isPaid, istDay, LIVE, LIVE_HOURS, UPI_OPEN_MIN, type AdminEvent, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
 import { optionKey, type Overrides } from '../menu';
-import type { ItemPatch, MenuEdit } from './index';
+import type { MenuEdit } from './index';
 import { MIGRATIONS } from '../migrations';
 
 interface ItemRow { name: string | null; desc: string | null; price: number | null; soldOutOn: string | null }

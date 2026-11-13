@@ -1,7 +1,7 @@
 // Supabase-backed store. Server only: uses the service role key; tables have RLS with no public policies.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { optionKey, type Overrides } from '../menu';
-import type { ItemPatch, MenuEdit } from './index';
+import type { MenuEdit } from './index';
 import { canMove, HANDED_MIN, isPaid, istDay, LIVE, LIVE_HOURS, plainToken, UPI_OPEN_MIN, type AdminEvent, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
 import { StoreError } from './memory';
 

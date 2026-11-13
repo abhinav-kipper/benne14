@@ -125,7 +125,7 @@ export const ITEMS: MenuItem[] = [
 const PHOTOS = new Set(ITEMS.map((i) => i.id).filter((id) => id !== 'filter-coffee' && id !== 'test-1'));
 export const placeholderOf = (id: string) => ITEMS.find((i) => i.id === id)?.placeholder ?? 'Coffee';
 // Items the kiosk shows: test-only ones appear only in test mode.
-export const visibleItems = (testMode: boolean) => active.items.filter((i) => testMode || !i.testOnly);
+export const visibleItems = (testMode: boolean, cat: Catalog) => cat.items.filter((i) => testMode || !i.testOnly);
 export const photoOf = (id: string) => (PHOTOS.has(id) ? `/food/${id}.jpg` : undefined);
 
 // ---- Catalog: the dishes above plus the owner's changes from the dashboard ----
@@ -152,13 +152,9 @@ export function mergeCatalog(o: Overrides): Catalog {
   return { items, groups };
 }
 
-// The catalog screens read from. The server never changes it (it passes a merged catalog to pricing
-// explicitly); the kiosk and board set it after fetching /api/menu.
-let active: Catalog = BASE_CATALOG;
-export const activeCatalog = () => active;
-export const setActiveCatalog = (c: Catalog) => { active = c; };
-
-export const itemById = (id: string, cat: Catalog = active) => cat.items.find((i) => i.id === id);
+// Look a dish up in a catalog. Screens pass the catalog they loaded (components/Catalog.tsx); the
+// server passes the merged one; the default is the menu in code.
+export const itemById = (id: string, cat: Catalog = BASE_CATALOG) => cat.items.find((i) => i.id === id);
 
 // Kitchen notes the item sheet offers for an item.
 export const notesFor = (item: MenuItem) => (item.notes ? NOTES.filter((n) => !n.items || n.items.includes(item.id)) : []);
