@@ -2,7 +2,9 @@
 // Browser-side API calls and live-order hooks for the kiosk, kitchen, board and phone bill.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CartLine } from './pricing';
-import type { Order, OrderStatus, OrderType, PayMethod } from './orders';
+import type { Overrides } from './menu';
+import type { AdminEvent, Order, OrderStatus, OrderType, PayMethod } from './orders';
+import type { Summary } from './reports';
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
@@ -21,6 +23,7 @@ export const api = {
   order: (id: string) => call<Order>(`/api/orders/${id}`),
   live: () => call<Order[]>('/api/orders'),
   today: () => call<Order[]>('/api/orders?view=today'),
+  menu: () => call<Overrides>('/api/menu'),
   checkPin: (pin: string) => call<{ ok: true }>('/api/staff', { method: 'POST', headers: { 'x-staff-pin': pin } }),
   claim: (id: string, action: 'paid' | 'cancel') => call<Order>(`/api/orders/${id}/claim`, { method: 'POST', body: JSON.stringify({ action }) }),
   mockPay: (id: string) => call<Order>(`/api/orders/${id}/pay`, { method: 'POST' }),
@@ -121,5 +124,27 @@ export function useFreshIds(ids: string[], ms = 1500): Set<string> {
   });
   return fresh;
 }
+
+// Owner dashboard calls (behind the staff PIN for now).
+const pinHeader = (pin: string) => ({ 'x-staff-pin': pin });
+export interface Report { from: string; to: string; current: Summary; previous: { from: string; to: string; summary: Summary } }
+export const admin = {
+  report: (pin: string, from: string, to: string) => call<Report>(`/api/admin/report?from=${from}&to=${to}`, { headers: pinHeader(pin) }),
+  events: (pin: string) => call<AdminEvent[]>('/api/admin/events', { headers: pinHeader(pin) }),
+  saveItem: (pin: string, b: { itemId: string; name?: string | null; desc?: string | null; price?: number | null; soldOut?: boolean }) =>
+    call('/api/admin/menu', { method: 'POST', body: JSON.stringify(b), headers: pinHeader(pin) }),
+  saveOption: (pin: string, groupId: string, optionId: string, price: number) =>
+    call('/api/admin/option', { method: 'POST', body: JSON.stringify({ groupId, optionId, price }), headers: pinHeader(pin) }),
+  refund: (pin: string, id: string, reason: string) => call<Order>(`/api/admin/orders/${id}/refund`, { method: 'POST', body: JSON.stringify({ reason }), headers: pinHeader(pin) }),
+  // CSV comes back as a file; the browser saves it (a plain link can't send the PIN header).
+  async download(pin: string, kind: 'bills' | 'gst' | 'dishes', from: string, to: string) {
+    const r = await fetch(`/api/admin/export?kind=${kind}&from=${from}&to=${to}`, { headers: pinHeader(pin), cache: 'no-store' });
+    if (!r.ok) throw new ApiError(((await r.json().catch(() => ({}))) as { error?: string }).error ?? `HTTP ${r.status}`, r.status);
+    const url = URL.createObjectURL(await r.blob());
+    const a = Object.assign(document.createElement('a'), { href: url, download: `benne14-${kind}-${from}-to-${to}.csv` });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  },
+};
 
 export const newKey = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);

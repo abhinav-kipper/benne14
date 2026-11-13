@@ -10,8 +10,9 @@ Next.js 15 (App Router, TS strict) · Supabase (Postgres, Realtime, Auth, RLS) �
 
 ```
 app/kiosk  app/kitchen  app/board  app/r/[id]   screens (client components inside a <Fit w h> frame)
+app/admin  app/api/admin/...                     owner dashboard (phone, staff PIN) + its API; lib/reports.ts, lib/admin.ts
 app/api/orders/...                              order API: place, live, status, mock pay, UPI QR
-lib/menu.ts  lib/pricing.ts  lib/orders.ts      menu (v1, in code), pricing + GST, order model
+lib/menu.ts  lib/pricing.ts  lib/orders.ts      menu in code + owner overrides (mergeCatalog), pricing + GST, order model
 lib/store/{memory,supabase}.ts                  storage: Supabase when env is set, memory otherwise
 supabase/migrations/                            SQL to run in Supabase
 tests/unit  tests/e2e                           Vitest, Playwright
@@ -29,7 +30,7 @@ Commands: `npm run dev` · `npm run typecheck` · `npm test` · `npm run e2e` ·
 
 ## Rules
 
-- The server prices orders (`place_order` RPC); the client sends ids and choices only.
+- The server prices orders from `mergeCatalog(store.getOverrides())`; the client sends ids and choices only. Never price on the server without passing the merged catalog.
 - Every order write is idempotent (checkout key). Tokens come from the DB's per-day counter.
 - Snapshot names and prices into `order_items`.
 - Kitchen/board must recover by themselves: Realtime reconnect + polling fallback, visible offline state.

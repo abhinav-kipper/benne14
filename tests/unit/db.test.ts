@@ -68,4 +68,22 @@ describe('database (supabase/migrations)', () => {
       "select has_function_privilege('anon', 'place_order(text,text,text,text,jsonb)', 'execute') anon, has_function_privilege('authenticated', 'place_order(text,text,text,text,jsonb)', 'execute') auth");
     expect(can.rows[0]).toEqual({ anon: false, auth: false });
   });
+
+  it('has the owner dashboard tables, with sane limits', async () => {
+    await db.query("insert into menu_overrides (item_id, price, sold_out_on) values ('masala-dosa', 219, current_date)");
+    await expect(db.query("insert into menu_overrides (item_id, price) values ('plain-dosa', 0)")).rejects.toThrow();
+    await expect(db.query("insert into menu_overrides (item_id, name) values ('plain-dosa', '')")).rejects.toThrow();
+    await db.query("insert into option_overrides values ('dosaExtras', 'benne', 30)");
+    await expect(db.query("insert into option_overrides values ('dosaExtras', 'podi', -1)")).rejects.toThrow();
+    await db.query("insert into admin_events (kind, subject, before, after) values ('price', 'Masala Dosa', '₹209', '₹219')");
+    await expect(db.query("insert into admin_events (kind, subject) values ('hack', 'x')")).rejects.toThrow();
+    const o = await place('db-refund', 'cash');
+    await db.query("update orders set refunded_at = now(), refund_reason = 'Wrong order', refund_amount = total where id = $1", [o.id]);
+    const rls = await db.query<{ n: number }>("select count(*)::int n from pg_class where relname in ('menu_overrides','option_overrides','admin_events') and relrowsecurity");
+    expect(rls.rows[0].n).toBe(3);
+  });
+
+  it('migrations can run twice (safe to re-run in Supabase)', async () => {
+    for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) await db.exec(readFileSync(path.join(dir, f), 'utf8'));
+  });
 });

@@ -1,7 +1,8 @@
 // Order storage. Supabase when its env vars are set; otherwise an in-memory store so the app runs
 // (and tests pass) with no database. Only server code imports this.
 import 'server-only';
-import type { Order, OrderStatus, PlaceOrderInput } from '../orders';
+import type { Overrides } from '../menu';
+import type { AdminEvent, Order, OrderStatus, PlaceOrderInput } from '../orders';
 import { MemoryStore, StoreError } from './memory';
 import { SupabaseStore } from './supabase';
 
@@ -14,7 +15,19 @@ export interface Store {
   // `from`: the status the caller last saw. If the order has moved on since (another tablet), the
   // change is refused with 409 instead of silently undoing the other tablet's tap.
   setStatus(id: string, to: OrderStatus, from?: OrderStatus): Promise<Order>;
+
+  // Owner dashboard
+  listRange(fromDay: string, toDay: string): Promise<Order[]>; // orders placed on these IST days, oldest first
+  refund(id: string, reason: string): Promise<Order>; // paid, not yet refunded orders only (else 409)
+  getOverrides(): Promise<Overrides>; // owner's menu changes; soldOut only for today
+  saveItem(itemId: string, patch: ItemPatch): Promise<void>;
+  saveOptionPrice(groupId: string, optionId: string, price: number): Promise<void>;
+  addEvent(e: Omit<AdminEvent, 'at'>): Promise<void>;
+  listEvents(limit?: number): Promise<AdminEvent[]>; // newest first
 }
+
+// undefined = leave as is; null = back to the menu in code.
+export interface ItemPatch { name?: string | null; desc?: string | null; price?: number | null; soldOut?: boolean }
 
 let store: Store | undefined;
 

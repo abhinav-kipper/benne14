@@ -6,6 +6,7 @@ export default function Home() {
     { href: '/kiosk', t: 'Kiosk', d: 'Customer tablet at the entrance (portrait)' },
     { href: '/kitchen', t: 'Kitchen', d: 'Cook’s tablet (landscape) · staff PIN' },
     { href: '/board', t: 'Order board', d: 'TV near the counter (1920×1080)' },
+    { href: '/admin', t: 'Owner', d: 'Sales, menu, orders and reports on the phone · staff PIN' },
   ];
   return (
     <main style={{ maxWidth: 560, margin: '0 auto', padding: '48px 20px' }}>

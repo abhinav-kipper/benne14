@@ -28,6 +28,24 @@ export interface Order {
   updatedAt: string;
   paidAt: string | null;
   readyAt: string | null;
+  // Recorded from the owner's dashboard; the money itself goes back outside the app.
+  refundedAt?: string | null;
+  refundReason?: string | null;
+  refundAmount?: number | null;
+}
+
+// Paid and not cancelled: the orders that count as takings (unless refunded).
+export const PAID: OrderStatus[] = ['new', 'cooking', 'ready', 'handed_over'];
+export const isPaid = (o: Pick<Order, 'status'>) => PAID.includes(o.status);
+
+// Change history shown on the dashboard.
+export interface AdminEvent {
+  at: string;
+  kind: 'price' | 'name' | 'desc' | 'sold_out' | 'back_on' | 'option_price' | 'refund';
+  subject: string;
+  before?: string | null;
+  after?: string | null;
+  note?: string | null;
 }
 
 export interface PlaceOrderInput {
@@ -35,7 +53,7 @@ export interface PlaceOrderInput {
   type: OrderType;
   customerName: string | null;
   payMethod: PayMethod;
-  priced: Omit<Order, 'id' | 'token' | 'tokenDay' | 'type' | 'customerName' | 'payMethod' | 'status' | 'createdAt' | 'updatedAt' | 'paidAt' | 'readyAt'>;
+  priced: Omit<Order, 'id' | 'token' | 'tokenDay' | 'type' | 'customerName' | 'payMethod' | 'status' | 'createdAt' | 'updatedAt' | 'paidAt' | 'readyAt' | 'refundedAt' | 'refundReason' | 'refundAmount'>;
 }
 
 // Which status changes staff may make from which status.
@@ -64,6 +82,13 @@ export const HISTORY_MAX = 300;
 export function istDay(d = new Date()): string {
   return new Date(d.getTime() + 5.5 * 3600_000).toISOString().slice(0, 10);
 }
+
+export const istHour = (iso: string) => new Date(Date.parse(iso) + 5.5 * 3600_000).getUTCHours();
+
+// Calendar maths on YYYY-MM-DD strings (no time zones involved).
+export const addDays = (day: string, n: number) => new Date(Date.parse(day + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
+export const daysBetween = (from: string, to: string) => Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86_400_000) + 1;
+export const isDay = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s + 'T00:00:00Z')) && new Date(Date.parse(s + 'T00:00:00Z')).toISOString().startsWith(s);
 
 export const formatToken = (n: number) => String(n);
 

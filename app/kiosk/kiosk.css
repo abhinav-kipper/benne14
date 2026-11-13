@@ -297,3 +297,10 @@
 
 /* ---------- Test mode ribbon (preview deploys) ---------- */
 .k-test{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:60;background:var(--chilli);color:#fff;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 16px;border-radius:0 0 10px 10px;pointer-events:none}
+
+/* ---------- Sold out (set from the owner's dashboard) ---------- */
+.k-menu .item.out .ph img,.k-menu .hero.out img{filter:grayscale(1);opacity:.55}
+.k-menu .item.out h4,.k-menu .item.out .price,.k-menu .item.out p{color:var(--cream-3)}
+.k-menu .soldout{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--chilli);border:1.5px solid rgba(209,79,43,.4);border-radius:8px;padding:8px 10px;white-space:nowrap}
+.k-cart .line.out .ph img{filter:grayscale(1);opacity:.55}
+.k-cart .line .gone{font-size:15px;font-weight:700;color:var(--chilli);margin:2px 0 6px}

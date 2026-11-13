@@ -39,6 +39,7 @@ export interface MenuItem {
   placeholder?: string; // shown instead of a photo
   groups: string[]; // ModGroup ids
   notes: boolean; // kitchen notes allowed
+  soldOut?: boolean; // set from the owner's dashboard for today only (see Catalog)
 }
 
 export interface KitchenNote {
@@ -121,10 +122,40 @@ export const ITEMS: MenuItem[] = [
 const PHOTOS = new Set(ITEMS.map((i) => i.id).filter((id) => id !== 'filter-coffee' && id !== 'test-1'));
 export const placeholderOf = (id: string) => ITEMS.find((i) => i.id === id)?.placeholder ?? 'Coffee';
 // Items the kiosk shows: test-only ones appear only in test mode.
-export const visibleItems = (testMode: boolean) => ITEMS.filter((i) => testMode || !i.testOnly);
+export const visibleItems = (testMode: boolean) => active.items.filter((i) => testMode || !i.testOnly);
 export const photoOf = (id: string) => (PHOTOS.has(id) ? `/food/${id}.jpg` : undefined);
 
-export const itemById = (id: string) => ITEMS.find((i) => i.id === id);
+// ---- Catalog: the dishes above plus the owner's changes from the dashboard ----
+// The dishes, groups and photos live in this file; the owner can change a dish's name, description,
+// price and sold-out state, and the price of an extra. Those changes are stored in the database
+// (menu_overrides / option_overrides) and merged on top here.
+export interface ItemOverride { name?: string | null; desc?: string | null; price?: number | null; soldOut?: boolean }
+export interface Overrides { items: Record<string, ItemOverride>; options: Record<string, number> } // options: "group:option" → price
+export interface Catalog { items: MenuItem[]; groups: Record<string, ModGroup> }
+
+export const BASE_CATALOG: Catalog = { items: ITEMS, groups: GROUPS };
+export const optionKey = (groupId: string, optionId: string) => `${groupId}:${optionId}`;
+
+export function mergeCatalog(o: Overrides): Catalog {
+  const items = ITEMS.map((i) => {
+    const x = o.items[i.id];
+    if (!x) return i;
+    return { ...i, name: x.name || i.name, desc: x.desc || i.desc, price: x.price ?? i.price, soldOut: !!x.soldOut };
+  });
+  const groups: Record<string, ModGroup> = {};
+  for (const [gid, g] of Object.entries(GROUPS)) {
+    groups[gid] = { ...g, options: g.options.map((op) => ({ ...op, price: o.options[optionKey(gid, op.id)] ?? op.price })) };
+  }
+  return { items, groups };
+}
+
+// The catalog screens read from. The server never changes it (it passes a merged catalog to pricing
+// explicitly); the kiosk and board set it after fetching /api/menu.
+let active: Catalog = BASE_CATALOG;
+export const activeCatalog = () => active;
+export const setActiveCatalog = (c: Catalog) => { active = c; };
+
+export const itemById = (id: string, cat: Catalog = active) => cat.items.find((i) => i.id === id);
 
 // Kitchen notes the item sheet offers for an item.
 export const notesFor = (item: MenuItem) => (item.notes ? NOTES.filter((n) => !n.items || n.items.includes(item.id)) : []);

@@ -27,12 +27,15 @@ export default defineConfig({
     { name: 'test-mode', testMatch: 'test-mode.spec.ts', use: { baseURL: 'http://localhost:3101' } },
     // API abuse + network failures: own server so its orders never disturb the flow suite's board checks.
     { name: 'robustness', testMatch: ['api.spec.ts', 'resilience.spec.ts'], use: { baseURL: 'http://localhost:3102' } },
+    // Owner dashboard: changes prices and sold-out state, so it gets a server of its own.
+    { name: 'admin', testMatch: 'admin.spec.ts', use: { baseURL: 'http://localhost:3103' } },
   ],
   // Servers start in order, so the second reuses the first one's build. reuseExistingServer: false keeps
   // every run on a fresh in-memory store, so leftover orders never leak between runs.
   webServer: [
     { command: 'npm run build && npx next start -p 3100', url: 'http://localhost:3100', timeout: 240_000, reuseExistingServer: false, env: { ...safeEnv, TEST_MODE: '0' } },
     { command: 'npx next start -p 3101', url: 'http://localhost:3101', timeout: 60_000, reuseExistingServer: false, env: { ...safeEnv, TEST_MODE: '1' } },
+    { command: 'npx next start -p 3103', url: 'http://localhost:3103', timeout: 60_000, reuseExistingServer: false, env: { ...safeEnv, TEST_MODE: '0' } },
     { command: 'npx next start -p 3102', url: 'http://localhost:3102', timeout: 60_000, reuseExistingServer: false, env: { ...safeEnv, TEST_MODE: '0' } },
   ],
 });

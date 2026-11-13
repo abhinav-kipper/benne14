@@ -48,6 +48,16 @@ test('live orders API answers, and bad input is refused before touching the data
   expect((await request.post('/api/orders/00000000-0000-0000-0000-000000000000/status', { data: { to: 'new' } })).status()).toBe(401);
 });
 
+test('owner dashboard asks for the PIN; menu changes endpoint answers', async ({ page, request }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin');
+  await expect(page.getByTestId('pin-gate')).toBeVisible();
+  const m = await request.get('/api/menu');
+  expect(m.status()).toBe(200);
+  expect(await m.json()).toMatchObject({ items: expect.any(Object), options: expect.any(Object) });
+  expect((await request.get('/api/admin/events')).status()).toBe(401);
+});
+
 test('a wrong bill link says so', async ({ page }) => {
   await page.goto('/r/00000000-0000-0000-0000-000000000000');
   await expect(page.getByTestId('bill-missing')).toBeVisible({ timeout: 10_000 });

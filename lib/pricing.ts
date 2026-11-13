@@ -1,7 +1,7 @@
 // Order pricing. Runs on the server for every order; the kiosk uses the same code only to display totals.
 // All maths in paise (integers). GST is rounded to the nearest rupee (allowed under section 170 of the
 // CGST Act) and split equally into CGST and SGST, so the bill adds up exactly with no round-off line.
-import { GROUPS, ITEMS, notesFor, type MenuItem } from './menu';
+import { activeCatalog, notesFor, type Catalog } from './menu';
 
 export const GST_RATE = 0.05; // 2.5% CGST + 2.5% SGST, charged on top of menu prices (v1 assumption)
 export const MAX_QTY = 20;
@@ -48,7 +48,10 @@ const rupees = (p: number) => p / 100;
 
 const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
 
-export function priceLine(line: CartLine, items: MenuItem[] = ITEMS): PricedLine {
+// `cat`: the menu to price from. The server always passes the merged catalog (owner's prices, sold out);
+// screens use the one they fetched.
+export function priceLine(line: CartLine, cat: Catalog = activeCatalog()): PricedLine {
+  const { items, groups: GROUPS } = cat;
   // The cart comes from the network: check its shape before trusting any field.
   if (!line || typeof line !== 'object') throw new OrderError('Bad cart line');
   if (line.choices != null && (typeof line.choices !== 'object' || Array.isArray(line.choices) || !Object.values(line.choices).every(isStrings))) throw new OrderError('Bad choices');
@@ -88,9 +91,9 @@ export function priceLine(line: CartLine, items: MenuItem[] = ITEMS): PricedLine
   };
 }
 
-export function priceOrder(cart: CartLine[], items: MenuItem[] = ITEMS): PricedOrder {
+export function priceOrder(cart: CartLine[], cat: Catalog = activeCatalog()): PricedOrder {
   if (!cart.length) throw new OrderError('Cart is empty');
-  const lines = cart.map((l) => priceLine(l, items));
+  const lines = cart.map((l) => priceLine(l, cat));
   const sub = paise(lines.reduce((a, l) => a + l.lineTotal, 0));
   const gst = Math.round((sub * GST_RATE) / 100) * 100; // whole rupees
   return {

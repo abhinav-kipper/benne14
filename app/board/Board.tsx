@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { itemById, photoOf } from '@/lib/menu';
+import { itemById, mergeCatalog, photoOf, setActiveCatalog } from '@/lib/menu';
 import { minutesSince } from '@/lib/orders';
-import { useLiveOrders, useTodayOrders } from '@/lib/client';
+import { api, useLiveOrders, useTodayOrders } from '@/lib/client';
 
 const PROMOS = ['ghee-podi-thatte-idli', 'ghee-podi-benne-dosa', 'medu-vada'];
 const PREP_MAX = 6;
@@ -14,6 +14,14 @@ const Flame = () => <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c
 export default function Board() {
   const { orders, online } = useLiveOrders(1500);
   const today = useTodayOrders(true, 10_000);
+  // Promo prices and names follow the owner's menu changes (checked every 5 minutes).
+  const [, setMenuVersion] = useState(0);
+  useEffect(() => {
+    const load = () => api.menu().then((o) => { setActiveCatalog(mergeCatalog(o)); setMenuVersion((v) => v + 1); }).catch(() => {});
+    load();
+    const t = setInterval(load, 5 * 60_000);
+    return () => clearInterval(t);
+  }, []);
   const [now, setNow] = useState(0); // set in the browser; a server-rendered time would mismatch (React #418)
   const [promo, setPromo] = useState(0);
   useEffect(() => {

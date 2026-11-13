@@ -17,7 +17,7 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 1. Owner tries the preview on the real devices: kiosk tablet (portrait), kitchen tablet, TV.
 2. Rotate the Supabase secret key (it was pasted in chat) and pick a new STAFF_PIN before real use.
 3. Feedback round, then merge to `main` (production URL).
-4. M4 owner admin (prices, sold-out) — moves the menu into the DB.
+4. **M4 owner dashboard built** on `feat/owner-admin` (`/admin`, staff PIN). Before using it on the live preview: **run `supabase/migrations/0003_owner_dashboard.sql` in Supabase** (until then the kiosk keeps selling from the menu in code, and dashboard menu edits fail). Then owner tries it on his phone. Design + decisions: `docs/designs/owner-dashboard.md`.
 5. Discount codes (owner asked for "discount applied" codes later): a code field in the cart, server-validated, shown as a line on the bill. The `savings` column is already there.
 
 ## v1 shortcuts (deliberate, see docs/BUILD_PLAN.md)
@@ -54,6 +54,8 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 - Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
 
 ## Done
+
+- 2026-11-13 — Owner dashboard v1 (`/admin`): today vs yesterday, needs-you payments, orders with paid/cancel/refund, menu sold-out (back on next morning) + price/name/description/extras, reports (day/week/month/custom, dishes, busy hours, GST) + CSV, change history. Menu changes stored as overrides on the menu in code.
 
 - 2026-11-13 — Hardening: 111 unit/DB tests (incl. real migrations in PGlite), 32 browser tests incl. API abuse and network failures, read-only smoke checks after each Vercel deploy. Fixed 500s on bad input, PIN guessing, stale-tablet undo, endless bill loading. See `docs/testing.md`.
 

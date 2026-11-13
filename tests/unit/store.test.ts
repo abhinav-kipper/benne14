@@ -88,4 +88,37 @@ describe('memory store', () => {
       expect((await s.listToday()).map((o) => o.id)).toEqual([early.id]);
     });
   });
+
+  describe('owner dashboard', () => {
+    it('records a refund once, only for paid orders', async () => {
+      const paid = await s.placeOrder(input('own-paid', 'cash'));
+      await s.setStatus(paid.id, 'new');
+      const unpaid = await s.placeOrder(input('own-unpaid', 'cash'));
+      await expect(s.refund(unpaid.id, 'x')).rejects.toMatchObject({ status: 409 });
+      const r = await s.refund(paid.id, 'Wrong order');
+      expect(r).toMatchObject({ refundReason: 'Wrong order', refundAmount: paid.total });
+      await expect(s.refund(paid.id, 'again')).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('keeps menu changes; sold out lasts for today only', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-13T06:00:00Z'));
+      await s.saveItem('masala-dosa', { price: 219, soldOut: true });
+      await s.saveItem('masala-dosa', { name: 'Big Masala Dosa' });
+      expect((await s.getOverrides()).items['masala-dosa']).toEqual({ name: 'Big Masala Dosa', desc: null, price: 219, soldOut: true });
+      vi.setSystemTime(new Date('2026-11-13T19:00:00Z')); // 00:30 IST next day
+      expect((await s.getOverrides()).items['masala-dosa'].soldOut).toBe(false);
+      await s.saveItem('masala-dosa', { price: null });
+      expect((await s.getOverrides()).items['masala-dosa'].price).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it('lists orders in a date range, oldest first', async () => {
+      const a = await s.placeOrder(input('own-range-1', 'cash'));
+      const b = await s.placeOrder(input('own-range-2', 'cash'));
+      const day = a.tokenDay;
+      expect((await s.listRange(day, day)).map((o) => o.id)).toEqual([a.id, b.id]);
+      expect(await s.listRange('2000-01-01', '2000-01-02')).toEqual([]);
+    });
+  });
 });

@@ -1,5 +1,5 @@
 import { priceOrder, type CartLine } from '@/lib/pricing';
-import { itemById } from '@/lib/menu';
+import { itemById, mergeCatalog } from '@/lib/menu';
 import { cleanName, type OrderType, type PayMethod } from '@/lib/orders';
 import { getStore } from '@/lib/store';
 import { fail, json, readJson } from '@/lib/server';
@@ -17,8 +17,12 @@ export async function POST(req: Request) {
     if (!Array.isArray(b.lines) || b.lines.length > 40) return json({ error: 'Bad cart' }, 400);
     const name = cleanName(b.name);
     if (!isTestMode() && (b.lines as CartLine[]).some((l) => itemById((l as Partial<CartLine> | null)?.itemId ?? '')?.testOnly)) return json({ error: 'That item is only for testing' }, 400);
-    const priced = priceOrder(b.lines as CartLine[]);
     const store = getStore();
+    // Price from the menu as the owner set it (prices, sold out today), never from the request.
+    const catalog = mergeCatalog(await store.getOverrides());
+    const out = (b.lines as CartLine[]).map((l) => itemById((l as Partial<CartLine> | null)?.itemId ?? '', catalog)).find((i) => i?.soldOut);
+    if (out) return json({ error: `Sorry, ${out.name} just sold out. Please remove it from your order.` }, 409);
+    const priced = priceOrder(b.lines as CartLine[], catalog);
     let order = await store.placeOrder({ key: b.key, type: b.type as OrderType, customerName: name, payMethod: b.payMethod as PayMethod, priced });
     // Test mode: treat cash as paid so the whole flow can be tried without the counter step.
     if (isTestMode() && order.payMethod === 'cash' && order.status === 'awaiting_cash') order = await store.setStatus(order.id, 'new');

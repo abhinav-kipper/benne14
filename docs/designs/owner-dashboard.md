@@ -1,6 +1,8 @@
 # Owner dashboard (M4): plan
 
-Status: **mockups waiting for approval** (`prototype/admin.html?s=today|orders|order|menu|edit|reports|log|login`).
+Status: **v1 built** on `feat/owner-admin` (`/admin`). Mockups: `prototype/admin.html?s=today|orders|order|menu|edit|reports|log|login`.
+
+Changes after the brainstorm (2026-11-13, owner's call): **no login for now** (behind the staff PIN, like the kitchen); Today compares with **yesterday**; cancelled orders are left out of reports. Shop hours for the charts: `SHOP.hours` in `lib/shop.ts` (8–23, a guess; couldn't find the Google listing; the charts stretch to any order outside it).
 
 ## Decisions so far (from the brainstorm, 2026-11-13)
 
@@ -34,13 +36,11 @@ Status: **mockups waiting for approval** (`prototype/admin.html?s=today|orders|o
 - **Kiosk** fetches `/api/menu` when it shows the start screen; sold-out dishes greyed with "Sold out"; the server refuses a sold-out dish (with a friendly message) in case the kiosk was a step behind.
 - **Refunds**: new columns on `orders`: `refunded_at`, `refund_reason`, `refund_amount`. Reports subtract them. A refunded order stays visible, struck through.
 - **Change log**: `admin_events(at, kind, item, before, after, note)`, written by the same server calls that change things.
-- **Auth**: Supabase Auth email/password; the owner's email is listed in an env var `OWNER_EMAILS`; every `/api/admin/*` route checks the session server-side. Kitchen PIN doesn't open the dashboard.
+- **Auth (later)**: v1 uses the staff PIN (`lib/admin.ts` `adminDenied`). Planned: Supabase Auth email/password with `OWNER_EMAILS`, checked in that one function.
 - **Reports** are computed on the server from `orders` (IST days); CSV built server-side. Bills are snapshots, so later price changes never change past reports.
 - Tests: unit (overrides merge, report maths incl. refunds, GST totals, CSV), DB (new migration in PGlite), e2e (sign-in gate, sold-out reaches the kiosk, price change reaches the next bill, refund changes the report, bad-input cases), smoke (dashboard sign-in page loads).
 
 ## Open questions for the owner
 
-- Which email should be the owner login?
-- Average bill / comparisons: compare with the same weekday last week (as drawn), or with yesterday?
-- Busy hours: shop hours to show on the chart (drawn 8 am–7 pm)?
-- Should cancelled-unpaid QR orders appear in reports at all (drawn: only in the Orders list)?
+- Real opening hours (for `SHOP.hours`).
+- A separate owner PIN or login, so kitchen staff can't open the dashboard.

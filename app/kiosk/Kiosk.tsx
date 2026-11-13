@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CART_UPSELL, CATEGORIES, GROUPS, PAIRING, itemById, notesFor, photoOf, visibleItems, type MenuItem } from '@/lib/menu';
+import { activeCatalog, CART_UPSELL, CATEGORIES, mergeCatalog, PAIRING, itemById, notesFor, photoOf, setActiveCatalog, visibleItems, type MenuItem } from '@/lib/menu';
 import { priceLine, priceOrder, type CartLine } from '@/lib/pricing';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
 import { orderedSentence } from '@/lib/wording';
@@ -32,6 +32,14 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   const [idle, setIdle] = useState(false);
   const checkoutKey = useRef(newKey());
 
+  // The owner's changes (prices, names, sold out) are picked up each time the kiosk shows the start
+  // screen, i.e. for every new customer. If it can't load, the kiosk keeps the last menu it had.
+  const [menuVersion, setMenuVersion] = useState(0);
+  const loadMenu = useCallback(() => {
+    api.menu().then((o) => { setActiveCatalog(mergeCatalog(o)); setMenuVersion((v) => v + 1); }).catch(() => {});
+  }, []);
+  useEffect(() => { if (screen === 'home') loadMenu(); }, [screen, loadMenu]);
+
   const reset = useCallback(() => {
     setScreen('home'); setType(null); setLines([]); setSheet(null); setName(''); setOrderId(null); setPlaced(null); setIdle(false);
     checkoutKey.current = newKey();
@@ -48,7 +56,8 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     return () => { window.removeEventListener('pointerdown', touch); clearInterval(t); };
   }, [screen, idle]);
 
-  const priced = useMemo(() => (lines.length ? priceOrder(lines) : null), [lines]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- menuVersion: re-price when the menu changes
+  const priced = useMemo(() => (lines.length ? priceOrder(lines) : null), [lines, menuVersion]);
   const count = priced?.itemCount ?? 0;
 
   const addLine = (l: CartLine) => setLines((cur) => {
@@ -76,7 +85,13 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
       {screen === 'pay' && priced && type && (
         <Pay priced={priced} lines={lines} type={type} name={name} onBack={() => setScreen('cart')}
           onChoose={async (m: PayMethod) => {
-            const o = await api.placeOrder({ key: checkoutKey.current, type, name: name.trim() || null, payMethod: m, lines: lines.map(({ uid: _u, ...l }) => l) });
+            let o: Order;
+            try {
+              o = await api.placeOrder({ key: checkoutKey.current, type, name: name.trim() || null, payMethod: m, lines: lines.map(({ uid: _u, ...l }) => l) });
+            } catch (e) {
+              if (e instanceof ApiError && e.status === 409) loadMenu(); // something sold out meanwhile: the cart will show which
+              throw e;
+            }
             setOrderId(o.id); setPlaced(o);
             setScreen(m === 'upi' ? 'upi' : 'done');
           }} />
@@ -152,6 +167,7 @@ function MenuScreen(p: {
 
   // Quick +/- on the list adjusts the simplest line for that item; customised lines are edited in the cart.
   const stepper = (i: MenuItem) => {
+    if (i.soldOut) return <span className="soldout">Sold out</span>;
     const q = p.qtyOf(i.id);
     if (!q) return <button className="add" aria-label={`Add ${i.name}`} onClick={(e) => { e.stopPropagation(); p.onOpen(i.id); }}>+</button>;
     const last = [...p.lines].reverse().find((l) => l.itemId === i.id)!;
@@ -184,11 +200,11 @@ function MenuScreen(p: {
         </div>
       </aside>
       <main ref={main} onScroll={onScroll}>
-        <section className="hero" onClick={() => p.onOpen(sp.id)} data-testid="hero">
+        <section className={`hero ${sp.soldOut ? 'out' : ''}`} onClick={() => { if (!sp.soldOut) p.onOpen(sp.id); }} data-testid="hero">
           <Photo item={sp} />
           <div className="txt">
             <span className="chip">House special</span>
-            <h1 className="disp">Ghee Podi<br />Benne Dosa</h1>
+            <h1 className="disp">{sp.name}</h1>
             <div className="meta">
               <p className="hdesc">{sp.desc}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
@@ -202,7 +218,7 @@ function MenuScreen(p: {
             <div key={c.id}>
               <div className="sec" id={`cat-${c.id}`}><h3 className="disp">{c.name}</h3></div>
               {items.filter((i) => i.cat === c.id && !i.special).map((i) => (
-                <div className="item" key={i.id} role="button" onClick={() => p.onOpen(i.id)} data-testid={`item-${i.id}`}>
+                <div className={`item ${i.soldOut ? 'out' : ''}`} key={i.id} role="button" aria-disabled={i.soldOut} onClick={() => { if (!i.soldOut) p.onOpen(i.id); }} data-testid={`item-${i.id}`}>
                   <div className="ph"><Photo item={i} /></div>
                   <div>
                     <h4>{i.name}</h4>
@@ -236,18 +252,18 @@ function ItemSheet({ itemId, editing, pairingInCart, onClose, onAdd }: {
   const [choices, setChoices] = useState<Record<string, string[]>>(() => {
     if (editing) return editing.choices;
     const c: Record<string, string[]> = {};
-    for (const g of item.groups) if (GROUPS[g].kind === 'one') c[g] = [GROUPS[g].defaultId!];
+    for (const g of item.groups) if (activeCatalog().groups[g].kind === 'one') c[g] = [activeCatalog().groups[g].defaultId!];
     return c;
   });
   const [notes, setNotes] = useState<string[]>(editing?.notes ?? []);
   const [pair, setPair] = useState(false);
   const line: CartLine = { itemId, qty, choices, notes };
   const total = priceLine(line).lineTotal + (pair ? itemById(PAIRING)!.price : 0);
-  const showPair = item.id !== PAIRING && item.cat !== 'drinks' && !pairingInCart && !editing;
+  const showPair = item.id !== PAIRING && item.cat !== 'drinks' && !pairingInCart && !editing && !itemById(PAIRING)?.soldOut;
   const pairing = itemById(PAIRING)!;
 
   const pick = (g: string, id: string) => setChoices((c) => {
-    if (GROUPS[g].kind === 'one') return { ...c, [g]: [id] };
+    if (activeCatalog().groups[g].kind === 'one') return { ...c, [g]: [id] };
     const cur = c[g] ?? [];
     return { ...c, [g]: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] };
   });
@@ -270,7 +286,7 @@ function ItemSheet({ itemId, editing, pairingInCart, onClose, onAdd }: {
         <div className="body">
           <p className="desc hdesc">{item.desc}{item.cat !== 'drinks' && <span className="incl">Comes with coconut chutney &amp; sambar</span>}</p>
           {item.groups.map((gid) => {
-            const g = GROUPS[gid];
+            const g = activeCatalog().groups[gid];
             const on = choices[gid] ?? [];
             return (
               <div className="grp" key={gid}>
@@ -332,7 +348,8 @@ function Cart(p: {
   priced: ReturnType<typeof priceOrder>; setQty: (uid: string, q: number) => void; onEdit: (uid: string) => void;
   onAdd: (id: string) => void; onBack: () => void; onPay: () => void;
 }) {
-  const upsell = CART_UPSELL.filter((id) => !p.lines.some((l) => l.itemId === id)).slice(0, 3);
+  const upsell = CART_UPSELL.filter((id) => !p.lines.some((l) => l.itemId === id) && !itemById(id)?.soldOut).slice(0, 3);
+  const soldOut = p.lines.filter((l) => itemById(l.itemId)?.soldOut);
   return (
     <div className="screen k-cart">
       <div className="top">
@@ -344,10 +361,11 @@ function Cart(p: {
           const it = itemById(l.itemId)!;
           const pl = p.priced.lines[i];
           return (
-            <div className="line" key={l.uid} data-testid="cart-line">
+            <div className={`line ${it.soldOut ? 'out' : ''}`} key={l.uid} data-testid="cart-line">
               <div className="ph"><Photo item={it} /></div>
               <div>
                 <h3>{it.name}</h3>
+                {it.soldOut && <div className="gone" data-testid="cart-sold-out">Just sold out. Please remove it.</div>}
                 <div className="mods">
                   {pl.mods.map((m) => <span key={m.groupId + m.id} className={m.price ? 'paid' : ''}>{m.name}{m.price ? ` +₹${m.price}` : ''}</span>)}
                   {pl.notes.map((n) => <span key={n.id}>{n.label}</span>)}
@@ -393,8 +411,8 @@ function Cart(p: {
           <button className={p.type === 'dine_in' ? 'on' : ''} onClick={() => p.setType('dine_in')} data-testid="dine-in"><DineIcon />Dine in</button>
           <button className={p.type === 'takeaway' ? 'on' : ''} onClick={() => p.setType('takeaway')} data-testid="takeaway"><BagIcon />Takeaway</button>
         </div>
-        <button className="btn-benne" onClick={p.onPay} disabled={!p.type} data-testid="continue-to-pay">
-          <span>{p.type ? 'Continue to pay' : 'Choose dine in or takeaway'}</span><span className="amt">₹{p.priced.total} →</span>
+        <button className="btn-benne" onClick={p.onPay} disabled={!p.type || soldOut.length > 0} data-testid="continue-to-pay">
+          <span>{soldOut.length ? 'Remove the sold-out dish' : p.type ? 'Continue to pay' : 'Choose dine in or takeaway'}</span><span className="amt">₹{p.priced.total} →</span>
         </button>
         <small>UPI · Card · Cash at counter</small>
       </div>
