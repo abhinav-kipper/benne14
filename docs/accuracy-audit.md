@@ -57,17 +57,17 @@ wrong order or a wrong report today. **Medium** = correct today, but nothing sto
 - [x] **B1 Money is floating-point rupees.** Results are right (probe), but by coincidence of the
   values, not by construction. Fix: do GST and discount in integer paise/rupees with explicit
   round-half-up, and keep the exhaustive comparison as a permanent test.
-- [ ] **B2 The database accepts a bill that doesn't add up.** `orders` has no rule that
+- [x] **B2 The database accepts a bill that doesn't add up.** `orders` has no rule that
   `subtotal + cgst + sgst + round_off = total`, that amounts are ≥ 0, or that a discount has a code.
   Fix: CHECK constraints (migration), tested with bad rows.
-- [ ] **B3 A saved bill can be edited.** Nothing stops an UPDATE from changing an order's lines or
+- [x] **B3 A saved bill can be edited.** Nothing stops an UPDATE from changing an order's lines or
   totals after it is placed. Fix: a trigger that refuses changes to the money columns, lines, order
   number and day (status, timestamps and refund fields stay editable).
-- [ ] **B4 No record of who changed an order's state, or when.** Only the latest `updated_at`,
+- [x] **B4 No record of who changed an order's state, or when.** Only the latest `updated_at`,
   `paid_at`, `ready_at` exist. A payment dispute ("who marked 42 paid, and when?") can't be answered.
   Fix: an append-only `order_events` table written in the same statement as each status change,
   shown on the dashboard's order sheet.
-- [ ] **B5 A double submit can skip an order number.** Two simultaneous requests with the same key
+- [x] **B5 A double submit can skip an order number.** Two simultaneous requests with the same key
   both take a number; one is discarded, leaving a gap (44, 46). Harmless for customers, wrong if
   numbers are ever used as invoice numbers. Fix: lock on the key before taking a number.
 - [x] **B6 Order numbers under load are only tested on the in-memory store.** Fix: the same
@@ -124,3 +124,18 @@ migration; C2 (refunds) stays as it is for now; C1 (invoice numbers) waits for t
   exhaustively; 600 random orders where the dashboard, the bills CSV, the GST CSV and the dish CSV must agree.
 - Found by B8: the discount line in the dish CSV was exported as text (`'-42.00`), so a spreadsheet
   could not sum it. Fixed.
+
+2026-11-14 · second PR (`supabase/migrations/0006_order_integrity.sql`, the owner runs it once):
+
+- B2: CHECK constraints: the bill adds up, amounts are whole and not negative, CGST = SGST, a discount
+  names its code, a refund is the whole bill. `NOT VALID`, so they bind new and changed rows without
+  re-judging the old test orders (B9).
+- B3: a trigger refuses any change to a saved order's dishes, amounts, number, day, type or payment
+  type. It also allows only the status moves in `lib/orders.ts` (`order_move_ok`; a test compares every
+  pair), fixes the payment time once set, and lets a refund be written once, for a paid order.
+  Deleting orders is still possible (needed for the go-live clean-up, A5).
+- B4: `order_events`, written by a trigger in the same transaction as each change. The dashboard's
+  order sheet shows it. It records the time and the change, not a person: the shop shares one PIN.
+- B5: `place_order` takes a lock on the checkout key first, so a double submit finds the first order
+  before it would take a number.
+- Before 0006 is run the app works as before: the order sheet falls back to the times on the order.

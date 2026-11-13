@@ -102,3 +102,17 @@ site after Vercel deploys it; an uptime check runs during shop hours.
   switch off the server ignores a number and refuses a code, whatever the client sends.
 - Before migration 0005 is run, the Supabase store answers "no codes, both switches off" and orders
   still go through.
+
+## Order integrity (what keeps the numbers right)
+
+- **One place decides each thing.** Prices and GST: `lib/pricing.ts` (integer maths). What counts as
+  takings: `counts()` in `lib/orders.ts`. Which status moves exist: `NEXT` in `lib/orders.ts`.
+- **Checkout** is idempotent on `<kiosk key>:<fingerprint of the request>`. A retry returns the saved
+  order; a changed request under the same key withdraws the earlier unpaid order. The kiosk sends the
+  total it showed (`expectTotal`) and the server refuses if its own differs.
+- **The database guards itself** (migration 0006): CHECK constraints (the bill adds up), a trigger
+  that makes a saved bill read-only and allows only `NEXT`'s moves (`order_move_ok` mirrors it; a test
+  compares every pair), and `order_events`, a log written by trigger in the same transaction.
+- **Tests that hold it together:** `tests/unit/money.test.ts` (GST exhaustively against a BigInt
+  reference; dashboard = bills CSV = GST CSV = dish CSV over random orders), `tests/unit/db.test.ts`
+  (the SQL rules in PGlite), `tests/support/store-contract.ts` (both stores, incl. 30 orders at once).
