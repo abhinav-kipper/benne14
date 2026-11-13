@@ -1,6 +1,6 @@
 # Testing
 
-Every push runs CI (`.github/workflows/ci.yml`). Every push to `main` also waits for Vercel to deploy
+Every push runs CI (`.github/workflows/ci.yml`: typecheck, lint, format check, unit + database tests, the store contract on a real Postgres, browser tests). Every push to `main` also waits for Vercel to deploy
 it, then runs the read-only smoke checks against production (`.github/workflows/smoke.yml`; any URL
 can be checked by hand from the Actions tab → Smoke → Run workflow). A change isn't done until all of these pass.
 
@@ -8,6 +8,7 @@ can be checked by hand from the Actions tab → Smoke → Run workflow). A chang
 |---|---|---|
 | Unit | `npm test` | Pricing (fixed cases + 2,000 seeded random carts: bills add up, whole rupees, GST within 50 paise of 5%, client prices ignored, malformed carts refused); every status move allowed or refused as `NEXT` says; stale-tablet refusal; IST day rollover; live/history time windows; PIN matching + lockout; name cleaning; order-sentence wording. |
 | Database | `npm test` (`tests/unit/db.test.ts`) | The real `supabase/migrations/*.sql` in an in-memory Postgres (PGlite): daily numbers 1, 2, 3…, idempotent checkout, first status per payment type, per-day counters, constraints, RLS on, public roles can't call `place_order`. |
+| Store contract | `npm test` (memory) · `npm run test:db` (CI `db` job) | One contract (`tests/support/store-contract.ts`) for both stores: idempotent numbered orders, status moves and stale-tablet refusal, live/today/range/collected lists, refunds, menu edits with history, migration log. CI runs it through `lib/store/supabase.ts` against a real Postgres + PostgREST with Supabase's roles and our migrations, and checks the anon key can read and call nothing. |
 | Browser flow | `npm run e2e` (project `flow`) | Kiosk → kitchen → TV board → phone bill; cash and UPI counter confirmation; PIN gate; cart asks dine-in/takeaway; 2-minute return to start; busy shelf shrinks to fit. |
 | Test mode | `npm run e2e` (project `test-mode`) | Cash counts as paid; ₹1 item. |
 | API + failures | `npm run e2e` (project `robustness`) | Bad bodies/ids → 400/404 never 500; server-side prices; idempotent racing double-taps; 25 simultaneous orders get unique numbers; PIN lockout (429); two-tablet stale tap refused; UPI claim/QR rules; bill-QR allow-list; health leaks nothing. Offline banners on kitchen/board and recovery; failed checkout → calm message → one order; reply lost after save → retry gives the same number; double tap → one order; failed kitchen tap reverts; idle reset; UPI QR expiry frees the order; wrong bill link. |

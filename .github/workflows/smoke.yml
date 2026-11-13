@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: "Deployment URL to check (default: production)"
+        description: 'Deployment URL to check (default: production)'
         required: false
 
 permissions:

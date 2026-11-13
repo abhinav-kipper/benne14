@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   check:
-    name: Typecheck + unit + database tests
+    name: Typecheck + lint + unit + database tests
     runs-on: ubuntu-24.04 # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
     timeout-minutes: 10
     steps:
@@ -24,11 +24,56 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
+      - name: Formatting (run `npm run format` to fix)
+        run: npm run format:check
       # pricing (incl. 2,000 random carts), the status machine, PIN lockout, and the real
       # Supabase migrations run in an in-memory Postgres (tests/unit/db.test.ts)
       - run: npm test
       - name: No known vulnerabilities in what ships
         run: npm audit --omit=dev --audit-level=high
+
+  db:
+    name: Database code on a real Postgres
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGPASSWORD: postgres
+      DB_TEST_URL: http://localhost:3000
+      DB_TEST_JWT_SECRET: test-only-secret-for-ci-not-used-anywhere-else
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Set up the database the way Supabase does, then run our migrations in order
+        run: |
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f tests/support/db-roles.sql
+          for f in supabase/migrations/*.sql; do echo "== $f"; psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f "$f"; done
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f tests/support/db-grants.sql
+      - name: Start PostgREST (the REST layer Supabase puts in front of Postgres)
+        run: |
+          docker run -d --name postgrest --network host \
+            -e PGRST_DB_URI=postgres://authenticator:postgres@localhost:5432/postgres \
+            -e PGRST_DB_SCHEMAS=public -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$DB_TEST_JWT_SECRET" -e PGRST_SERVER_PORT=3000 \
+            postgrest/postgrest:v12.2.3
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/ > /dev/null && exit 0; sleep 1; done
+          docker logs postgrest; exit 1
+      # The same store contract the in-memory store passes, now through lib/store/supabase.ts
+      - run: npm run test:db
+      - if: failure()
+        run: docker logs postgrest
 
   e2e:
     name: Browser tests (kiosk, kitchen, board, API, failures)

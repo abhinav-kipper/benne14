@@ -42,16 +42,16 @@ Legend: `[ ]` pending · `[x]` done · `[-]` decided not to do (with reason)
 
 ## D. Code and long-term upkeep
 
-- [ ] D1 `app/kiosk/Kiosk.tsx` (600 lines) and `app/admin/Admin.tsx` (520) hold every screen, with very long lines. Split per screen.
-- [ ] D2 No linter or formatter (there are `eslint-disable` comments but no ESLint). CSS is dense one-liners with global class names (`.add`, `.st`, `.track`, `.pin`); one clash already broke the kitchen tags.
-- [ ] D3 Hidden shared state: the active menu is a module-level variable (`setActiveCatalog` in `lib/menu.ts`). Move to React context.
-- [ ] D4 Test mode and payment mode are baked into the static kiosk page at build time but read live by the API; they can disagree. Serve them from an endpoint or make the page dynamic.
-- [ ] D5 Migrations are pasted by hand in the Supabase SQL editor; no record of which ran.
-- [ ] D6 `lib/store/supabase.ts` is not tested in CI (only by smoke).
-- [ ] D7 Reports load every order of the range into memory (`listRange`); a year at 300/day will be slow. Later: SQL aggregates.
-- [ ] D8 Single shop only: no `restaurant_id` anywhere.
-- [ ] D9 Stale docs: `CLAUDE.md` (Realtime, `order_items`, "MockProvider until M6", prototype as source of truth), `docs/BUILD_PLAN.md` (old schema, Razorpay), `README.md`; `prototype/` still has Hindi, dark theme, A-001.
-- [ ] D10 Housekeeping: delete merged branches (`feat/v1-skeleton`, `feat/owner-admin`, `fix/self-host-fonts`, `fix/smoke-after-deploy`; needs the user, the session can't delete branches); no automatic dependency updates; GitHub actions warn about the Node 20 runtime; dead fields (`savings`, `roundOff`), unused `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- [x] D1 `app/kiosk/Kiosk.tsx` (600 lines) and `app/admin/Admin.tsx` (520) hold every screen, with very long lines. Split per screen.
+- [x] D2 No linter or formatter (there are `eslint-disable` comments but no ESLint). CSS is dense one-liners with global class names (`.add`, `.st`, `.track`, `.pin`); one clash already broke the kitchen tags.
+- [x] D3 Hidden shared state: the active menu is a module-level variable (`setActiveCatalog` in `lib/menu.ts`). Move to React context.
+- [-] D4 (owner: not now) Test mode and payment mode are baked into the static kiosk page at build time but read live by the API; they can disagree. Serve them from an endpoint or make the page dynamic.
+- [x] D5 Migrations are pasted by hand in the Supabase SQL editor; no record of which ran.
+- [x] D6 `lib/store/supabase.ts` is not tested in CI (only by smoke).
+- [-] D7 (owner: not now) Reports load every order of the range into memory (`listRange`); a year at 300/day will be slow. Later: SQL aggregates.
+- [-] D8 (owner: not now) Single shop only: no `restaurant_id` anywhere.
+- [x] D9 Stale docs: `CLAUDE.md` (Realtime, `order_items`, "MockProvider until M6", prototype as source of truth), `docs/BUILD_PLAN.md` (old schema, Razorpay), `README.md`; `prototype/` still has Hindi, dark theme, A-001.
+- [x] D10 (done: Dependabot for npm + actions, unused env var removed, blame-ignore for the reformat. `savings`/`roundOff` stay: they are stored columns old bills use. Still for the user: delete merged branches) Housekeeping: delete merged branches (`feat/v1-skeleton`, `feat/owner-admin`, `fix/self-host-fonts`, `fix/smoke-after-deploy`; needs the user, the session can't delete branches); no automatic dependency updates; GitHub actions warn about the Node 20 runtime; dead fields (`savings`, `roundOff`), unused `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 
 ## What was found solid
 

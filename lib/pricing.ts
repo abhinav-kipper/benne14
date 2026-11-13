@@ -1,7 +1,7 @@
 // Order pricing. Runs on the server for every order; the kiosk uses the same code only to display totals.
 // All maths in paise (integers). GST is rounded to the nearest rupee (allowed under section 170 of the
 // CGST Act) and split equally into CGST and SGST, so the bill adds up exactly with no round-off line.
-import { activeCatalog, notesFor, type Catalog } from './menu';
+import { BASE_CATALOG, notesFor, type Catalog } from './menu';
 
 export const GST_RATE = 0.05; // 2.5% CGST + 2.5% SGST, charged on top of menu prices (v1 assumption)
 export const MAX_QTY = 20;
@@ -48,17 +48,22 @@ const rupees = (p: number) => p / 100;
 
 const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
 
-// `cat`: the menu to price from. The server always passes the merged catalog (owner's prices, sold out);
-// screens use the one they fetched.
-export function priceLine(line: CartLine, cat: Catalog = activeCatalog()): PricedLine {
+// `cat`: the menu to price from. The server always passes the merged catalog (owner's prices, sold
+// out) and screens pass the one they loaded; the default (the menu in code) is for tests.
+export function priceLine(line: CartLine, cat: Catalog = BASE_CATALOG): PricedLine {
   const { items, groups: GROUPS } = cat;
   // The cart comes from the network: check its shape before trusting any field.
   if (!line || typeof line !== 'object') throw new OrderError('Bad cart line');
-  if (line.choices != null && (typeof line.choices !== 'object' || Array.isArray(line.choices) || !Object.values(line.choices).every(isStrings))) throw new OrderError('Bad choices');
+  if (
+    line.choices != null &&
+    (typeof line.choices !== 'object' || Array.isArray(line.choices) || !Object.values(line.choices).every(isStrings))
+  )
+    throw new OrderError('Bad choices');
   if (line.notes != null && !isStrings(line.notes)) throw new OrderError('Bad notes');
   const item = items.find((i) => i.id === line.itemId);
   if (!item) throw new OrderError(`Unknown item ${line.itemId}`);
-  if (!Number.isInteger(line.qty) || line.qty < 1 || line.qty > MAX_QTY) throw new OrderError(`Bad quantity for ${item.name}`);
+  if (!Number.isInteger(line.qty) || line.qty < 1 || line.qty > MAX_QTY)
+    throw new OrderError(`Bad quantity for ${item.name}`);
 
   const mods: PricedMod[] = [];
   for (const gid of item.groups) {
@@ -85,13 +90,17 @@ export function priceLine(line: CartLine, cat: Catalog = activeCatalog()): Price
 
   const unitPrice = item.price + mods.reduce((a, m) => a + m.price, 0);
   return {
-    itemId: item.id, name: item.name, qty: line.qty,
-    unitPrice, lineTotal: unitPrice * line.qty,
-    mods, notes,
+    itemId: item.id,
+    name: item.name,
+    qty: line.qty,
+    unitPrice,
+    lineTotal: unitPrice * line.qty,
+    mods,
+    notes,
   };
 }
 
-export function priceOrder(cart: CartLine[], cat: Catalog = activeCatalog()): PricedOrder {
+export function priceOrder(cart: CartLine[], cat: Catalog = BASE_CATALOG): PricedOrder {
   if (!cart.length) throw new OrderError('Cart is empty');
   const lines = cart.map((l) => priceLine(l, cat));
   const sub = paise(lines.reduce((a, l) => a + l.lineTotal, 0));

@@ -6,7 +6,8 @@ const PIN = '2468';
 test.beforeAll(async ({ request }) => {
   const h = await (await request.get('/api/health')).json();
   if (h.store !== 'memory') throw new Error(`Refusing to run e2e against the ${h.store} store`);
-  if (!String(h.testMode).startsWith('off')) throw new Error('This suite checks the real counter flow; run it with TEST_MODE=0');
+  if (!String(h.testMode).startsWith('off'))
+    throw new Error('This suite checks the real counter flow; run it with TEST_MODE=0');
 });
 const staff = async (page: Page) => page.addInitScript((pin) => localStorage.setItem('benne14.staffPin', pin), PIN);
 
@@ -51,7 +52,13 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await expect(board.getByTestId('board-hero')).toContainText('Rahul');
 
   // Phone bill reflects it.
-  const id = await kiosk.evaluate(() => document.querySelector('.receipt img')?.getAttribute('src')?.match(/r%2F([0-9a-f-]{36})/)?.[1]);
+  const id = await kiosk.evaluate(
+    () =>
+      document
+        .querySelector('.receipt img')
+        ?.getAttribute('src')
+        ?.match(/r%2F([0-9a-f-]{36})/)?.[1],
+  );
   expect(id).toBeTruthy();
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await phone.goto(`/r/${id}`);
@@ -148,7 +155,8 @@ test("UPI: customer taps I've paid, counter confirms on the soundbox", async ({ 
   await expect(kiosk.locator('.paid:not(.due)')).toContainText('Payment received', { timeout: 6000 });
 
   // tidy up for the next test
-  await kitchen.getByTestId(`go-${token}`).click(); await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 });
+  await kitchen.getByTestId(`go-${token}`).click();
+  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 });
   await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 });
 });
 
@@ -183,7 +191,9 @@ test('kiosk returns to the start screen by itself after the order number', async
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-cash').click();
   await expect(page.getByTestId('token')).toBeVisible();
-  await expect(page.getByTestId('thanks')).toContainText('Pay ₹93 at the counter and we’ll start your Udupi Medu Vada.'); // matches what was ordered
+  await expect(page.getByTestId('thanks')).toContainText(
+    'Pay ₹93 at the counter and we’ll start your Udupi Medu Vada.',
+  ); // matches what was ordered
   await page.clock.runFor(100_000);
   await expect(page.getByTestId('token')).toBeVisible(); // still there after 100 s
   await page.clock.runFor(21_000);
@@ -212,7 +222,10 @@ test('only choices that make sense: no fried-food notes on idli, no tag for a de
 });
 
 test('phone screens can be zoomed; the kiosk cannot', async ({ page }) => {
-  const viewport = async (path: string) => { await page.goto(path); return page.locator('meta[name="viewport"]').getAttribute('content'); };
+  const viewport = async (path: string) => {
+    await page.goto(path);
+    return page.locator('meta[name="viewport"]').getAttribute('content');
+  };
   expect(await viewport('/kiosk')).toContain('maximum-scale=1');
   expect(await viewport('/admin')).toContain('user-scalable=yes');
   expect(await viewport('/r/00000000-0000-0000-0000-000000000000')).toContain('maximum-scale=5');
@@ -241,8 +254,19 @@ test('the cart asks dine in or takeaway before paying', async ({ page }) => {
 test('a busy counter shelf shrinks its cards so every ready order stays on screen', async ({ browser, request }) => {
   const tokens: string[] = [];
   for (let i = 0; i < 14; i++) {
-    const o = await (await request.post('/api/orders', { data: { key: `busy-shelf-${i}-0001`, type: 'takeaway', name: null, payMethod: 'cash', lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }] } })).json();
-    for (const to of ['new', 'cooking', 'ready']) await request.post(`/api/orders/${o.id}/status`, { data: { to }, headers: { 'x-staff-pin': PIN } });
+    const o = await (
+      await request.post('/api/orders', {
+        data: {
+          key: `busy-shelf-${i}-0001`,
+          type: 'takeaway',
+          name: null,
+          payMethod: 'cash',
+          lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+        },
+      })
+    ).json();
+    for (const to of ['new', 'cooking', 'ready'])
+      await request.post(`/api/orders/${o.id}/status`, { data: { to }, headers: { 'x-staff-pin': PIN } });
     tokens.push(o.token);
   }
   const kitchen = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -258,7 +282,14 @@ test('a busy counter shelf shrinks its cards so every ready order stays on scree
 });
 
 test('the ₹1 payment test item is refused when test mode is off', async ({ request }) => {
-  const r = await request.post('/api/orders', { data: { key: 'off-rupee-0001', type: 'takeaway', name: null, payMethod: 'upi', lines: [{ itemId: 'test-1', qty: 1, choices: {}, notes: [] }] } });
+  const r = await request.post('/api/orders', {
+    data: {
+      key: 'off-rupee-0001',
+      type: 'takeaway',
+      name: null,
+      payMethod: 'upi',
+      lines: [{ itemId: 'test-1', qty: 1, choices: {}, notes: [] }],
+    },
+  });
   expect(r.status()).toBe(400);
 });
-

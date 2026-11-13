@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { OrderError, priceLine, priceOrder } from '@/lib/pricing';
 
-const dosa = { itemId: 'ghee-podi-benne-dosa', qty: 1, choices: { dosaExtras: ['benne'] }, notes: ['less-oil', 'extra-crisp'] };
+const dosa = {
+  itemId: 'ghee-podi-benne-dosa',
+  qty: 1,
+  choices: { dosaExtras: ['benne'] },
+  notes: ['less-oil', 'extra-crisp'],
+};
 const coffee = { itemId: 'filter-coffee', qty: 2, choices: {}, notes: [] };
 
 describe('pricing', () => {
@@ -25,7 +30,13 @@ describe('pricing', () => {
   });
 
   it('charges exactly ₹1 for the payment test item', () => {
-    expect(priceOrder([{ itemId: 'test-1', qty: 1, choices: {}, notes: [] }])).toMatchObject({ subtotal: 1, cgst: 0, sgst: 0, roundOff: 0, total: 1 });
+    expect(priceOrder([{ itemId: 'test-1', qty: 1, choices: {}, notes: [] }])).toMatchObject({
+      subtotal: 1,
+      cgst: 0,
+      sgst: 0,
+      roundOff: 0,
+      total: 1,
+    });
   });
 
   it('fills in the default for pick-one groups', () => {
@@ -35,7 +46,12 @@ describe('pricing', () => {
   });
 
   it('ignores duplicate extras and notes', () => {
-    const l = priceLine({ itemId: 'masala-dosa', qty: 1, choices: { dosaExtras: ['benne', 'benne'] }, notes: ['less-oil', 'less-oil'] });
+    const l = priceLine({
+      itemId: 'masala-dosa',
+      qty: 1,
+      choices: { dosaExtras: ['benne', 'benne'] },
+      notes: ['less-oil', 'less-oil'],
+    });
     expect(l.unitPrice).toBe(234);
     expect(l.notes).toHaveLength(1);
   });
@@ -50,15 +66,23 @@ describe('pricing', () => {
     ['a removed note', { itemId: 'masala-dosa', qty: 1, choices: {}, notes: ['no-onion'] }],
     ['less oil on a steamed idli', { itemId: 'mallige-idli', qty: 1, choices: {}, notes: ['less-oil'] }],
     ['extra crisp on a steamed idli', { itemId: 'thatte-idli', qty: 1, choices: {}, notes: ['extra-crisp'] }],
-    ['potato on the side for a dosa without potato', { itemId: 'plain-dosa', qty: 1, choices: {}, notes: ['potato-side'] }],
-    ['group the item does not have', { itemId: 'filter-coffee', qty: 1, choices: { dosaExtras: ['benne'] }, notes: [] }],
+    [
+      'potato on the side for a dosa without potato',
+      { itemId: 'plain-dosa', qty: 1, choices: {}, notes: ['potato-side'] },
+    ],
+    [
+      'group the item does not have',
+      { itemId: 'filter-coffee', qty: 1, choices: { dosaExtras: ['benne'] }, notes: [] },
+    ],
     ['kitchen note on a drink', { itemId: 'masala-tea', qty: 1, choices: {}, notes: ['no-onion'] }],
   ])('rejects %s', (_, line) => {
     expect(() => priceOrder([line])).toThrow(OrderError);
   });
 
   it('offers potato stuffing on the side for masala dosa', () => {
-    expect(priceLine({ itemId: 'masala-dosa', qty: 1, choices: {}, notes: ['potato-side'] }).notes[0].label).toBe('Potato stuffing on the side');
+    expect(priceLine({ itemId: 'masala-dosa', qty: 1, choices: {}, notes: ['potato-side'] }).notes[0].label).toBe(
+      'Potato stuffing on the side',
+    );
   });
 
   it('rejects an empty cart', () => {

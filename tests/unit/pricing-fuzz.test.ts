@@ -4,10 +4,13 @@ import { GST_RATE, OrderError, priceOrder, type CartLine } from '@/lib/pricing';
 
 // Seeded random carts: the same 2,000 carts every run, so a failure is reproducible.
 function rng(seed: number) {
-  return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32; };
+  return () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 2 ** 32;
+  };
 }
 const rand = rng(14);
-const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)];
+const pick = <T>(a: T[]) => a[Math.floor(rand() * a.length)];
 
 function randomCart(): CartLine[] {
   return Array.from({ length: 1 + Math.floor(rand() * 6) }, () => {
@@ -17,7 +20,9 @@ function randomCart(): CartLine[] {
       const g = GROUPS[gid];
       choices[gid] = g.kind === 'one' ? [pick(g.options).id] : g.options.filter(() => rand() < 0.4).map((o) => o.id);
     }
-    const notes = notesFor(item).filter(() => rand() < 0.3).map((n) => n.id);
+    const notes = notesFor(item)
+      .filter(() => rand() < 0.3)
+      .map((n) => n.id);
     return { itemId: item.id, qty: 1 + Math.floor(rand() * 20), choices, notes };
   });
 }
@@ -52,7 +57,9 @@ describe('pricing invariants over 2,000 random carts', () => {
 
   it('ignores prices or totals sent by the client', () => {
     const honest = priceOrder([{ itemId: 'masala-dosa', qty: 2, choices: {}, notes: [] }]);
-    const sneaky = priceOrder([{ itemId: 'masala-dosa', qty: 2, choices: {}, notes: [], price: 1, unitPrice: 1, lineTotal: 1 } as CartLine]);
+    const sneaky = priceOrder([
+      { itemId: 'masala-dosa', qty: 2, choices: {}, notes: [], price: 1, unitPrice: 1, lineTotal: 1 } as CartLine,
+    ]);
     expect(sneaky.total).toBe(honest.total);
   });
 

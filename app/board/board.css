@@ -1,87 +1,484 @@
 /* TV order board — ported from prototype/board.html (light). Design surface: 1920×1080. */
-.board{width:1920px;height:1080px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);grid-template-rows:96px 1fr 150px;overflow:hidden;background:var(--bg)}
-.board .top{grid-column:1/3;display:flex;align-items:center;gap:20px;padding:0 48px;border-bottom:1px solid var(--line)}
-.board .logo{font-family:var(--display);font-weight:900;font-size:52px;text-transform:uppercase;line-height:1}
-.board .logo i{font-style:normal;color:var(--benne-fg)}
-.board .logo small{font-family:var(--body);font-size:15px;font-weight:600;letter-spacing:.2em;color:var(--cream-3);margin-left:16px;vertical-align:middle}
-.board .net{font-size:18px;color:var(--chilli);font-weight:600}
-.board .clock{margin-left:auto;font-family:var(--display);font-weight:800;font-size:48px;color:var(--cream-2)}
-.board .zh{display:flex;align-items:center;gap:18px;margin-bottom:28px}
-.board .zh .ic{width:68px;height:68px;border-radius:18px;display:grid;place-items:center}
-.board .zh .ic svg{width:40px;height:40px}
-.board .zh b{font-family:var(--display);font-weight:900;font-size:64px;text-transform:uppercase;line-height:.9}
-.board .zh .sub{font-size:30px;font-weight:600;color:var(--cream-2);margin-left:6px}
-.board .ready{padding:40px 48px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
-.board .ready .ic{background:var(--benne);color:var(--benne-ink)}
-.board .hero{display:flex;align-items:center;gap:40px}
-.board .tkt{background:var(--benne);color:var(--benne-ink);border-radius:26px;position:relative;box-shadow:0 40px 80px -30px rgba(160,110,0,.45)}
-.board .tkt::before,.board .tkt::after{content:"";position:absolute;bottom:86px;width:40px;height:40px;border-radius:50%;background:var(--bg)}
-.board .tkt::before{left:-20px}.board .tkt::after{right:-20px}
-.board .tkt .num{font-family:var(--display);font-weight:900;line-height:.8;padding:34px 44px 30px;white-space:nowrap}
-.board .tkt .perf{height:3px;margin:0 26px;background-image:linear-gradient(90deg,var(--benne-ink) 50%,transparent 50%);background-size:18px 3px;opacity:.3}
-.board .tkt .nm{padding:22px 44px 28px;font-size:40px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:760px}
-.board .hero .tkt{transform:rotate(-2deg)}
-.board .hero .tkt .num{font-size:250px}
-.board .hero .tkt.pop{animation:pop .7s cubic-bezier(.2,.9,.3,1.2) both, glow 1.4s ease-in-out .7s 3}
-@keyframes pop{0%{transform:rotate(-2deg) scale(.6);opacity:0}60%{transform:rotate(-3deg) scale(1.06);opacity:1}100%{transform:rotate(-2deg) scale(1)}}
-@keyframes glow{0%,100%{box-shadow:0 40px 80px -30px rgba(160,110,0,.45)}50%{box-shadow:0 0 0 18px rgba(245,197,66,.25),0 40px 90px -20px rgba(160,110,0,.6)}}
-.board .callout{font-size:52px;font-weight:700;line-height:1.15;min-width:330px}
-.board .callout b{color:var(--benne-fg);font-weight:800}
-.board .callout small{display:block;font-family:var(--body);font-size:26px;color:var(--cream-2);margin-top:14px}
-.board .calm{font-size:60px;font-weight:700;line-height:1.2;color:var(--cream-2);margin-top:60px}
-.board .calm small{display:block;font-family:var(--body);font-size:28px;color:var(--cream-3);margin-top:16px}
-.board .more{display:flex;gap:28px;margin-top:auto}
-.board .more .tkt{flex:1;background:#F6E7B5;min-width:0}
-.board .more .tkt::before,.board .more .tkt::after{bottom:70px;width:30px;height:30px}
-.board .more .tkt::before{left:-15px}.board .more .tkt::after{right:-15px}
-.board .more .tkt .num{font-size:130px;padding:24px 30px 20px}
-.board .more .tkt .nm{font-size:28px;padding:16px 30px 20px}
-.board .prep{padding:40px 48px;min-width:0;display:flex;flex-direction:column}
-.board .prep .ic{background:rgba(209,79,43,.14);color:var(--chilli)}
-.board .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
-.board .pc{height:164px;border-radius:20px;background:#FFFFFF;border:1px solid var(--line);display:flex;align-items:center;padding:0 24px;gap:14px;min-width:0;box-shadow:0 8px 24px -16px rgba(60,45,20,.4)}
-.board .pc .num{font-family:var(--display);font-weight:900;font-size:84px;line-height:.8;color:var(--cream);white-space:nowrap}
-.board .pc .dots{margin-left:auto;display:flex;gap:7px}
-.board .pc .dots i{width:12px;height:12px;border-radius:50%;background:var(--s3)}
-.board .pc .dots i.f{background:var(--chilli)}
-.board .pc.soon{border-color:rgba(156,106,0,.35)}
-.board .pc.soon .dots i.f{background:var(--benne)}
-.board .pc.extra{justify-content:center;font-family:var(--display);font-weight:900;font-size:60px;color:var(--cream-3)}
-.board .promo{grid-column:1/3;display:flex;align-items:center;gap:30px;padding:0 48px;background:var(--s1);border-top:1px solid var(--line)}
-.board .promo > *{animation:fadein .6s}
-.board .promo img{width:110px;height:110px;border-radius:18px;object-fit:cover}
-.board .promo .t{font-family:var(--display);font-weight:900;font-size:56px;text-transform:uppercase;line-height:.9}
-.board .promo .sub{font-size:28px;color:var(--cream-2);margin-top:6px}
-.board .promo .p{margin-left:auto;display:flex;align-items:baseline;gap:14px}
-.board .promo .p b{font-family:var(--display);font-weight:900;font-size:80px;color:var(--benne-fg)}
-.board .promo .p s{font-family:var(--display);font-weight:700;font-size:36px;color:var(--cream-3)}
-.board .promo .dots{display:flex;gap:10px;margin-left:40px}
-.board .promo .dots i{width:12px;height:12px;border-radius:50%;background:var(--s3)}
-.board .promo .dots i.on{background:var(--cream)}
-.board .done{margin-top:auto;display:flex;align-items:center;gap:14px;padding-top:22px;border-top:1px solid var(--line);overflow:hidden}
-.board .done .lbl{font-size:18px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3);margin-right:6px}
-.board .done .none{font-size:22px;color:var(--cream-3)}
-.board .done .dn{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;color:var(--cream-3);padding:6px 14px;border-radius:12px;background:var(--s2)}
+.board {
+  width: 1920px;
+  height: 1080px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  grid-template-rows: 96px 1fr 150px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.board .top {
+  grid-column: 1/3;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 48px;
+  border-bottom: 1px solid var(--line);
+}
+.board .logo {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 52px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.board .logo i {
+  font-style: normal;
+  color: var(--benne-fg);
+}
+.board .logo small {
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--cream-3);
+  margin-left: 16px;
+  vertical-align: middle;
+}
+.board .net {
+  font-size: 18px;
+  color: var(--chilli);
+  font-weight: 600;
+}
+.board .clock {
+  margin-left: auto;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 48px;
+  color: var(--cream-2);
+}
+.board .zh {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+.board .zh .ic {
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+}
+.board .zh .ic svg {
+  width: 40px;
+  height: 40px;
+}
+.board .zh b {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 64px;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+.board .zh .sub {
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--cream-2);
+  margin-left: 6px;
+}
+.board .ready {
+  padding: 40px 48px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.board .ready .ic {
+  background: var(--benne);
+  color: var(--benne-ink);
+}
+.board .hero {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+.board .tkt {
+  background: var(--benne);
+  color: var(--benne-ink);
+  border-radius: 26px;
+  position: relative;
+  box-shadow: 0 40px 80px -30px rgba(160, 110, 0, 0.45);
+}
+.board .tkt::before,
+.board .tkt::after {
+  content: '';
+  position: absolute;
+  bottom: 86px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+.board .tkt::before {
+  left: -20px;
+}
+.board .tkt::after {
+  right: -20px;
+}
+.board .tkt .num {
+  font-family: var(--display);
+  font-weight: 900;
+  line-height: 0.8;
+  padding: 34px 44px 30px;
+  white-space: nowrap;
+}
+.board .tkt .perf {
+  height: 3px;
+  margin: 0 26px;
+  background-image: linear-gradient(90deg, var(--benne-ink) 50%, transparent 50%);
+  background-size: 18px 3px;
+  opacity: 0.3;
+}
+.board .tkt .nm {
+  padding: 22px 44px 28px;
+  font-size: 40px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 760px;
+}
+.board .hero .tkt {
+  transform: rotate(-2deg);
+}
+.board .hero .tkt .num {
+  font-size: 250px;
+}
+.board .hero .tkt.pop {
+  animation:
+    pop 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) both,
+    glow 1.4s ease-in-out 0.7s 3;
+}
+@keyframes pop {
+  0% {
+    transform: rotate(-2deg) scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-3deg) scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-2deg) scale(1);
+  }
+}
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 40px 80px -30px rgba(160, 110, 0, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 0 0 18px rgba(245, 197, 66, 0.25),
+      0 40px 90px -20px rgba(160, 110, 0, 0.6);
+  }
+}
+.board .callout {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1.15;
+  min-width: 330px;
+}
+.board .callout b {
+  color: var(--benne-fg);
+  font-weight: 800;
+}
+.board .callout small {
+  display: block;
+  font-family: var(--body);
+  font-size: 26px;
+  color: var(--cream-2);
+  margin-top: 14px;
+}
+.board .calm {
+  font-size: 60px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--cream-2);
+  margin-top: 60px;
+}
+.board .calm small {
+  display: block;
+  font-family: var(--body);
+  font-size: 28px;
+  color: var(--cream-3);
+  margin-top: 16px;
+}
+.board .more {
+  display: flex;
+  gap: 28px;
+  margin-top: auto;
+}
+.board .more .tkt {
+  flex: 1;
+  background: #f6e7b5;
+  min-width: 0;
+}
+.board .more .tkt::before,
+.board .more .tkt::after {
+  bottom: 70px;
+  width: 30px;
+  height: 30px;
+}
+.board .more .tkt::before {
+  left: -15px;
+}
+.board .more .tkt::after {
+  right: -15px;
+}
+.board .more .tkt .num {
+  font-size: 130px;
+  padding: 24px 30px 20px;
+}
+.board .more .tkt .nm {
+  font-size: 28px;
+  padding: 16px 30px 20px;
+}
+.board .prep {
+  padding: 40px 48px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.board .prep .ic {
+  background: rgba(209, 79, 43, 0.14);
+  color: var(--chilli);
+}
+.board .grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+.board .pc {
+  height: 164px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 14px;
+  min-width: 0;
+  box-shadow: 0 8px 24px -16px rgba(60, 45, 20, 0.4);
+}
+.board .pc .num {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 84px;
+  line-height: 0.8;
+  color: var(--cream);
+  white-space: nowrap;
+}
+.board .pc .dots {
+  margin-left: auto;
+  display: flex;
+  gap: 7px;
+}
+.board .pc .dots i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--s3);
+}
+.board .pc .dots i.f {
+  background: var(--chilli);
+}
+.board .pc.soon {
+  border-color: rgba(156, 106, 0, 0.35);
+}
+.board .pc.soon .dots i.f {
+  background: var(--benne);
+}
+.board .pc.extra {
+  justify-content: center;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 60px;
+  color: var(--cream-3);
+}
+.board .promo {
+  grid-column: 1/3;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 0 48px;
+  background: var(--s1);
+  border-top: 1px solid var(--line);
+}
+.board .promo > * {
+  animation: fadein 0.6s;
+}
+.board .promo img {
+  width: 110px;
+  height: 110px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+.board .promo .t {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 56px;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+.board .promo .sub {
+  font-size: 28px;
+  color: var(--cream-2);
+  margin-top: 6px;
+}
+.board .promo .p {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.board .promo .p b {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 80px;
+  color: var(--benne-fg);
+}
+.board .promo .p s {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 36px;
+  color: var(--cream-3);
+}
+.board .promo .dots {
+  display: flex;
+  gap: 10px;
+  margin-left: 40px;
+}
+.board .promo .dots i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--s3);
+}
+.board .promo .dots i.on {
+  background: var(--cream);
+}
+.board .done {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  overflow: hidden;
+}
+.board .done .lbl {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cream-3);
+  margin-right: 6px;
+}
+.board .done .none {
+  font-size: 22px;
+  color: var(--cream-3);
+}
+.board .done .dn {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--cream-3);
+  padding: 6px 14px;
+  border-radius: 12px;
+  background: var(--s2);
+}
 /* Many ready orders. The smaller tickets are the original ticket (.more .tkt above: 130px number,
    30px notches 70px up, 28px name) scaled by one unit --u (10px = original size), so every proportion,
    the tear line and the notches stay exactly as designed. The big ticket scales the same way (--h). */
-.board .ready.t1 .more,.board .ready.t2 .more,.board .ready.t3 .more{display:grid}
-.board .ready.t1 .more{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 22px;--u:6.6px}
-.board .ready.t2 .more{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 18px;--u:5px}
-.board .ready.t3 .more{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px 14px;--u:4px}
-.board .ready:not(.t0) .more .tkt{border-radius:calc(var(--u) * 2.6);box-shadow:0 calc(var(--u) * 4) calc(var(--u) * 8) calc(var(--u) * -3) rgba(160,110,0,.45)}
-.board .ready:not(.t0) .more .tkt::before,.board .ready:not(.t0) .more .tkt::after{bottom:calc(var(--u) * 7);width:calc(var(--u) * 3);height:calc(var(--u) * 3)}
-.board .ready:not(.t0) .more .tkt::before{left:calc(var(--u) * -1.5)}.board .ready:not(.t0) .more .tkt::after{right:calc(var(--u) * -1.5)}
-.board .ready:not(.t0) .more .tkt .num{font-size:calc(var(--u) * 13);padding:calc(var(--u) * 2.4) calc(var(--u) * 3) calc(var(--u) * 2)}
-.board .ready:not(.t0) .more .tkt .perf{height:max(2px,calc(var(--u) * .3));margin:0 calc(var(--u) * 2.6);background-size:calc(var(--u) * 1.8) 100%}
-.board .ready:not(.t0) .more .tkt .nm{font-size:calc(var(--u) * 2.8);line-height:1.2;padding:calc(var(--u) * 1.6) calc(var(--u) * 3) calc(var(--u) * 2)}
-.board .more .tkt.extra{background:var(--s2);color:var(--cream-3);box-shadow:none}
+.board .ready.t1 .more,
+.board .ready.t2 .more,
+.board .ready.t3 .more {
+  display: grid;
+}
+.board .ready.t1 .more {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 22px;
+  --u: 6.6px;
+}
+.board .ready.t2 .more {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 18px;
+  --u: 5px;
+}
+.board .ready.t3 .more {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px 14px;
+  --u: 4px;
+}
+.board .ready:not(.t0) .more .tkt {
+  border-radius: calc(var(--u) * 2.6);
+  box-shadow: 0 calc(var(--u) * 4) calc(var(--u) * 8) calc(var(--u) * -3) rgba(160, 110, 0, 0.45);
+}
+.board .ready:not(.t0) .more .tkt::before,
+.board .ready:not(.t0) .more .tkt::after {
+  bottom: calc(var(--u) * 7);
+  width: calc(var(--u) * 3);
+  height: calc(var(--u) * 3);
+}
+.board .ready:not(.t0) .more .tkt::before {
+  left: calc(var(--u) * -1.5);
+}
+.board .ready:not(.t0) .more .tkt::after {
+  right: calc(var(--u) * -1.5);
+}
+.board .ready:not(.t0) .more .tkt .num {
+  font-size: calc(var(--u) * 13);
+  padding: calc(var(--u) * 2.4) calc(var(--u) * 3) calc(var(--u) * 2);
+}
+.board .ready:not(.t0) .more .tkt .perf {
+  height: max(2px, calc(var(--u) * 0.3));
+  margin: 0 calc(var(--u) * 2.6);
+  background-size: calc(var(--u) * 1.8) 100%;
+}
+.board .ready:not(.t0) .more .tkt .nm {
+  font-size: calc(var(--u) * 2.8);
+  line-height: 1.2;
+  padding: calc(var(--u) * 1.6) calc(var(--u) * 3) calc(var(--u) * 2);
+}
+.board .more .tkt.extra {
+  background: var(--s2);
+  color: var(--cream-3);
+  box-shadow: none;
+}
 /* big ticket at 68% once the grid needs the room (original: 250px number, 40px notches 86px up, 40px name) */
-.board .ready:not(.t0) .hero{--h:.68}
-.board .ready:not(.t0) .hero .tkt{border-radius:calc(26px * var(--h))}
-.board .ready:not(.t0) .hero .tkt::before,.board .ready:not(.t0) .hero .tkt::after{bottom:calc(86px * var(--h));width:calc(40px * var(--h));height:calc(40px * var(--h))}
-.board .ready:not(.t0) .hero .tkt::before{left:calc(-20px * var(--h))}.board .ready:not(.t0) .hero .tkt::after{right:calc(-20px * var(--h))}
-.board .ready:not(.t0) .hero .tkt .num{font-size:calc(250px * var(--h));padding:calc(34px * var(--h)) calc(44px * var(--h)) calc(30px * var(--h))}
-.board .ready:not(.t0) .hero .tkt .perf{margin:0 calc(26px * var(--h))}
-.board .ready:not(.t0) .hero .tkt .nm{font-size:calc(40px * var(--h));padding:calc(22px * var(--h)) calc(44px * var(--h)) calc(28px * var(--h))}
-.board .ready:not(.t0) .callout{font-size:44px}
+.board .ready:not(.t0) .hero {
+  --h: 0.68;
+}
+.board .ready:not(.t0) .hero .tkt {
+  border-radius: calc(26px * var(--h));
+}
+.board .ready:not(.t0) .hero .tkt::before,
+.board .ready:not(.t0) .hero .tkt::after {
+  bottom: calc(86px * var(--h));
+  width: calc(40px * var(--h));
+  height: calc(40px * var(--h));
+}
+.board .ready:not(.t0) .hero .tkt::before {
+  left: calc(-20px * var(--h));
+}
+.board .ready:not(.t0) .hero .tkt::after {
+  right: calc(-20px * var(--h));
+}
+.board .ready:not(.t0) .hero .tkt .num {
+  font-size: calc(250px * var(--h));
+  padding: calc(34px * var(--h)) calc(44px * var(--h)) calc(30px * var(--h));
+}
+.board .ready:not(.t0) .hero .tkt .perf {
+  margin: 0 calc(26px * var(--h));
+}
+.board .ready:not(.t0) .hero .tkt .nm {
+  font-size: calc(40px * var(--h));
+  padding: calc(22px * var(--h)) calc(44px * var(--h)) calc(28px * var(--h));
+}
+.board .ready:not(.t0) .callout {
+  font-size: 44px;
+}

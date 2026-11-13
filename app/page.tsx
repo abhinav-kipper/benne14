@@ -10,11 +10,28 @@ export default function Home() {
   ];
   return (
     <main style={{ maxWidth: 560, margin: '0 auto', padding: '48px 20px' }}>
-      <h1 className="disp" style={{ fontSize: 64, lineHeight: 0.85 }}>Benne <span style={{ color: 'var(--benne-fg)' }}>14</span></h1>
+      <h1 className="disp" style={{ fontSize: 64, lineHeight: 0.85 }}>
+        Benne <span style={{ color: 'var(--benne-fg)' }}>14</span>
+      </h1>
       <p style={{ color: 'var(--cream-3)', margin: '10px 0 30px' }}>Pick the screen for this device.</p>
       {screens.map((s) => (
-        <Link key={s.href} href={s.href} style={{ display: 'block', padding: '20px 22px', marginBottom: 12, borderRadius: 16, background: 'var(--s1)', border: '1px solid var(--line)', color: 'inherit', textDecoration: 'none' }}>
-          <b className="disp" style={{ fontSize: 34 }}>{s.t} →</b>
+        <Link
+          key={s.href}
+          href={s.href}
+          style={{
+            display: 'block',
+            padding: '20px 22px',
+            marginBottom: 12,
+            borderRadius: 16,
+            background: 'var(--s1)',
+            border: '1px solid var(--line)',
+            color: 'inherit',
+            textDecoration: 'none',
+          }}
+        >
+          <b className="disp" style={{ fontSize: 34 }}>
+            {s.t} →
+          </b>
           <div style={{ color: 'var(--cream-2)', marginTop: 4 }}>{s.d}</div>
         </Link>
       ))}

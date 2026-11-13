@@ -1,3 +1,8 @@
+> **History.** This is the plan written before the build (October 2026). Much of it changed along the way
+> (no Realtime, no `order_items` table, menu overrides instead of menu tables, direct UPI instead of
+> Razorpay, English only). For how the app actually works see `docs/ARCHITECTURE.md`; for what's next,
+> `docs/state.md` and `docs/audit.md`.
+
 # Benne 14 — build plan
 
 From the HTML prototype in `prototype/` to a real system running in the restaurant: kiosk, kitchen display, TV board and owner admin. Goal: **quick, fast, reliable, clean** — in that order of what the customer feels.

@@ -23,7 +23,8 @@ export async function GET() {
     out.database = 'ok';
     // Informational: which SQL files still need running in Supabase (see lib/migrations.ts).
     const applied = await store.appliedMigrations();
-    const missing = MIGRATIONS.filter((m) => !applied.includes(m));
+    // The log table arrives with 0004; before that nothing is recorded, though 0001–0003 were run by hand.
+    const missing = MIGRATIONS.filter((m) => !applied.includes(m) && (applied.length > 0 || m >= '0004'));
     out.migrations = missing.length ? `to run: ${missing.join(', ')}` : 'ok';
   } catch (e) {
     out.database = e instanceof Error ? e.message : 'error';

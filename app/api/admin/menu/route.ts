@@ -16,11 +16,18 @@ export async function POST(req: Request) {
     const b = await readJson(req);
     const base = typeof b.itemId === 'string' ? itemById(b.itemId, BASE_CATALOG) : undefined;
     if (!base) return json({ error: 'Unknown dish' }, 400);
-    if (b.soldOut !== undefined && typeof b.soldOut !== 'boolean') return json({ error: 'Sold out must be true or false' }, 400);
-    const patch = { name: cleanText(b.name, 40, 'Name'), desc: cleanText(b.desc, 160, 'Description'), price: cleanPrice(b.price, 'Price'), soldOut: b.soldOut as boolean | undefined };
+    if (b.soldOut !== undefined && typeof b.soldOut !== 'boolean')
+      return json({ error: 'Sold out must be true or false' }, 400);
+    const patch = {
+      name: cleanText(b.name, 40, 'Name'),
+      desc: cleanText(b.desc, 160, 'Description'),
+      price: cleanPrice(b.price, 'Price'),
+      soldOut: b.soldOut as boolean | undefined,
+    };
 
     // Check every extra before anything is saved.
-    if (b.options !== undefined && (!Array.isArray(b.options) || b.options.length > 20)) return json({ error: 'Bad extras' }, 400);
+    if (b.options !== undefined && (!Array.isArray(b.options) || b.options.length > 20))
+      return json({ error: 'Bad extras' }, 400);
     const options = ((b.options ?? []) as { groupId?: unknown; optionId?: unknown; price?: unknown }[]).map((o) => {
       const g = o && typeof o.groupId === 'string' && Object.hasOwn(GROUPS, o.groupId) ? GROUPS[o.groupId] : undefined;
       const op = g?.options.find((x) => x.id === o.optionId);
@@ -35,24 +42,41 @@ export async function POST(req: Request) {
     const cat = mergeCatalog(await store.getOverrides());
     const before = itemById(base.id, cat)!;
     const after = {
-      name: patch.name === undefined ? before.name : patch.name ?? base.name,
-      desc: patch.desc === undefined ? before.desc : patch.desc ?? base.desc,
-      price: patch.price === undefined ? before.price : patch.price ?? base.price,
+      name: patch.name === undefined ? before.name : (patch.name ?? base.name),
+      desc: patch.desc === undefined ? before.desc : (patch.desc ?? base.desc),
+      price: patch.price === undefined ? before.price : (patch.price ?? base.price),
       soldOut: patch.soldOut === undefined ? !!before.soldOut : patch.soldOut,
     };
     // Change history: one line per thing that actually changes.
     const events: Omit<AdminEvent, 'at'>[] = [];
-    if (before.price !== after.price) events.push({ kind: 'price', subject: after.name, before: `₹${before.price}`, after: `₹${after.price}` });
-    if (before.name !== after.name) events.push({ kind: 'name', subject: after.name, before: before.name, after: after.name });
-    if (before.desc !== after.desc) events.push({ kind: 'desc', subject: after.name, before: before.desc, after: after.desc });
-    if (!!before.soldOut !== after.soldOut) events.push({ kind: after.soldOut ? 'sold_out' : 'back_on', subject: after.name });
-    const changed = options.filter((o) => cat.groups[o.groupId].options.find((x) => x.id === o.optionId)!.price !== o.price);
+    if (before.price !== after.price)
+      events.push({ kind: 'price', subject: after.name, before: `₹${before.price}`, after: `₹${after.price}` });
+    if (before.name !== after.name)
+      events.push({ kind: 'name', subject: after.name, before: before.name, after: after.name });
+    if (before.desc !== after.desc)
+      events.push({ kind: 'desc', subject: after.name, before: before.desc, after: after.desc });
+    if (!!before.soldOut !== after.soldOut)
+      events.push({ kind: after.soldOut ? 'sold_out' : 'back_on', subject: after.name });
+    const changed = options.filter(
+      (o) => cat.groups[o.groupId].options.find((x) => x.id === o.optionId)!.price !== o.price,
+    );
     for (const o of changed) {
       const was = cat.groups[o.groupId].options.find((x) => x.id === o.optionId)!.price;
-      events.push({ kind: 'option_price', subject: o.name, before: `₹${was}`, after: `₹${o.price}`, note: optionKey(o.groupId, o.optionId) });
+      events.push({
+        kind: 'option_price',
+        subject: o.name,
+        before: `₹${was}`,
+        after: `₹${o.price}`,
+        note: optionKey(o.groupId, o.optionId),
+      });
     }
 
-    await store.saveMenuEdit({ itemId: base.id, patch, options: changed.map(({ groupId, optionId, price }) => ({ groupId, optionId, price })), events });
+    await store.saveMenuEdit({
+      itemId: base.id,
+      patch,
+      options: changed.map(({ groupId, optionId, price }) => ({ groupId, optionId, price })),
+      events,
+    });
     return json({ ...before, ...after });
   } catch (e) {
     return fail(e);

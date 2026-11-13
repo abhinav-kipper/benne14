@@ -4,12 +4,19 @@ import { priceOrder } from '@/lib/pricing';
 
 describe("owner's menu changes", () => {
   const cat = mergeCatalog({
-    items: { 'masala-dosa': { price: 219, name: 'Masala Dosa (Large)', desc: null, soldOut: false }, 'plain-dosa': { soldOut: true } },
+    items: {
+      'masala-dosa': { price: 219, name: 'Masala Dosa (Large)', desc: null, soldOut: false },
+      'plain-dosa': { soldOut: true },
+    },
     options: { 'dosaExtras:benne': 30 },
   });
 
   it('merge on top of the menu in code without changing it', () => {
-    expect(itemById('masala-dosa', cat)).toMatchObject({ price: 219, name: 'Masala Dosa (Large)', desc: itemById('masala-dosa', BASE_CATALOG)!.desc });
+    expect(itemById('masala-dosa', cat)).toMatchObject({
+      price: 219,
+      name: 'Masala Dosa (Large)',
+      desc: itemById('masala-dosa', BASE_CATALOG)!.desc,
+    });
     expect(itemById('plain-dosa', cat)!.soldOut).toBe(true);
     expect(itemById('masala-dosa', BASE_CATALOG)!.price).toBe(209);
     expect(BASE_CATALOG.groups.dosaExtras.options[0].price).toBe(25);

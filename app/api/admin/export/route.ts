@@ -11,12 +11,19 @@ export async function GET(req: Request) {
   if (denied) return denied;
   try {
     const kind = new URL(req.url).searchParams.get('kind');
-    if (kind !== 'bills' && kind !== 'gst' && kind !== 'dishes') return json({ error: 'Pick bills, gst or dishes' }, 400);
+    if (kind !== 'bills' && kind !== 'gst' && kind !== 'dishes')
+      return json({ error: 'Pick bills, gst or dishes' }, 400);
     const { from, to } = rangeOf(req);
     const orders = await getStore().listRange(from, to);
-    const body = kind === 'bills' ? billsCsv(orders) : kind === 'gst' ? gstCsv(orders, from, to) : dishesCsv(orders, from, to);
-    return new Response('﻿' + body, { // BOM so Excel reads ₹ and names correctly
-      headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="benne14-${kind}-${from}-to-${to}.csv"`, 'Cache-Control': 'no-store' },
+    const body =
+      kind === 'bills' ? billsCsv(orders) : kind === 'gst' ? gstCsv(orders, from, to) : dishesCsv(orders, from, to);
+    return new Response('﻿' + body, {
+      // BOM so Excel reads ₹ and names correctly
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="benne14-${kind}-${from}-to-${to}.csv"`,
+        'Cache-Control': 'no-store',
+      },
     });
   } catch (e) {
     return fail(e);

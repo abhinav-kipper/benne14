@@ -8,11 +8,17 @@ test.beforeAll(async ({ request }) => {
 });
 
 const order = (lines: { itemId: string; qty: number }[], payMethod: string, key: string) => ({
-  key, type: 'takeaway', name: 'Test', payMethod, lines: lines.map((l) => ({ ...l, choices: {}, notes: [] })),
+  key,
+  type: 'takeaway',
+  name: 'Test',
+  payMethod,
+  lines: lines.map((l) => ({ ...l, choices: {}, notes: [] })),
 });
 
 test('cash goes straight to the kitchen in test mode', async ({ request }) => {
-  const r = await request.post('/api/orders', { data: order([{ itemId: 'medu-vada', qty: 1 }], 'cash', 'tm-cash-0001') });
+  const r = await request.post('/api/orders', {
+    data: order([{ itemId: 'medu-vada', qty: 1 }], 'cash', 'tm-cash-0001'),
+  });
   expect(r.status()).toBe(201);
   const o = await r.json();
   expect(o.status).toBe('new'); // not awaiting_cash

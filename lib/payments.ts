@@ -25,12 +25,23 @@ export function upiLink(p: { upiId: string; name: string; amount: number; note: 
 export const DirectUpiProvider: PaymentProvider = {
   name: 'upi-direct',
   autoConfirms: false,
-  upiRequest: (o) => ({ payload: upiLink({ upiId: SHOP.upiId, name: SHOP.name, amount: o.total, note: `${SHOP.name} order ${o.token}` }), expiresInSec: 300 }),
+  upiRequest: (o) => ({
+    payload: upiLink({ upiId: SHOP.upiId, name: SHOP.name, amount: o.total, note: `${SHOP.name} order ${o.token}` }),
+    expiresInSec: 300,
+  }),
 };
 
 export const MockProvider: PaymentProvider = {
   name: 'mock',
   autoConfirms: false,
   // Clearly fake payee: a real UPI app will refuse it, so no money can move.
-  upiRequest: (o) => ({ payload: upiLink({ upiId: 'demo.benne14@mockupi', name: 'Benne 14 DEMO', amount: o.total, note: `Order ${o.token} (DEMO)` }), expiresInSec: 300 }),
+  upiRequest: (o) => ({
+    payload: upiLink({
+      upiId: 'demo.benne14@mockupi',
+      name: 'Benne 14 DEMO',
+      amount: o.total,
+      note: `Order ${o.token} (DEMO)`,
+    }),
+    expiresInSec: 300,
+  }),
 };

@@ -1,15 +1,38 @@
 // In-memory store: one Node process holds today's orders. Used for local dev, demos and tests.
 // (On Vercel each serverless instance has its own memory, so production must use Supabase.)
 import { randomUUID } from 'node:crypto';
-import { canMove, formatToken, HANDED_MIN, isPaid, istDay, LIVE, LIVE_HOURS, UPI_OPEN_MIN, type AdminEvent, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
+import {
+  canMove,
+  formatToken,
+  HANDED_MIN,
+  isPaid,
+  istDay,
+  LIVE,
+  LIVE_HOURS,
+  UPI_OPEN_MIN,
+  type AdminEvent,
+  type Order,
+  type OrderStatus,
+  type PlaceOrderInput,
+} from '../orders';
 import { optionKey, type Overrides } from '../menu';
-import type { ItemPatch, MenuEdit } from './index';
+import type { MenuEdit } from './index';
 import { MIGRATIONS } from '../migrations';
 
-interface ItemRow { name: string | null; desc: string | null; price: number | null; soldOutOn: string | null }
+interface ItemRow {
+  name: string | null;
+  desc: string | null;
+  price: number | null;
+  soldOutOn: string | null;
+}
 
 export class StoreError extends Error {
-  constructor(message: string, readonly status = 400) { super(message); }
+  constructor(
+    message: string,
+    readonly status = 400,
+  ) {
+    super(message);
+  }
 }
 
 export class MemoryStore {
@@ -42,7 +65,10 @@ export class MemoryStore {
       customerName: input.customerName,
       payMethod: input.payMethod,
       status: input.payMethod === 'upi' ? 'pending_payment' : 'awaiting_cash', // card and cash are paid at the counter
-      createdAt: now, updatedAt: now, paidAt: null, readyAt: null,
+      createdAt: now,
+      updatedAt: now,
+      paidAt: null,
+      readyAt: null,
     };
     this.orders.set(order.id, order);
     this.byKey.set(input.key, order.id);
@@ -58,22 +84,31 @@ export class MemoryStore {
     const recent = Date.now() - HANDED_MIN * 60_000;
     const openQr = Date.now() - UPI_OPEN_MIN * 60_000;
     return [...this.orders.values()]
-      .filter((o) => (LIVE.includes(o.status) && Date.parse(o.createdAt) > since)
-        || (o.status === 'handed_over' && Date.parse(o.updatedAt) > recent)
-        || (o.status === 'pending_payment' && Date.parse(o.createdAt) > openQr))
+      .filter(
+        (o) =>
+          (LIVE.includes(o.status) && Date.parse(o.createdAt) > since) ||
+          (o.status === 'handed_over' && Date.parse(o.updatedAt) > recent) ||
+          (o.status === 'pending_payment' && Date.parse(o.createdAt) > openQr),
+      )
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   async listToday() {
     const day = istDay();
     // reverse first so orders placed in the same millisecond still come out newest first
-    return [...this.orders.values()].reverse().filter((o) => o.tokenDay === day).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.orders.values()]
+      .reverse()
+      .filter((o) => o.tokenDay === day)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async listCollected(limit: number) {
     const day = istDay();
-    return [...this.orders.values()].filter((o) => o.tokenDay === day && o.status === 'handed_over')
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, limit).map((o) => ({ id: o.id, token: o.token }));
+    return [...this.orders.values()]
+      .filter((o) => o.tokenDay === day && o.status === 'handed_over')
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, limit)
+      .map((o) => ({ id: o.id, token: o.token }));
   }
 
   async setStatus(id: string, to: OrderStatus, from?: OrderStatus) {
@@ -84,7 +119,9 @@ export class MemoryStore {
     if (!canMove(o.status, to)) throw new StoreError(`Can't move ${o.token} from ${o.status} to ${to}`, 409);
     const now = new Date().toISOString();
     const next: Order = {
-      ...o, status: to, updatedAt: now,
+      ...o,
+      status: to,
+      updatedAt: now,
       paidAt: o.paidAt ?? (to === 'new' ? now : null),
       readyAt: to === 'ready' ? now : to === 'cooking' ? null : o.readyAt,
     };
@@ -93,15 +130,24 @@ export class MemoryStore {
   }
 
   async listRange(fromDay: string, toDay: string) {
-    return [...this.orders.values()].filter((o) => o.tokenDay >= fromDay && o.tokenDay <= toDay).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return [...this.orders.values()]
+      .filter((o) => o.tokenDay >= fromDay && o.tokenDay <= toDay)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   async refund(id: string, reason: string) {
     const o = this.orders.get(id);
     if (!o) throw new StoreError('Order not found', 404);
     if (o.refundedAt) throw new StoreError(`Order ${o.token} is already refunded`, 409);
-    if (!isPaid(o)) throw new StoreError(`Order ${o.token} isn't paid, so there's nothing to refund. Cancel it instead.`, 409);
-    const next: Order = { ...o, refundedAt: new Date().toISOString(), refundReason: reason, refundAmount: o.total, updatedAt: new Date().toISOString() };
+    if (!isPaid(o))
+      throw new StoreError(`Order ${o.token} isn't paid, so there's nothing to refund. Cancel it instead.`, 409);
+    const next: Order = {
+      ...o,
+      refundedAt: new Date().toISOString(),
+      refundReason: reason,
+      refundAmount: o.total,
+      updatedAt: new Date().toISOString(),
+    };
     this.orders.set(id, next);
     return next;
   }
@@ -109,7 +155,8 @@ export class MemoryStore {
   async getOverrides(): Promise<Overrides> {
     const today = istDay();
     const items: Overrides['items'] = {};
-    for (const [id, r] of this.items) items[id] = { name: r.name, desc: r.desc, price: r.price, soldOut: r.soldOutOn === today };
+    for (const [id, r] of this.items)
+      items[id] = { name: r.name, desc: r.desc, price: r.price, soldOut: r.soldOutOn === today };
     return { items, options: Object.fromEntries(this.options) };
   }
 
@@ -124,11 +171,24 @@ export class MemoryStore {
     for (const ev of e.events) await this.addEvent(ev);
   }
 
-  async addEvent(e: Omit<AdminEvent, 'at'>) { this.events.unshift({ ...e, at: new Date().toISOString() }); }
+  async addEvent(e: Omit<AdminEvent, 'at'>) {
+    this.events.unshift({ ...e, at: new Date().toISOString() });
+  }
 
-  async listEvents(limit = 100) { return this.events.slice(0, limit); }
+  async listEvents(limit = 100) {
+    return this.events.slice(0, limit);
+  }
 
-  async appliedMigrations() { return MIGRATIONS; } // nothing to migrate in memory
+  async appliedMigrations() {
+    return MIGRATIONS;
+  } // nothing to migrate in memory
 
-  reset() { this.orders.clear(); this.byKey.clear(); this.counters.clear(); this.items.clear(); this.options.clear(); this.events = []; }
+  reset() {
+    this.orders.clear();
+    this.byKey.clear();
+    this.counters.clear();
+    this.items.clear();
+    this.options.clear();
+    this.events = [];
+  }
 }

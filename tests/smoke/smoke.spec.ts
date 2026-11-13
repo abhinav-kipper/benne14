@@ -42,10 +42,14 @@ test('live orders API answers, and bad input is refused before touching the data
   const live = await request.get('/api/orders');
   expect(live.status()).toBe(200);
   expect(Array.isArray(await live.json())).toBe(true);
-  expect((await request.post('/api/orders', { data: '{bad', headers: { 'Content-Type': 'application/json' } })).status()).toBe(400);
+  expect(
+    (await request.post('/api/orders', { data: '{bad', headers: { 'Content-Type': 'application/json' } })).status(),
+  ).toBe(400);
   expect((await request.post('/api/orders', { data: { key: 'x' } })).status()).toBe(400);
   expect((await request.get('/api/orders/not-an-id')).status()).toBe(404);
-  expect((await request.post('/api/orders/00000000-0000-0000-0000-000000000000/status', { data: { to: 'new' } })).status()).toBe(401);
+  expect(
+    (await request.post('/api/orders/00000000-0000-0000-0000-000000000000/status', { data: { to: 'new' } })).status(),
+  ).toBe(401);
 });
 
 test('owner dashboard asks for the PIN; menu changes endpoint answers', async ({ page, request }) => {

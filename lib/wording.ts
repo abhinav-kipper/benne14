@@ -24,9 +24,13 @@ export function orderedSentence(o: Pick<Order, 'status' | 'payMethod' | 'type' |
       return o.payMethod === 'upi'
         ? `We’ll start your ${items} as soon as the counter confirms your payment.`
         : `Pay ₹${o.total} at the counter and we’ll start your ${items}.`;
-    case 'ready': return `Your ${items} ${isAre} ready! Collect from the counter.`;
-    case 'handed_over': return `Enjoy your ${items}!`;
-    case 'cancelled': return 'This order was cancelled.';
-    default: return `Your ${items} ${isAre} being made fresh. ${where}`;
+    case 'ready':
+      return `Your ${items} ${isAre} ready! Collect from the counter.`;
+    case 'handed_over':
+      return `Enjoy your ${items}!`;
+    case 'cancelled':
+      return 'This order was cancelled.';
+    default:
+      return `Your ${items} ${isAre} being made fresh. ${where}`;
   }
 }

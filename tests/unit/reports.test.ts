@@ -4,10 +4,31 @@ import { priceOrder } from '@/lib/pricing';
 import type { Order, OrderStatus, PayMethod } from '@/lib/orders';
 
 let n = 0;
-function order(day: string, hhmm: string, status: OrderStatus, pay: PayMethod, cart: Parameters<typeof priceOrder>[0], extra: Partial<Order> = {}): Order {
+function order(
+  day: string,
+  hhmm: string,
+  status: OrderStatus,
+  pay: PayMethod,
+  cart: Parameters<typeof priceOrder>[0],
+  extra: Partial<Order> = {},
+): Order {
   const p = priceOrder(cart);
   const createdAt = new Date(Date.parse(`${day}T${hhmm}:00+05:30`)).toISOString();
-  return { ...p, id: `o${n}`, token: String(++n), tokenDay: day, type: 'takeaway', customerName: null, payMethod: pay, status, createdAt, updatedAt: createdAt, paidAt: null, readyAt: null, ...extra };
+  return {
+    ...p,
+    id: `o${n}`,
+    token: String(++n),
+    tokenDay: day,
+    type: 'takeaway',
+    customerName: null,
+    payMethod: pay,
+    status,
+    createdAt,
+    updatedAt: createdAt,
+    paidAt: null,
+    readyAt: null,
+    ...extra,
+  };
 }
 const dosa = [{ itemId: 'masala-dosa', qty: 2, choices: { dosaExtras: ['benne'] }, notes: [] }]; // 2 × (209 + 25) = 468, GST 23 (11.50 + 11.50) → 491
 const tea = [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }]; // 49 + 2 → 51
@@ -18,7 +39,11 @@ describe('owner reports', () => {
     order(day, '08:30', 'handed_over', 'upi', dosa),
     order(day, '08:45', 'cooking', 'cash', tea),
     order(day, '09:10', 'ready', 'card', tea),
-    order(day, '09:20', 'handed_over', 'upi', tea, { refundedAt: '2026-11-13T04:00:00Z', refundReason: 'Wrong order', refundAmount: 51 }),
+    order(day, '09:20', 'handed_over', 'upi', tea, {
+      refundedAt: '2026-11-13T04:00:00Z',
+      refundReason: 'Wrong order',
+      refundAmount: 51,
+    }),
     order(day, '09:30', 'cancelled', 'upi', dosa), // never paid
     order(day, '09:40', 'pending_payment', 'upi', dosa), // QR still open
     order(day, '09:50', 'awaiting_cash', 'cash', dosa), // not confirmed yet
@@ -58,7 +83,15 @@ describe('owner reports', () => {
 
   it('lists every day in a range, empty days too', () => {
     const w = summarize(orders, '2026-11-07', day);
-    expect(w.days.map((d) => d.day)).toEqual(['2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13']);
+    expect(w.days.map((d) => d.day)).toEqual([
+      '2026-11-07',
+      '2026-11-08',
+      '2026-11-09',
+      '2026-11-10',
+      '2026-11-11',
+      '2026-11-12',
+      '2026-11-13',
+    ]);
     expect(w.days.at(-1)!.takings).toBe(644);
     expect(w.days[0]).toEqual({ day: '2026-11-07', takings: 0, orders: 0 });
   });
@@ -84,7 +117,10 @@ describe('owner reports', () => {
   });
 
   it('CSV cells are quoted, and names cannot become spreadsheet formulas', () => {
-    const evil = order(day, '10:00', 'handed_over', 'cash', tea, { refundedAt: 'x', refundReason: '=HYPERLINK("http://x","click"), "quoted"' });
+    const evil = order(day, '10:00', 'handed_over', 'cash', tea, {
+      refundedAt: 'x',
+      refundReason: '=HYPERLINK("http://x","click"), "quoted"',
+    });
     const row = billsCsv([evil]).trim().split('\r\n')[1];
     expect(row).toContain(`"'=HYPERLINK(""http://x"",""click""), ""quoted"""`);
   });

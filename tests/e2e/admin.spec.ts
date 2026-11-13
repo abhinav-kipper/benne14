@@ -18,7 +18,15 @@ const owner = async (page: Page) => {
 };
 let k = 0;
 const order = (r: APIRequestContext, itemId: string, payMethod = 'cash') =>
-  r.post('/api/orders', { data: { key: `adm-${Date.now()}-${k++}`, type: 'takeaway', name: null, payMethod, lines: [{ itemId, qty: 1, choices: {}, notes: [] }] } });
+  r.post('/api/orders', {
+    data: {
+      key: `adm-${Date.now()}-${k++}`,
+      type: 'takeaway',
+      name: null,
+      payMethod,
+      lines: [{ itemId, qty: 1, choices: {}, notes: [] }],
+    },
+  });
 const today = async (r: APIRequestContext) => {
   const d = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
   return (await (await r.get(`/api/admin/report?from=${d}&to=${d}`, { headers: H })).json()).current;
@@ -28,7 +36,11 @@ test('the dashboard and its API need the staff PIN', async ({ page, request }) =
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/admin');
   await expect(page.getByTestId('pin-gate')).toBeVisible();
-  for (const path of ['/api/admin/report?from=2026-11-01&to=2026-11-02', '/api/admin/events', '/api/admin/export?kind=bills&from=2026-11-01&to=2026-11-02']) {
+  for (const path of [
+    '/api/admin/report?from=2026-11-01&to=2026-11-02',
+    '/api/admin/events',
+    '/api/admin/export?kind=bills&from=2026-11-01&to=2026-11-02',
+  ]) {
     expect((await request.get(path)).status(), path).toBe(401);
   }
   expect((await request.post('/api/admin/menu', { data: { itemId: 'masala-dosa', price: 1 } })).status()).toBe(401);
@@ -36,9 +48,18 @@ test('the dashboard and its API need the staff PIN', async ({ page, request }) =
 
 test('admin API refuses bad input with a clear 400/404/409', async ({ request }) => {
   const menu = (data: object) => request.post('/api/admin/menu', { data, headers: H });
-  for (const bad of [{ itemId: 'pizza', price: 100 }, { itemId: 'masala-dosa', price: 0 }, { itemId: 'masala-dosa', price: -5 }, { itemId: 'masala-dosa', price: 1.5 },
-    { itemId: 'masala-dosa', price: '200' }, { itemId: 'masala-dosa', price: 100001 }, { itemId: 'masala-dosa', name: 'x'.repeat(41) },
-    { itemId: 'masala-dosa', desc: 'x'.repeat(161) }, { itemId: 'masala-dosa', soldOut: 'yes' }, { itemId: 'masala-dosa', name: 5 }]) {
+  for (const bad of [
+    { itemId: 'pizza', price: 100 },
+    { itemId: 'masala-dosa', price: 0 },
+    { itemId: 'masala-dosa', price: -5 },
+    { itemId: 'masala-dosa', price: 1.5 },
+    { itemId: 'masala-dosa', price: '200' },
+    { itemId: 'masala-dosa', price: 100001 },
+    { itemId: 'masala-dosa', name: 'x'.repeat(41) },
+    { itemId: 'masala-dosa', desc: 'x'.repeat(161) },
+    { itemId: 'masala-dosa', soldOut: 'yes' },
+    { itemId: 'masala-dosa', name: 5 },
+  ]) {
     expect((await menu(bad)).status(), JSON.stringify(bad)).toBe(400);
   }
   const opt = (o: object) => menu({ itemId: 'masala-dosa', options: [o] });
@@ -48,13 +69,30 @@ test('admin API refuses bad input with a clear 400/404/409', async ({ request })
   expect((await opt({ groupId: 'dosaExtras', optionId: 'benne', price: -1 })).status()).toBe(400);
   expect((await menu({ itemId: 'masala-dosa', options: 'benne' })).status()).toBe(400);
   // one bad extra refuses the whole edit: the dish price in the same request is not saved either
-  expect((await menu({ itemId: 'masala-dosa', price: 555, options: [{ groupId: 'dosaExtras', optionId: 'benne', price: -1 }] })).status()).toBe(400);
+  expect(
+    (
+      await menu({
+        itemId: 'masala-dosa',
+        price: 555,
+        options: [{ groupId: 'dosaExtras', optionId: 'benne', price: -1 }],
+      })
+    ).status(),
+  ).toBe(400);
   expect((await (await request.get('/api/menu')).json()).items['masala-dosa']?.price ?? null).not.toBe(555);
   const rep = (q: string) => request.get(`/api/admin/report?${q}`, { headers: H });
-  for (const q of ['', 'from=2026-11-05&to=2026-11-01', 'from=2024-01-01&to=2026-01-01', 'from=2026-13-01&to=2026-13-02', 'from=today&to=now', 'from=2026-02-30&to=2026-03-01']) {
+  for (const q of [
+    '',
+    'from=2026-11-05&to=2026-11-01',
+    'from=2024-01-01&to=2026-01-01',
+    'from=2026-13-01&to=2026-13-02',
+    'from=today&to=now',
+    'from=2026-02-30&to=2026-03-01',
+  ]) {
     expect((await rep(q)).status(), q).toBe(400);
   }
-  expect((await request.get('/api/admin/export?kind=everything&from=2026-11-01&to=2026-11-02', { headers: H })).status()).toBe(400);
+  expect(
+    (await request.get('/api/admin/export?kind=everything&from=2026-11-01&to=2026-11-02', { headers: H })).status(),
+  ).toBe(400);
   const unpaid = await (await order(request, 'masala-tea')).json();
   const refund = (id: string, data: object) => request.post(`/api/admin/orders/${id}/refund`, { data, headers: H });
   expect((await refund(unpaid.id, { reason: 'Wrong order' })).status()).toBe(409); // not paid: cancel instead
@@ -63,7 +101,11 @@ test('admin API refuses bad input with a clear 400/404/409', async ({ request })
   expect((await refund('00000000-0000-0000-0000-000000000000', { reason: 'x' })).status()).toBe(404);
 });
 
-test('sold out in the dashboard greys the dish on the kiosk, and the server refuses it', async ({ page, request, browser }) => {
+test('sold out in the dashboard greys the dish on the kiosk, and the server refuses it', async ({
+  page,
+  request,
+  browser,
+}) => {
   await owner(page);
   await page.getByTestId('tab-menu').click();
   await page.getByTestId('sw-plain-dosa').click();
@@ -126,10 +168,28 @@ test('a price change reaches the next order, and old bills keep their price', as
   await page.getByTestId('ed-price').fill('175');
   await page.getByTestId('ed-save').click();
   await expect(page.getByTestId('mi-plain-dosa')).toContainText('₹175');
-  const withExtra = await (await request.post('/api/orders', { data: { key: `adm-extra-${Date.now()}`, type: 'takeaway', name: null, payMethod: 'cash', lines: [{ itemId: 'masala-dosa', qty: 1, choices: { dosaExtras: ['benne'] }, notes: [] }] } })).json();
+  const withExtra = await (
+    await request.post('/api/orders', {
+      data: {
+        key: `adm-extra-${Date.now()}`,
+        type: 'takeaway',
+        name: null,
+        payMethod: 'cash',
+        lines: [{ itemId: 'masala-dosa', qty: 1, choices: { dosaExtras: ['benne'] }, notes: [] }],
+      },
+    })
+  ).json();
   expect(withExtra.lines[0].unitPrice).toBe(219 + 30);
   // reset for the next tests
-  await request.post('/api/admin/menu', { data: { itemId: 'masala-dosa', price: null, name: null, options: [{ groupId: 'dosaExtras', optionId: 'benne', price: 25 }] }, headers: H });
+  await request.post('/api/admin/menu', {
+    data: {
+      itemId: 'masala-dosa',
+      price: null,
+      name: null,
+      options: [{ groupId: 'dosaExtras', optionId: 'benne', price: 25 }],
+    },
+    headers: H,
+  });
   await request.post('/api/admin/menu', { data: { itemId: 'plain-dosa', price: null }, headers: H });
 });
 
@@ -153,7 +213,9 @@ test('confirming a payment and recording a refund move today’s takings', async
   const end = await today(request);
   expect(end.takings).toBe(start.takings);
   expect(end.refunds.amount).toBe(start.refunds.amount + o.total);
-  expect((await request.post(`/api/admin/orders/${o.id}/refund`, { data: { reason: 'again' }, headers: H })).status()).toBe(409);
+  expect(
+    (await request.post(`/api/admin/orders/${o.id}/refund`, { data: { reason: 'again' }, headers: H })).status(),
+  ).toBe(409);
 });
 
 test('reports: today vs yesterday on the dashboard, CSV downloads for the CA', async ({ page, request }) => {
