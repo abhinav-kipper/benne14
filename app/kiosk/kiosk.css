@@ -1690,7 +1690,6 @@
   margin: 4px 0 0;
 }
 .k-done .reset {
-  min-height: 112px; /* same height with and without the "Still there?" panel, so nothing above it moves */
   margin-top: 20px;
   align-self: stretch;
   display: flex;
@@ -1814,31 +1813,4 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--cream-2);
-}
-/* ---------- Order number screen: "Still there?" asked in place, number and bill code stay in view ---------- */
-.k-done .reset.ask {
-  background: var(--benne);
-  color: var(--benne-ink);
-  border-radius: 18px;
-  padding: 16px 16px 16px 26px;
-  gap: 12px;
-  animation: fadein 0.2s;
-}
-.k-done .reset.ask > div {
-  margin-right: auto;
-}
-.k-done .reset.ask b {
-  display: block;
-  font-size: 40px;
-  line-height: 1;
-}
-.k-done .reset.ask span {
-  font-size: 18px;
-  color: var(--benne-ink);
-}
-.k-done .reset.ask .more {
-  background: none;
-  border: 2px solid var(--benne-ink);
-  color: var(--benne-ink);
-  padding: 0 22px;
 }

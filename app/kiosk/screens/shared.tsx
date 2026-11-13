@@ -12,8 +12,8 @@ export const IDLE_MS = 60_000; // "Still there?" after this long without a touch
 export const IDLE_GRACE_S = 15;
 // The order-number screen: time to read the number and scan the bill, then it asks before clearing for the
 // next customer.
-export const DONE_STAY_S = 100;
-export const DONE_GRACE_S = 20;
+export const DONE_STAY_S = 90;
+export const DONE_GRACE_S = 30; // twice the menu's prompt: they may be mid-scan
 export const DONE_MORE_S = 60; // what "I need more time" adds
 
 export function Photo({ item, big }: { item: MenuItem; big?: boolean }) {

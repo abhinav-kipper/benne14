@@ -105,26 +105,31 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
           <p>Scan to follow your order live and get the GST bill. No paper, no waiting.</p>
         </div>
       </div>
-      {left > DONE_GRACE_S ? (
-        <div className="reset">
-          <span>Take your time. This screen clears by itself for the next customer.</span>
-          <button onClick={onDone} data-testid="new-order">
-            New order
-          </button>
-        </div>
-      ) : (
-        // Asked in place, so the order number and the bill code stay in view while it counts down.
-        <div className="reset ask" data-testid="done-ask">
-          <div>
-            <b className="disp">Still there?</b>
-            <span>Clearing for the next customer in {Math.max(0, left)}s</span>
+      <div className="reset">
+        <span>Take your time. This screen clears by itself for the next customer.</span>
+        <button onClick={onDone} data-testid="new-order">
+          New order
+        </button>
+      </div>
+      {/* The same "Still there?" box as on the menu, with a longer count and the order number repeated,
+          because it covers the ticket while it asks. */}
+      {left <= DONE_GRACE_S && (
+        <div className="k-idle" data-testid="done-ask">
+          <div className="box">
+            <h2 className="disp">Still there?</h2>
+            <p>
+              Your order number is <b>{o.token}</b>. We&apos;ll clear this screen for the next customer in{' '}
+              {Math.max(0, left)} seconds.
+            </p>
+            <div className="btns">
+              <button className="no" onClick={onDone} data-testid="done-now">
+                I&apos;m done
+              </button>
+              <button className="yes" onClick={() => setLeft(DONE_GRACE_S + DONE_MORE_S)} data-testid="more-time">
+                I need more time
+              </button>
+            </div>
           </div>
-          <button className="more" onClick={() => setLeft(DONE_GRACE_S + DONE_MORE_S)} data-testid="more-time">
-            I need more time
-          </button>
-          <button onClick={onDone} data-testid="new-order">
-            Done
-          </button>
         </div>
       )}
     </div>

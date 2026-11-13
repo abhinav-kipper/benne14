@@ -194,15 +194,15 @@ test('kiosk returns to the start screen by itself after the order number', async
   await expect(page.getByTestId('thanks')).toContainText(
     'Pay ₹93 at the counter and we’ll start your Udupi Medu Vada.',
   ); // matches what was ordered
-  await page.clock.runFor(95_000);
+  await page.clock.runFor(85_000);
   await expect(page.getByTestId('done-ask')).toHaveCount(0); // time to read the number and scan the bill
   await page.clock.runFor(7_000);
   await expect(page.getByTestId('done-ask')).toContainText('Still there?');
-  await expect(page.getByTestId('token')).toBeVisible(); // the number stays in view while it asks
+  await expect(page.getByTestId('done-ask')).toContainText('Your order number is 1.'); // repeated: the box covers the ticket
   await page.getByTestId('more-time').click();
   await page.clock.runFor(55_000);
   await expect(page.getByTestId('done-ask')).toHaveCount(0); // a minute more
-  await page.clock.runFor(27_000);
+  await page.clock.runFor(37_000);
   await expect(page.getByTestId('start')).toBeVisible(); // nobody answered: ready for the next customer
 });
 

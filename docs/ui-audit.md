@@ -73,4 +73,4 @@ number is unmissable; sold-out and offline states are handled; the kitchen rail 
 2026-11-13 · round 1, owner's second look:
 - U4: one-tap add is undone. With one tap there was no clear way to customise one of several of the same dish, so every + opens the dish's sheet again (as before round 1) and each customised dish is its own line. No "Customise" link.
 - U2: no "Start over" buttons. The kiosk clears itself: "Still there?" after 60 s without a touch (was 75 s), start screen 15 s later.
-- Order-number screen: stays 100 s so the bill can be scanned, then asks "Still there?" in place (the number and the bill code stay in view) and clears after 20 s. "I need more time" gives another minute; "New order" is always there. The running countdown bar is gone.
+- Order-number screen: stays 90 s so the bill can be scanned, then shows the same "Still there?" box as the menu, with a longer count (30 s, the menu's is 15 s) and the order number repeated in it. "I need more time" gives another minute; "New order" is always there. The running countdown bar is gone.
