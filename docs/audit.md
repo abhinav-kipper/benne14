@@ -63,3 +63,35 @@ production deploy; self-hosted fonts; distinctive, non-generic visual design on 
 ## Decisions log
 
 (date · item · decision)
+
+2026-11-13, owner's choices for B, C, D (A not yet discussed):
+
+| Item | Decision |
+|---|---|
+| B1 | Fix: newest ready order big, all others in a grid that shrinks to fit |
+| B2 | Fix: narrower chits when many + "+N more →" marker. Sound: remember choice, full-width "tap to turn sound on" bar after reload, and flash the screen edge on a new order |
+| B3 | Fix: auto-reload after an update (kiosk only on the start screen). No nightly reload |
+| B4 | Fix: scheduled GitHub uptime check of `/api/health` during shop hours. No Sentry for now |
+| B5 | Not now (keep-awake left to tablet settings) |
+| B6 | Raise the limit to 30 wrong PINs per 10 minutes (no per-device lock) |
+| B7 | Fix: unfinished orders stay on kitchen/TV past midnight; numbers still restart |
+| B8 | Fix: lists page through the whole day |
+| B9 | Fix: TV asks only for the last collected numbers; polls pause when hidden, slow down offline |
+| B10 | Fix: one request saves a whole menu edit with its history |
+| C1 | Fix |
+| C2 | Fix both (notes per dish type; hide default choices in the cart) |
+| C3 | Fix all three (darker grey, ≥12 px on dashboard, zoom on phone screens only) |
+| C4 | No change: kiosk tablet is portrait Android 16:10 |
+| C5 | Not now: photo upload comes with the add/remove-dishes work; image caching not chosen |
+| C6 | Fix: PNG icons + favicon |
+| C7 | Fix: calmer kitchen tags; move the test ribbon. Dashboard restyle not now |
+| D1 | Fix: split Kiosk and Admin per screen |
+| D2 | Fix: ESLint + Prettier in CI |
+| D3 | Fix: menu state in a proper store |
+| D4 | Not now |
+| D5 | Fix: record which migrations ran; health shows a missing one |
+| D6 | Fix: test the Supabase store in CI |
+| D7 | Not now |
+| D8 | Not now |
+| D9 | Fix: refresh docs |
+| D10 | Fix: dependency update PRs, newer actions, dead fields. User deletes merged branches |
