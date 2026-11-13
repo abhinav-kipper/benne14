@@ -45,6 +45,16 @@ export const isPaid = (o: Pick<Order, 'status'>) => PAID.includes(o.status);
 // refunded. Cancelled orders and unpaid UPI QRs never count; refunds are reported separately.
 export const counts = (o: Pick<Order, 'status' | 'refundedAt'>) => isPaid(o) && !o.refundedAt;
 
+// One line of an order's own history: placed, each change of state, a refund. Written by the database
+// in the same transaction as the change (migration 0006), so it can't disagree with the order.
+export interface OrderEvent {
+  at: string;
+  kind: 'placed' | 'status' | 'refund';
+  from: OrderStatus | null;
+  to: OrderStatus | null;
+  note: string | null;
+}
+
 // Change history shown on the dashboard.
 export interface AdminEvent {
   at: string;

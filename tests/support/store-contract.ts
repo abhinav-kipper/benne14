@@ -97,6 +97,30 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(await s.listCollected(8)).toEqual([{ id: gone.id, token: gone.token }]);
     });
 
+    it("keeps each order's own history: placed, every change of state, the refund", async () => {
+      const o = await s.placeOrder(input('upi'));
+      for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'] as const)
+        await s.setStatus(o.id, to);
+      await s.setStatus(o.id, 'handed_over'); // the same status again is not a change
+      await s.refund(o.id, 'Food issue');
+      const log = await s.listOrderEvents(o.id);
+      expect(log.map((e) => [e.kind, e.from, e.to])).toEqual([
+        ['placed', null, 'pending_payment'],
+        ['status', 'pending_payment', 'awaiting_cash'],
+        ['status', 'awaiting_cash', 'new'],
+        ['status', 'new', 'cooking'],
+        ['status', 'cooking', 'ready'],
+        ['status', 'ready', 'handed_over'],
+        ['refund', null, null],
+      ]);
+      expect(log[6].note).toBe(`₹${priced.total} · Food issue`);
+      expect(await s.listOrderEvents('00000000-0000-0000-0000-000000000000')).toEqual([]);
+      // a paid order can't be cancelled in either store
+      const paid = await s.placeOrder(input());
+      await s.setStatus(paid.id, 'new');
+      await expect(s.setStatus(paid.id, 'cancelled')).rejects.toMatchObject({ status: 409 });
+    });
+
     it('records a refund once, for paid orders only', async () => {
       const unpaid = await s.placeOrder(input());
       await expect(s.refund(unpaid.id, 'x')).rejects.toMatchObject({ status: 409 });
