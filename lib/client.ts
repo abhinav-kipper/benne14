@@ -41,6 +41,7 @@ export const api = {
   }) => call<Order>('/api/orders', { method: 'POST', body: JSON.stringify(b) }),
   // What the cart asks for (the owner's switches), and whether a code works for this cart.
   kiosk: () => call<KioskSettings>('/api/kiosk'),
+  popular: () => call<{ ids: string[] }>('/api/popular'),
   checkCode: (code: string, lines: CartLine[]) =>
     call<{ rule: DiscountRule; amount: number; short: number }>('/api/discounts/check', {
       method: 'POST',

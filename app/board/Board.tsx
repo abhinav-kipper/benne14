@@ -26,11 +26,12 @@ export default function Board() {
   const { orders, online } = useLiveOrders(1500);
   const done = useCollected(10_000);
   useAutoReload(); // nothing is typed on the TV, so it can reload the moment a new version is out
-  // Promo prices and names follow the owner's menu changes (checked every 5 minutes).
+  // Promo prices and names follow the owner's menu changes within half a minute, and a dish that is
+  // sold out today is not advertised.
   const { catalog, reload } = useMenu();
   useEffect(() => {
     reload();
-    const t = setInterval(reload, 5 * 60_000);
+    const t = setInterval(reload, 30_000);
     return () => clearInterval(t);
   }, [reload]);
   const [now, setNow] = useState(0); // set in the browser; a server-rendered time would mismatch (React #418)
@@ -39,7 +40,7 @@ export default function Board() {
     setNow(Date.now());
     const t = setInterval(() => {
       setNow(Date.now());
-      setPromo((p) => (p + 1) % PROMOS.length);
+      setPromo((p) => p + 1);
     }, 8000);
     return () => clearInterval(t);
   }, []);
@@ -55,7 +56,8 @@ export default function Board() {
   const rest = ready.slice(1);
   const tier = rest.length <= 2 ? 0 : rest.length <= 6 ? 1 : rest.length <= 12 ? 2 : 3;
   const shown = rest.length > MINI_MAX ? rest.slice(0, MINI_MAX - 1) : rest;
-  const p = itemById(PROMOS[promo], catalog)!;
+  const promos = PROMOS.map((id) => itemById(id, catalog)!).filter((i) => !i.soldOut);
+  const p = promos.length ? promos[promo % promos.length] : null;
   const clock = !now
     ? ''
     : new Date(now).toLocaleTimeString('en-IN', {
@@ -167,21 +169,23 @@ export default function Board() {
         </div>
       </section>
 
-      <div className="promo" key={p.id}>
-        <img src={photoOf(p.id)} alt="" />
-        <div>
-          <div className="t">{p.name}</div>
-          <div className="sub">{p.desc}</div>
+      {p && (
+        <div className="promo" key={p.id}>
+          <img src={photoOf(p.id)} alt="" />
+          <div>
+            <div className="t">{p.name}</div>
+            <div className="sub">{p.desc}</div>
+          </div>
+          <div className="p">
+            <b>₹{p.price}</b>
+          </div>
+          <div className="dots">
+            {promos.map((x) => (
+              <i key={x.id} className={x.id === p.id ? 'on' : ''} />
+            ))}
+          </div>
         </div>
-        <div className="p">
-          <b>₹{p.price}</b>
-        </div>
-        <div className="dots">
-          {PROMOS.map((id, i) => (
-            <i key={id} className={i === promo ? 'on' : ''} />
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

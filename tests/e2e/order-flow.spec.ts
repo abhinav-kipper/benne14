@@ -37,6 +37,7 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await staff(kitchen);
   await kitchen.goto('/kitchen');
   const chit = kitchen.getByTestId(`chit-${token}`);
+  await expect(chit.locator('.min')).toContainText('min'); // minutes waiting, spelled out
   await expect(chit).toBeVisible({ timeout: 5000 });
   await expect(chit).toContainText('Ghee Podi Benne Dosa');
   await expect(chit.locator('.tg.more')).toHaveText('+Extra benne'); // additions in green with a +
@@ -396,4 +397,39 @@ test('kiosk reads at arm’s length: no text under 16 px on any screen', async (
   await page.getByTestId('i-paid').click();
   await expect(page.getByTestId('token')).toBeVisible();
   expect(await small()).toEqual([]);
+});
+
+test('the cart suggests what the order is missing, not the same three dishes', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await expect(page.getByTestId('start')).toHaveText('Tap to order'); // no sub-line, no arrow glyph
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-masala-dosa').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  const offered = () =>
+    page
+      .locator('[data-testid^="suggest-"]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')!.replace('suggest-', '')));
+  const forDosa = await offered();
+  expect(forDosa).toHaveLength(3);
+  expect(forDosa).not.toContain('masala-dosa');
+  expect(forDosa.some((id) => ['filter-coffee', 'masala-tea'].includes(id))).toBe(true); // no drink yet: offer one
+  // taking a suggestion removes it and brings the next one
+  await page.getByTestId(`suggest-${forDosa[0]}`).click();
+  await expect(page.getByTestId('cart-line')).toHaveCount(2);
+  expect(await offered()).not.toContain(forDosa[0]);
+  await expect(page.locator('.k-cart .foot')).not.toContainText('UPI · Card');
+  await expect(page.locator('.k-cart')).not.toContainText('→');
+
+  // a drink-only order is offered food instead
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  const forTea = await offered();
+  expect(forTea).not.toEqual(forDosa);
+  expect(forTea).not.toContain('masala-tea');
+  expect(forTea.some((id) => id.includes('dosa'))).toBe(true);
 });

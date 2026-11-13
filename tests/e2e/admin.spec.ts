@@ -458,3 +458,36 @@ test('the owner can switch the code box and the phone box off; the server then i
   expect(history.some((e: { kind: string }) => e.kind === 'setting')).toBe(true);
   expect(history.some((e: { kind: string }) => e.kind === 'discount')).toBe(true);
 });
+
+test('a price change reaches the TV banner and an open kiosk cart within half a minute', async ({ page, request }) => {
+  const setPrice = (itemId: string, price: number | null) =>
+    request.post('/api/admin/menu', { data: { itemId, price }, headers: H });
+  await page.clock.install();
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/board');
+  await expect(page.locator('.promo')).toBeVisible();
+  expect((await setPrice('medu-vada', 97)).status()).toBe(200);
+  // the banner rotates through three dishes: wait for the vada to come round with its new price
+  let seen = '';
+  for (let i = 0; i < 10 && !seen.includes('₹97'); i++) {
+    await page.clock.runFor(8_000);
+    seen = await page.locator('.promo').innerText();
+  }
+  expect(seen).toContain('₹97');
+
+  // a customer already in the cart sees the new price on the suggestion too
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-plain-dosa').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  const first = page.locator('[data-testid^="suggest-"]').first();
+  const id = (await first.getAttribute('data-testid'))!.replace('suggest-', '');
+  expect((await setPrice(id, 103)).status()).toBe(200);
+  await expect(first).not.toContainText('₹103'); // not yet: the kiosk asks again every half minute
+  await page.clock.runFor(31_000);
+  await expect(page.getByTestId(`suggest-${id}`)).toContainText('₹103');
+  await setPrice(id, null);
+  await setPrice('medu-vada', null); // back to the menu's own price
+});
