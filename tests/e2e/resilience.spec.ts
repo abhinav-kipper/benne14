@@ -11,7 +11,8 @@ const kioskTo = async (page: Page, itemId = 'masala-tea') => {
   await page.getByTestId('add-to-order').click();
   await page.getByTestId('cartbar').click();
 };
-const todayCount = async (page: Page) => (await (await page.request.get('/api/orders?view=today')).json()).length as number;
+const todayCount = async (page: Page) =>
+  (await (await page.request.get('/api/orders?view=today')).json()).length as number;
 
 test('kitchen shows when it is offline and recovers by itself', async ({ page }) => {
   await staff(page);
@@ -38,7 +39,11 @@ test('kiosk: a failed checkout shows a calm message, and trying again makes one 
   await page.getByTestId('takeaway').click();
   await page.getByTestId('continue-to-pay').click();
   const before = await todayCount(page);
-  await page.route('**/api/orders', (r) => (r.request().method() === 'POST' ? r.fulfill({ status: 500, body: '{"error":"boom"}' }) : r.continue()), { times: 1 });
+  await page.route(
+    '**/api/orders',
+    (r) => (r.request().method() === 'POST' ? r.fulfill({ status: 500, body: '{"error":"boom"}' }) : r.continue()),
+    { times: 1 },
+  );
   await page.getByTestId('pay-cash').click();
   await expect(page.getByText("Your order didn't go through")).toBeVisible();
   await expect(page.getByText('boom')).toHaveCount(0); // no technical text for customers
@@ -47,17 +52,23 @@ test('kiosk: a failed checkout shows a calm message, and trying again makes one 
   expect(await todayCount(page)).toBe(before + 1);
 });
 
-test('kiosk: if the reply is lost after the order was saved, retrying gives the same order number', async ({ page }) => {
+test('kiosk: if the reply is lost after the order was saved, retrying gives the same order number', async ({
+  page,
+}) => {
   await kioskTo(page);
   await page.getByTestId('takeaway').click();
   await page.getByTestId('continue-to-pay').click();
   const before = await todayCount(page);
   // The server receives and saves the order, but the answer never reaches the tablet
-  await page.route('**/api/orders', async (r) => {
-    if (r.request().method() !== 'POST') return r.continue();
-    await r.fetch();
-    await r.abort('connectionreset');
-  }, { times: 1 });
+  await page.route(
+    '**/api/orders',
+    async (r) => {
+      if (r.request().method() !== 'POST') return r.continue();
+      await r.fetch();
+      await r.abort('connectionreset');
+    },
+    { times: 1 },
+  );
   await page.getByTestId('pay-cash').click();
   await expect(page.getByText("Your order didn't go through")).toBeVisible();
   expect(await todayCount(page)).toBe(before + 1);
@@ -77,7 +88,17 @@ test('kiosk: a double tap on a payment button places one order', async ({ page }
 });
 
 test('kitchen: a tap that fails offline says so, and the chit stays where it was', async ({ page }) => {
-  const o = await (await page.request.post('/api/orders', { data: { key: `res-${Date.now()}`, type: 'takeaway', name: null, payMethod: 'cash', lines: [{ itemId: 'plain-dosa', qty: 1, choices: {}, notes: [] }] } })).json();
+  const o = await (
+    await page.request.post('/api/orders', {
+      data: {
+        key: `res-${Date.now()}`,
+        type: 'takeaway',
+        name: null,
+        payMethod: 'cash',
+        lines: [{ itemId: 'plain-dosa', qty: 1, choices: {}, notes: [] }],
+      },
+    })
+  ).json();
   await page.request.post(`/api/orders/${o.id}/status`, { data: { to: 'new' }, headers: { 'x-staff-pin': PIN } });
   await staff(page);
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -114,7 +135,9 @@ test('kiosk: an unpaid UPI QR expires after 5 minutes and frees the order', asyn
   const token = (await page.locator('.qrcard .who small').textContent())!.match(/Order (\d+)/)![1];
   await page.clock.runFor(301_000);
   await expect(page.getByTestId('start')).toBeVisible();
-  const o = (await (await page.request.get('/api/orders?view=today')).json()).find((x: { token: string }) => x.token === token);
+  const o = (await (await page.request.get('/api/orders?view=today')).json()).find(
+    (x: { token: string }) => x.token === token,
+  );
   expect(o.status).toBe('cancelled');
 });
 

@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   check:
-    name: Typecheck + unit + database tests
+    name: Typecheck + lint + unit + database tests
     runs-on: ubuntu-24.04 # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
     timeout-minutes: 10
     steps:
@@ -24,6 +24,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
+      - name: Formatting (run `npm run format` to fix)
+        run: npm run format:check
       # pricing (incl. 2,000 random carts), the status machine, PIN lockout, and the real
       # Supabase migrations run in an in-memory Postgres (tests/unit/db.test.ts)
       - run: npm test

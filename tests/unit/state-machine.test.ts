@@ -21,22 +21,31 @@ const PATH: Record<OrderStatus, OrderStatus[]> = {
 describe('order status machine', () => {
   let s: MemoryStore;
   let n = 0;
-  beforeEach(() => { s = new MemoryStore(); });
+  beforeEach(() => {
+    s = new MemoryStore();
+  });
   const at = async (status: OrderStatus) => {
-    const o = await s.placeOrder({ key: `sm-${n++}-key`, type: 'takeaway', customerName: null, payMethod: 'upi', priced });
+    const o = await s.placeOrder({
+      key: `sm-${n++}-key`,
+      type: 'takeaway',
+      customerName: null,
+      payMethod: 'upi',
+      priced,
+    });
     for (const to of PATH[status]) await s.setStatus(o.id, to);
     return o.id;
   };
 
-  for (const from of ALL) for (const to of ALL) {
-    if (from === to) continue;
-    const ok = canMove(from, to);
-    it(`${from} → ${to}: ${ok ? 'allowed' : 'refused'}`, async () => {
-      const id = await at(from);
-      if (ok) expect((await s.setStatus(id, to)).status).toBe(to);
-      else await expect(s.setStatus(id, to)).rejects.toMatchObject({ status: 409 });
-    });
-  }
+  for (const from of ALL)
+    for (const to of ALL) {
+      if (from === to) continue;
+      const ok = canMove(from, to);
+      it(`${from} → ${to}: ${ok ? 'allowed' : 'refused'}`, async () => {
+        const id = await at(from);
+        if (ok) expect((await s.setStatus(id, to)).status).toBe(to);
+        else await expect(s.setStatus(id, to)).rejects.toMatchObject({ status: 409 });
+      });
+    }
 
   it('cancelled is final and nothing leads back to unpaid', () => {
     expect(NEXT.cancelled).toEqual([]);

@@ -13,12 +13,25 @@ test.beforeAll(async ({ request }) => {
 
 let k = 0;
 const paidOrder = async (r: APIRequestContext, upTo: 'new' | 'ready') => {
-  const o = await (await r.post('/api/orders', { data: { key: `busy-${Date.now()}-${k++}`, type: 'takeaway', name: null, payMethod: 'cash', lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }] } })).json();
-  for (const to of upTo === 'new' ? ['new'] : ['new', 'cooking', 'ready']) await r.post(`/api/orders/${o.id}/status`, { data: { to }, headers: H });
+  const o = await (
+    await r.post('/api/orders', {
+      data: {
+        key: `busy-${Date.now()}-${k++}`,
+        type: 'takeaway',
+        name: null,
+        payMethod: 'cash',
+        lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+      },
+    })
+  ).json();
+  for (const to of upTo === 'new' ? ['new'] : ['new', 'cooking', 'ready'])
+    await r.post(`/api/orders/${o.id}/status`, { data: { to }, headers: H });
   return o as { id: string; token: string };
 };
 const finish = async (r: APIRequestContext, orders: { id: string }[]) => {
-  for (const o of orders) for (const to of ['cooking', 'ready', 'handed_over']) await r.post(`/api/orders/${o.id}/status`, { data: { to }, headers: H });
+  for (const o of orders)
+    for (const to of ['cooking', 'ready', 'handed_over'])
+      await r.post(`/api/orders/${o.id}/status`, { data: { to }, headers: H });
 };
 const kitchen = async (page: Page) => {
   await page.addInitScript((pin) => localStorage.setItem('benne14.staffPin', pin), PIN);

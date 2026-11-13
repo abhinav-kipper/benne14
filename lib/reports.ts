@@ -3,7 +3,12 @@
 import { addDays, daysBetween, isPaid, istHour, type Order, type PayMethod } from './orders';
 import { SHOP } from './shop';
 
-export interface DishRow { itemId: string; name: string; qty: number; amount: number }
+export interface DishRow {
+  itemId: string;
+  name: string;
+  qty: number;
+  amount: number;
+}
 
 export interface Summary {
   takings: number; // paid, not refunded, whole rupees (bills are whole rupees)
@@ -34,21 +39,29 @@ export function summarize(all: Order[], fromDay: string, toDay: string): Summary
 
   const dishes = new Map<string, DishRow>();
   const extras = { qty: 0, amount: 0 };
-  for (const o of kept) for (const l of o.lines) {
-    const extra = l.mods.reduce((a, m) => a + m.price, 0);
-    const d = dishes.get(l.itemId) ?? { itemId: l.itemId, name: l.name, qty: 0, amount: 0 };
-    d.qty += l.qty;
-    d.amount += (l.unitPrice - extra) * l.qty;
-    dishes.set(l.itemId, d);
-    for (const m of l.mods) if (m.price > 0) { extras.qty += l.qty; extras.amount += m.price * l.qty; }
-  }
+  for (const o of kept)
+    for (const l of o.lines) {
+      const extra = l.mods.reduce((a, m) => a + m.price, 0);
+      const d = dishes.get(l.itemId) ?? { itemId: l.itemId, name: l.name, qty: 0, amount: 0 };
+      d.qty += l.qty;
+      d.amount += (l.unitPrice - extra) * l.qty;
+      dishes.set(l.itemId, d);
+      for (const m of l.mods)
+        if (m.price > 0) {
+          extras.qty += l.qty;
+          extras.amount += m.price * l.qty;
+        }
+    }
 
   const byHour = new Map<number, number>();
   for (const o of kept) byHour.set(istHour(o.createdAt), (byHour.get(istHour(o.createdAt)) ?? 0) + 1);
   const seen = [...byHour.keys()];
   const first = Math.min(SHOP.hours.open, ...seen);
   const last = Math.max(SHOP.hours.close - 1, ...seen);
-  const hours = Array.from({ length: last - first + 1 }, (_, i) => ({ hour: first + i, orders: byHour.get(first + i) ?? 0 }));
+  const hours = Array.from({ length: last - first + 1 }, (_, i) => ({
+    hour: first + i,
+    orders: byHour.get(first + i) ?? 0,
+  }));
 
   const n = daysBetween(fromDay, toDay);
   const days = Array.from({ length: Math.max(0, n) }, (_, i) => {
@@ -93,11 +106,37 @@ const csv = (rows: unknown[][]) => rows.map((r) => r.map(cell).join(',')).join('
 const istTime = (iso: string) => new Date(Date.parse(iso) + 5.5 * 3600_000).toISOString().slice(11, 16);
 
 export function billsCsv(all: Order[]) {
-  const rows: unknown[][] = [['Date', 'Time', 'Order', 'Type', 'Payment', 'Items', 'Subtotal', 'CGST', 'SGST', 'Total', 'Refunded', 'Refund reason']];
+  const rows: unknown[][] = [
+    [
+      'Date',
+      'Time',
+      'Order',
+      'Type',
+      'Payment',
+      'Items',
+      'Subtotal',
+      'CGST',
+      'SGST',
+      'Total',
+      'Refunded',
+      'Refund reason',
+    ],
+  ];
   for (const o of all.filter(isPaid)) {
-    rows.push([o.tokenDay, istTime(o.createdAt), o.token, o.type === 'dine_in' ? 'Dine-in' : 'Takeaway', o.payMethod.toUpperCase(),
-      o.lines.map((l) => `${l.qty} x ${l.name}`).join('; '), o.subtotal.toFixed(2), o.cgst.toFixed(2), o.sgst.toFixed(2), o.total.toFixed(2),
-      o.refundedAt ? (o.refundAmount ?? o.total).toFixed(2) : '', o.refundReason ?? '']);
+    rows.push([
+      o.tokenDay,
+      istTime(o.createdAt),
+      o.token,
+      o.type === 'dine_in' ? 'Dine-in' : 'Takeaway',
+      o.payMethod.toUpperCase(),
+      o.lines.map((l) => `${l.qty} x ${l.name}`).join('; '),
+      o.subtotal.toFixed(2),
+      o.cgst.toFixed(2),
+      o.sgst.toFixed(2),
+      o.total.toFixed(2),
+      o.refundedAt ? (o.refundAmount ?? o.total).toFixed(2) : '',
+      o.refundReason ?? '',
+    ]);
   }
   return csv(rows);
 }
@@ -105,13 +144,28 @@ export function billsCsv(all: Order[]) {
 export function gstCsv(all: Order[], fromDay: string, toDay: string) {
   const rows: unknown[][] = [['Date', 'Bills', 'Taxable value', 'CGST 2.5%', 'SGST 2.5%', 'Total']];
   for (const d of summarize(all, fromDay, toDay).days) {
-    const s = summarize(all.filter((o) => o.tokenDay === d.day), d.day, d.day);
-    rows.push([d.day, s.orders, s.gst.taxable.toFixed(2), s.gst.cgst.toFixed(2), s.gst.sgst.toFixed(2), s.gst.total.toFixed(2)]);
+    const s = summarize(
+      all.filter((o) => o.tokenDay === d.day),
+      d.day,
+      d.day,
+    );
+    rows.push([
+      d.day,
+      s.orders,
+      s.gst.taxable.toFixed(2),
+      s.gst.cgst.toFixed(2),
+      s.gst.sgst.toFixed(2),
+      s.gst.total.toFixed(2),
+    ]);
   }
   return csv(rows);
 }
 
 export function dishesCsv(all: Order[], fromDay: string, toDay: string) {
   const s = summarize(all, fromDay, toDay);
-  return csv([['Dish', 'Sold', 'Amount (before GST)'], ...s.dishes.map((d) => [d.name, d.qty, d.amount.toFixed(2)]), ['Extras', s.extras.qty, s.extras.amount.toFixed(2)]]);
+  return csv([
+    ['Dish', 'Sold', 'Amount (before GST)'],
+    ...s.dishes.map((d) => [d.name, d.qty, d.amount.toFixed(2)]),
+    ['Extras', s.extras.qty, s.extras.amount.toFixed(2)],
+  ]);
 }

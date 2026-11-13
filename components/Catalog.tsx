@@ -14,6 +14,13 @@ export const useCatalog = () => useContext(CatalogContext);
 // the screen keeps the last menu it had, so a network blip never empties the kiosk.
 export function useMenu() {
   const [catalog, setCatalog] = useState<Catalog>(BASE_CATALOG);
-  const reload = useCallback(() => api.menu().then((o) => setCatalog(mergeCatalog(o))).catch(() => {}), []);
+  const reload = useCallback(
+    () =>
+      api
+        .menu()
+        .then((o) => setCatalog(mergeCatalog(o)))
+        .catch(() => {}),
+    [],
+  );
   return { catalog, reload };
 }

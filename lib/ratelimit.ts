@@ -3,16 +3,23 @@
 // still turns 10,000 guesses into days of work instead of minutes.
 export class FailureLimiter {
   private hits = new Map<string, number[]>();
-  constructor(readonly max = 10, readonly windowMs = 10 * 60_000, private now = () => Date.now()) {}
+  constructor(
+    readonly max = 10,
+    readonly windowMs = 10 * 60_000,
+    private now = () => Date.now(),
+  ) {}
 
   private recent(key: string) {
     const cut = this.now() - this.windowMs;
     const list = (this.hits.get(key) ?? []).filter((t) => t > cut);
-    if (list.length) this.hits.set(key, list); else this.hits.delete(key);
+    if (list.length) this.hits.set(key, list);
+    else this.hits.delete(key);
     return list;
   }
 
-  locked(key: string) { return this.recent(key).length >= this.max; }
+  locked(key: string) {
+    return this.recent(key).length >= this.max;
+  }
 
   fail(key: string) {
     const list = this.recent(key);

@@ -15,7 +15,12 @@ export async function GET(req: Request) {
     const orders = await getStore().listRange(prev.from, to);
     const cur = orders.filter((o) => o.tokenDay >= from);
     const old = orders.filter((o) => o.tokenDay < from);
-    return json({ from, to, current: summarize(cur, from, to), previous: { ...prev, summary: summarize(old, prev.from, prev.to) } });
+    return json({
+      from,
+      to,
+      current: summarize(cur, from, to),
+      previous: { ...prev, summary: summarize(old, prev.from, prev.to) },
+    });
   } catch (e) {
     return fail(e);
   }

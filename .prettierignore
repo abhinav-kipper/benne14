@@ -1,0 +1,9 @@
+.next
+node_modules
+prototype
+public
+playwright-report
+test-results
+package-lock.json
+supabase/migrations
+*.md

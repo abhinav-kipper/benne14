@@ -16,7 +16,10 @@ export function Fit({ w, h, children }: { w: number; h: number; children: ReactN
   }, [w, h]);
   return (
     <div className="fit-outer">
-      <div className="fit-inner" style={{ width: w, height: h, transform: `translate(${box.x}px,${box.y}px) scale(${box.k})` }}>
+      <div
+        className="fit-inner"
+        style={{ width: w, height: h, transform: `translate(${box.x}px,${box.y}px) scale(${box.k})` }}
+      >
         {children}
       </div>
     </div>

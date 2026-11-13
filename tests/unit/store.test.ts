@@ -4,12 +4,19 @@ import { priceOrder } from '@/lib/pricing';
 import type { PlaceOrderInput } from '@/lib/orders';
 
 const priced = priceOrder([{ itemId: 'masala-dosa', qty: 1, choices: {}, notes: [] }]);
-const input = (key: string, payMethod: PlaceOrderInput['payMethod'] = 'upi'): PlaceOrderInput =>
-  ({ key, type: 'takeaway', customerName: 'Rahul', payMethod, priced });
+const input = (key: string, payMethod: PlaceOrderInput['payMethod'] = 'upi'): PlaceOrderInput => ({
+  key,
+  type: 'takeaway',
+  customerName: 'Rahul',
+  payMethod,
+  priced,
+});
 
 describe('memory store', () => {
   let s: MemoryStore;
-  beforeEach(() => { s = new MemoryStore(); });
+  beforeEach(() => {
+    s = new MemoryStore();
+  });
 
   it('numbers tokens per day and is idempotent on the checkout key', async () => {
     const a = await s.placeOrder(input('checkout-aaaa'));
@@ -25,7 +32,8 @@ describe('memory store', () => {
     const cash = await s.placeOrder(input('checkout-cash', 'cash'));
     expect(upi.status).toBe('pending_payment');
     expect(cash.status).toBe('awaiting_cash');
-    const rail = async () => (await s.listLive()).filter((o) => o.status === 'new' || o.status === 'cooking').map((o) => o.token);
+    const rail = async () =>
+      (await s.listLive()).filter((o) => o.status === 'new' || o.status === 'cooking').map((o) => o.token);
     expect((await s.listLive()).map((o) => `${o.token}:${o.status}`)).toEqual(['1:pending_payment', '2:awaiting_cash']);
     expect(await rail()).toEqual([]);
     await s.setStatus(upi.id, 'awaiting_cash'); // customer: "I've paid"
@@ -103,7 +111,8 @@ describe('memory store', () => {
       const ids: string[] = [];
       for (let i = 0; i < 320; i++) ids.push((await s.placeOrder(input(`many-${i}`, 'cash'))).id);
       expect(await s.listToday()).toHaveLength(320);
-      for (const id of ids.slice(0, 10)) for (const to of ['new', 'cooking', 'ready', 'handed_over'] as const) await s.setStatus(id, to);
+      for (const id of ids.slice(0, 10))
+        for (const to of ['new', 'cooking', 'ready', 'handed_over'] as const) await s.setStatus(id, to);
       const c = await s.listCollected(8);
       expect(c).toHaveLength(8);
       expect(Object.keys(c[0]).sort()).toEqual(['id', 'token']); // numbers only: no names, items or amounts
@@ -124,10 +133,16 @@ describe('memory store', () => {
     it('keeps menu changes; sold out lasts for today only', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-11-13T06:00:00Z'));
-      const edit = (patch: Parameters<typeof s.saveMenuEdit>[0]['patch']) => s.saveMenuEdit({ itemId: 'masala-dosa', patch, options: [], events: [] });
+      const edit = (patch: Parameters<typeof s.saveMenuEdit>[0]['patch']) =>
+        s.saveMenuEdit({ itemId: 'masala-dosa', patch, options: [], events: [] });
       await edit({ price: 219, soldOut: true });
       await edit({ name: 'Big Masala Dosa' });
-      expect((await s.getOverrides()).items['masala-dosa']).toEqual({ name: 'Big Masala Dosa', desc: null, price: 219, soldOut: true });
+      expect((await s.getOverrides()).items['masala-dosa']).toEqual({
+        name: 'Big Masala Dosa',
+        desc: null,
+        price: 219,
+        soldOut: true,
+      });
       vi.setSystemTime(new Date('2026-11-13T19:00:00Z')); // 00:30 IST next day
       expect((await s.getOverrides()).items['masala-dosa'].soldOut).toBe(false);
       await edit({ price: null });
@@ -136,8 +151,15 @@ describe('memory store', () => {
     });
 
     it('saves a menu edit with its extras and history lines together', async () => {
-      await s.saveMenuEdit({ itemId: 'plain-dosa', patch: { price: 179 }, options: [{ groupId: 'dosaExtras', optionId: 'benne', price: 30 }],
-        events: [{ kind: 'price', subject: 'Plain Dosa', before: '₹169', after: '₹179' }, { kind: 'option_price', subject: 'Extra benne', before: '₹25', after: '₹30' }] });
+      await s.saveMenuEdit({
+        itemId: 'plain-dosa',
+        patch: { price: 179 },
+        options: [{ groupId: 'dosaExtras', optionId: 'benne', price: 30 }],
+        events: [
+          { kind: 'price', subject: 'Plain Dosa', before: '₹169', after: '₹179' },
+          { kind: 'option_price', subject: 'Extra benne', before: '₹25', after: '₹30' },
+        ],
+      });
       const o = await s.getOverrides();
       expect(o.items['plain-dosa'].price).toBe(179);
       expect(o.options['dosaExtras:benne']).toBe(30);

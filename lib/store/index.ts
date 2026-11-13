@@ -29,7 +29,12 @@ export interface Store {
 }
 
 // undefined = leave as is; null = back to the menu in code.
-export interface ItemPatch { name?: string | null; desc?: string | null; price?: number | null; soldOut?: boolean }
+export interface ItemPatch {
+  name?: string | null;
+  desc?: string | null;
+  price?: number | null;
+  soldOut?: boolean;
+}
 export interface MenuEdit {
   itemId: string;
   patch: ItemPatch;
@@ -44,10 +49,12 @@ export function getStore(): Store {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   // Supabase's new "secret" key (sb_secret_…) or the legacy service_role key. Server-only, never NEXT_PUBLIC.
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (key?.startsWith('sb_publishable_')) throw new StoreError('SUPABASE_SECRET_KEY holds the publishable key; use the sb_secret_ key', 503);
+  if (key?.startsWith('sb_publishable_'))
+    throw new StoreError('SUPABASE_SECRET_KEY holds the publishable key; use the sb_secret_ key', 503);
   if (url && key) return (store = new SupabaseStore(url, key));
   // On Vercel every request can land on a different instance, so in-memory orders would vanish.
-  if (process.env.VERCEL) throw new StoreError('Database not configured: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY', 503);
+  if (process.env.VERCEL)
+    throw new StoreError('Database not configured: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY', 503);
   return (store = MemoryStore.shared());
 }
 

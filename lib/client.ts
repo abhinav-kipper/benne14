@@ -8,11 +8,20 @@ import type { Summary } from './reports';
 import { BUILD_ID } from './version';
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) { super(message); }
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
 }
 
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(url, { ...init, cache: 'no-store', headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) } });
+  const r = await fetch(url, {
+    ...init,
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+  });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new ApiError((body as { error?: string }).error ?? `HTTP ${r.status}`, r.status);
   return body as T;
@@ -27,11 +36,16 @@ export const api = {
   collected: () => call<{ id: string; token: string }[]>('/api/orders?view=collected'),
   menu: () => call<Overrides>('/api/menu'),
   checkPin: (pin: string) => call<{ ok: true }>('/api/staff', { method: 'POST', headers: { 'x-staff-pin': pin } }),
-  claim: (id: string, action: 'paid' | 'cancel') => call<Order>(`/api/orders/${id}/claim`, { method: 'POST', body: JSON.stringify({ action }) }),
+  claim: (id: string, action: 'paid' | 'cancel') =>
+    call<Order>(`/api/orders/${id}/claim`, { method: 'POST', body: JSON.stringify({ action }) }),
   mockPay: (id: string) => call<Order>(`/api/orders/${id}/pay`, { method: 'POST' }),
   // `from` = the status this screen shows; the server refuses (409) if another screen changed it first.
   setStatus: (id: string, to: OrderStatus, pin: string, from?: OrderStatus) =>
-    call<Order>(`/api/orders/${id}/status`, { method: 'POST', body: JSON.stringify({ to, from }), headers: { 'x-staff-pin': pin } }),
+    call<Order>(`/api/orders/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ to, from }),
+      headers: { 'x-staff-pin': pin },
+    }),
 };
 
 // Runs `fn` now and then every `ms`, one call at a time. It pauses while the page is hidden (a
@@ -45,28 +59,50 @@ export function usePoll(fn: () => Promise<boolean | void>, ms: number, on = true
   const kick = useRef<() => void>(() => {});
   useEffect(() => {
     if (!on) return;
-    let stop = false, timer: ReturnType<typeof setTimeout> | undefined, running = false, again = false, fails = 0;
+    let stop = false,
+      timer: ReturnType<typeof setTimeout> | undefined,
+      running = false,
+      again = false,
+      fails = 0;
     const run = async () => {
       if (stop) return;
-      if (running) { again = true; return; } // asked while busy: go once more straight after
+      if (running) {
+        again = true;
+        return;
+      } // asked while busy: go once more straight after
       clearTimeout(timer);
       if (document.hidden) return; // visibilitychange restarts it
       running = true;
       let ok = true;
-      try { ok = (await latest.current()) !== false; } catch { ok = false; }
+      try {
+        ok = (await latest.current()) !== false;
+      } catch {
+        ok = false;
+      }
       running = false;
       fails = ok ? 0 : fails + 1;
-      if (again && !stop) { again = false; run(); return; }
+      if (again && !stop) {
+        again = false;
+        run();
+        return;
+      }
       // fast polls back off up to MAX_BACKOFF_MS; slow ones retry sooner than their interval (15 s at most)
       const retry = Math.min(ms * 2 ** fails, ms > MAX_BACKOFF_MS ? Math.min(ms, 15_000) : MAX_BACKOFF_MS);
       if (!stop) timer = setTimeout(run, ok ? ms : retry);
     };
-    const wake = () => { if (!document.hidden) run(); };
+    const wake = () => {
+      if (!document.hidden) run();
+    };
     kick.current = run;
     run();
     document.addEventListener('visibilitychange', wake);
     window.addEventListener('online', wake);
-    return () => { stop = true; clearTimeout(timer); document.removeEventListener('visibilitychange', wake); window.removeEventListener('online', wake); };
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('online', wake);
+    };
   }, [ms, on]);
   return useCallback(() => kick.current(), []);
 }
@@ -85,23 +121,36 @@ export function useLiveOrders(intervalMs = 1500) {
       // stops the order from flickering back (and replaying its animation) after a tap.
       if (started >= localAt.current) setOrders(data);
       setOnline(true);
-    } catch { setOnline(false); return false; }
+    } catch {
+      setOnline(false);
+      return false;
+    }
   }, intervalMs);
-  const noteLocalChange = useCallback(() => { localAt.current = Date.now(); }, []);
+  const noteLocalChange = useCallback(() => {
+    localAt.current = Date.now();
+  }, []);
   return { orders, setOrders, online, refresh, noteLocalChange };
 }
 
 // Today's orders, newest first, for the history views. Polls only while `on` (e.g. the panel is open).
 export function useTodayOrders(on: boolean, intervalMs = 10_000) {
   const [orders, setOrders] = useState<Order[] | null>(null);
-  usePoll(async () => { setOrders(await api.today()); }, intervalMs, on);
+  usePoll(
+    async () => {
+      setOrders(await api.today());
+    },
+    intervalMs,
+    on,
+  );
   return orders;
 }
 
 // The TV's "Collected" row: the last few collected order numbers, nothing else.
 export function useCollected(intervalMs = 10_000) {
   const [list, setList] = useState<{ id: string; token: string }[]>([]);
-  usePoll(async () => { setList(await api.collected()); }, intervalMs);
+  usePoll(async () => {
+    setList(await api.collected());
+  }, intervalMs);
   return list;
 }
 
@@ -114,11 +163,26 @@ export function useOrder(id: string | null, intervalMs = 1500) {
 export function useOrderState(id: string | null, intervalMs = 1500) {
   const [order, setOrder] = useState<Order | null>(null);
   const [missing, setMissing] = useState(false);
-  useEffect(() => { setOrder(null); setMissing(false); }, [id]);
-  usePoll(async () => {
-    try { setOrder(await api.order(id!)); setMissing(false); }
-    catch (e) { if (e instanceof ApiError && e.status === 404) { setMissing(true); return; } return false; }
-  }, intervalMs, !!id);
+  useEffect(() => {
+    setOrder(null);
+    setMissing(false);
+  }, [id]);
+  usePoll(
+    async () => {
+      try {
+        setOrder(await api.order(id!));
+        setMissing(false);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) {
+          setMissing(true);
+          return;
+        }
+        return false;
+      }
+    },
+    intervalMs,
+    !!id,
+  );
   return { order, missing };
 }
 
@@ -139,10 +203,14 @@ export function useAutoReload(safe = true) {
     try {
       if (sessionStorage.getItem(RELOADED_FOR) === to) return;
       sessionStorage.setItem(RELOADED_FOR, to);
-    } catch { return; }
+    } catch {
+      return;
+    }
     window.location.reload();
   }, []);
-  useEffect(() => { if (safe) maybeReload(); });
+  useEffect(() => {
+    if (safe) maybeReload();
+  });
   // also check at the moment it becomes safe, between two polls
   useEffect(() => {
     if (!safe) return;
@@ -156,11 +224,17 @@ const RELOADED_FOR = 'benne14.reloadedFor';
 export function chime(ctx: AudioContext | null, notes = [880, 1320]) {
   if (!ctx) return;
   notes.forEach((f, i) => {
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.frequency.value = f; o.type = 'sine';
+    const o = ctx.createOscillator(),
+      g = ctx.createGain();
+    o.frequency.value = f;
+    o.type = 'sine';
     const t = ctx.currentTime + i * 0.16;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
-    o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.55);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    o.connect(g).connect(ctx.destination);
+    o.start(t);
+    o.stop(t + 0.55);
   });
 }
 
@@ -182,23 +256,56 @@ export function useFreshIds(ids: string[], ms = 1500): Set<string> {
 
 // Owner dashboard calls (behind the staff PIN for now).
 const pinHeader = (pin: string) => ({ 'x-staff-pin': pin });
-export interface Report { from: string; to: string; current: Summary; previous: { from: string; to: string; summary: Summary } }
+export interface Report {
+  from: string;
+  to: string;
+  current: Summary;
+  previous: { from: string; to: string; summary: Summary };
+}
 export const admin = {
-  report: (pin: string, from: string, to: string) => call<Report>(`/api/admin/report?from=${from}&to=${to}`, { headers: pinHeader(pin) }),
+  report: (pin: string, from: string, to: string) =>
+    call<Report>(`/api/admin/report?from=${from}&to=${to}`, { headers: pinHeader(pin) }),
   events: (pin: string) => call<AdminEvent[]>('/api/admin/events', { headers: pinHeader(pin) }),
   // One request per edit: the dish's fields and any extras' prices save together or not at all.
-  saveItem: (pin: string, b: { itemId: string; name?: string | null; desc?: string | null; price?: number | null; soldOut?: boolean; options?: { groupId: string; optionId: string; price: number }[] }) =>
-    call('/api/admin/menu', { method: 'POST', body: JSON.stringify(b), headers: pinHeader(pin) }),
-  refund: (pin: string, id: string, reason: string) => call<Order>(`/api/admin/orders/${id}/refund`, { method: 'POST', body: JSON.stringify({ reason }), headers: pinHeader(pin) }),
+  saveItem: (
+    pin: string,
+    b: {
+      itemId: string;
+      name?: string | null;
+      desc?: string | null;
+      price?: number | null;
+      soldOut?: boolean;
+      options?: { groupId: string; optionId: string; price: number }[];
+    },
+  ) => call('/api/admin/menu', { method: 'POST', body: JSON.stringify(b), headers: pinHeader(pin) }),
+  refund: (pin: string, id: string, reason: string) =>
+    call<Order>(`/api/admin/orders/${id}/refund`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+      headers: pinHeader(pin),
+    }),
   // CSV comes back as a file; the browser saves it (a plain link can't send the PIN header).
   async download(pin: string, kind: 'bills' | 'gst' | 'dishes', from: string, to: string) {
-    const r = await fetch(`/api/admin/export?kind=${kind}&from=${from}&to=${to}`, { headers: pinHeader(pin), cache: 'no-store' });
-    if (!r.ok) throw new ApiError(((await r.json().catch(() => ({}))) as { error?: string }).error ?? `HTTP ${r.status}`, r.status);
+    const r = await fetch(`/api/admin/export?kind=${kind}&from=${from}&to=${to}`, {
+      headers: pinHeader(pin),
+      cache: 'no-store',
+    });
+    if (!r.ok)
+      throw new ApiError(
+        ((await r.json().catch(() => ({}))) as { error?: string }).error ?? `HTTP ${r.status}`,
+        r.status,
+      );
     const url = URL.createObjectURL(await r.blob());
-    const a = Object.assign(document.createElement('a'), { href: url, download: `benne14-${kind}-${from}-to-${to}.csv` });
-    document.body.appendChild(a); a.click(); a.remove();
+    const a = Object.assign(document.createElement('a'), {
+      href: url,
+      download: `benne14-${kind}-${from}-to-${to}.csv`,
+    });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   },
 };
 
-export const newKey = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+export const newKey = () =>
+  crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;

@@ -6,7 +6,8 @@ export type PayMethod = 'upi' | 'card' | 'cash';
 
 // pending_payment → (paid) new → cooking → ready → handed_over
 // card and cash: awaiting_cash → new (paid at the counter, staff confirms)
-export type OrderStatus = 'pending_payment' | 'awaiting_cash' | 'new' | 'cooking' | 'ready' | 'handed_over' | 'cancelled';
+export type OrderStatus =
+  'pending_payment' | 'awaiting_cash' | 'new' | 'cooking' | 'ready' | 'handed_over' | 'cancelled';
 
 export interface Order {
   id: string;
@@ -53,7 +54,23 @@ export interface PlaceOrderInput {
   type: OrderType;
   customerName: string | null;
   payMethod: PayMethod;
-  priced: Omit<Order, 'id' | 'token' | 'tokenDay' | 'type' | 'customerName' | 'payMethod' | 'status' | 'createdAt' | 'updatedAt' | 'paidAt' | 'readyAt' | 'refundedAt' | 'refundReason' | 'refundAmount'>;
+  priced: Omit<
+    Order,
+    | 'id'
+    | 'token'
+    | 'tokenDay'
+    | 'type'
+    | 'customerName'
+    | 'payMethod'
+    | 'status'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'paidAt'
+    | 'readyAt'
+    | 'refundedAt'
+    | 'refundReason'
+    | 'refundAmount'
+  >;
 }
 
 // Which status changes staff may make from which status.
@@ -89,9 +106,15 @@ export function istDay(d = new Date()): string {
 export const istHour = (iso: string) => new Date(Date.parse(iso) + 5.5 * 3600_000).getUTCHours();
 
 // Calendar maths on YYYY-MM-DD strings (no time zones involved).
-export const addDays = (day: string, n: number) => new Date(Date.parse(day + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
-export const daysBetween = (from: string, to: string) => Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86_400_000) + 1;
-export const isDay = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s + 'T00:00:00Z')) && new Date(Date.parse(s + 'T00:00:00Z')).toISOString().startsWith(s);
+export const addDays = (day: string, n: number) =>
+  new Date(Date.parse(day + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
+export const daysBetween = (from: string, to: string) =>
+  Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86_400_000) + 1;
+export const isDay = (s: unknown): s is string =>
+  typeof s === 'string' &&
+  /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+  !Number.isNaN(Date.parse(s + 'T00:00:00Z')) &&
+  new Date(Date.parse(s + 'T00:00:00Z')).toISOString().startsWith(s);
 
 export const formatToken = (n: number) => String(n);
 
@@ -104,5 +127,12 @@ export const minutesSince = (iso: string, now = Date.now()) => Math.max(0, Math.
 // direction-override characters that could garble the board), 24 at most.
 export function cleanName(v: unknown): string | null {
   if (typeof v !== 'string') return null;
-  return v.replace(/[\p{Cc}\p{Cf}]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24).trim() || null;
+  return (
+    v
+      .replace(/[\p{Cc}\p{Cf}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 24)
+      .trim() || null
+  );
 }
