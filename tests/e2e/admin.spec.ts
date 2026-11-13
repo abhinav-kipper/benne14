@@ -41,11 +41,15 @@ test('admin API refuses bad input with a clear 400/404/409', async ({ request })
     { itemId: 'masala-dosa', desc: 'x'.repeat(161) }, { itemId: 'masala-dosa', soldOut: 'yes' }, { itemId: 'masala-dosa', name: 5 }]) {
     expect((await menu(bad)).status(), JSON.stringify(bad)).toBe(400);
   }
-  const opt = (data: object) => request.post('/api/admin/option', { data, headers: H });
+  const opt = (o: object) => menu({ itemId: 'masala-dosa', options: [o] });
   expect((await opt({ groupId: 'dosaExtras', optionId: 'gold', price: 10 })).status()).toBe(400);
   expect((await opt({ groupId: 'sugar', optionId: 'less', price: 10 })).status()).toBe(400); // pick-one choices have no price
   expect((await opt({ groupId: 'constructor', optionId: 'x', price: 10 })).status()).toBe(400);
   expect((await opt({ groupId: 'dosaExtras', optionId: 'benne', price: -1 })).status()).toBe(400);
+  expect((await menu({ itemId: 'masala-dosa', options: 'benne' })).status()).toBe(400);
+  // one bad extra refuses the whole edit: the dish price in the same request is not saved either
+  expect((await menu({ itemId: 'masala-dosa', price: 555, options: [{ groupId: 'dosaExtras', optionId: 'benne', price: -1 }] })).status()).toBe(400);
+  expect((await (await request.get('/api/menu')).json()).items['masala-dosa']?.price ?? null).not.toBe(555);
   const rep = (q: string) => request.get(`/api/admin/report?${q}`, { headers: H });
   for (const q of ['', 'from=2026-11-05&to=2026-11-01', 'from=2024-01-01&to=2026-01-01', 'from=2026-13-01&to=2026-13-02', 'from=today&to=now', 'from=2026-02-30&to=2026-03-01']) {
     expect((await rep(q)).status(), q).toBe(400);
@@ -115,8 +119,18 @@ test('a price change reaches the next order, and old bills keep their price', as
   await page.getByTestId('open-history').click();
   await expect(page.getByTestId('history')).toContainText('₹209 → ₹219');
   await expect(page.getByTestId('history')).toContainText('Renamed Masala Dosa to Masala Dosa Special');
+  // an extra's price saved in the same step applies to every dish that offers it
+  await page.getByRole('button', { name: 'Back to menu' }).click();
+  await page.getByTestId('mi-plain-dosa').locator('.open').click();
+  await page.getByLabel('Extra benne price').fill('30');
+  await page.getByTestId('ed-price').fill('175');
+  await page.getByTestId('ed-save').click();
+  await expect(page.getByTestId('mi-plain-dosa')).toContainText('₹175');
+  const withExtra = await (await request.post('/api/orders', { data: { key: `adm-extra-${Date.now()}`, type: 'takeaway', name: null, payMethod: 'cash', lines: [{ itemId: 'masala-dosa', qty: 1, choices: { dosaExtras: ['benne'] }, notes: [] }] } })).json();
+  expect(withExtra.lines[0].unitPrice).toBe(219 + 30);
   // reset for the next tests
-  await request.post('/api/admin/menu', { data: { itemId: 'masala-dosa', price: null, name: null }, headers: H });
+  await request.post('/api/admin/menu', { data: { itemId: 'masala-dosa', price: null, name: null, options: [{ groupId: 'dosaExtras', optionId: 'benne', price: 25 }] }, headers: H });
+  await request.post('/api/admin/menu', { data: { itemId: 'plain-dosa', price: null }, headers: H });
 });
 
 test('confirming a payment and recording a refund move today’s takings', async ({ page, request }) => {

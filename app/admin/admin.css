@@ -24,7 +24,7 @@
 .adm .tabs a svg{width:24px;height:24px}
 .adm .tabs a.on{color:var(--cream)}
 .adm .tabs a.on::before{content:"";position:absolute;top:0;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--benne)}
-.adm .tabs .dot{position:absolute;top:10px;right:calc(50% - 20px);min-width:18px;height:18px;border-radius:9px;background:var(--chilli);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.adm .tabs .dot{position:absolute;top:10px;right:calc(50% - 20px);min-width:18px;height:18px;border-radius:9px;background:var(--chilli);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 5px}
 
 /* TODAY: the day's slip */
 .adm .slip{margin:4px 16px 0;background:var(--s1);padding:20px 20px 26px;position:relative;box-shadow:0 10px 30px -14px rgba(60,45,20,.35);
@@ -60,7 +60,7 @@
 /* top dishes */
 .adm .dish{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .adm .dish img{width:44px;height:44px;border-radius:10px;object-fit:cover}
-.adm .dish .ph{width:44px;height:44px;border-radius:10px;background:var(--s2);display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--benne-fg)}
+.adm .dish .ph{width:44px;height:44px;border-radius:10px;background:var(--s2);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--benne-fg)}
 .adm .dish b{font-size:15px;display:block}
 .adm .dish small{font-size:12px;color:var(--cream-3)}
 .adm .dish .r{text-align:right}
@@ -74,9 +74,9 @@
 .adm .hours .bars i{flex:1;background:var(--s3);border-radius:4px 4px 0 0;position:relative}
 .adm .hours .bars i.peak{background:var(--benne)}
 .adm .hours .bars i.now{background:var(--cream)}
-.adm .hours .bars i b{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--cream-2)}
+.adm .hours .bars i b{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:700;color:var(--cream-2)}
 .adm .hours .axis{display:flex;gap:5px;margin-top:6px;padding:0 2px}
-.adm .hours .axis span{flex:1;text-align:center;font-size:10px;color:var(--cream-3)}
+.adm .hours .axis span{flex:1;text-align:center;font-size:12px;color:var(--cream-3)}
 .adm .hours .note{font-size:12px;color:var(--cream-2);margin-top:10px}
 
 /* ORDERS */
@@ -95,7 +95,7 @@
 .adm .ord .l2{font-size:13px;color:var(--cream-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
 .adm .ord .amt{text-align:right}
 .adm .ord .amt b{display:block;font-family:var(--display);font-weight:800;font-size:22px;line-height:1}
-.adm .ord .st{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.adm .ord .st{display:inline-block;margin-top:5px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .adm .st.due{color:var(--chilli)}.st.cooking{color:var(--benne-fg)}.st.ready{color:var(--leaf)}.st.done{color:var(--cream-3)}.st.refund{color:var(--chilli)}
 .adm .ord.void .tok,.adm .ord.void .amt b{color:var(--cream-3);text-decoration:line-through}
 .adm .daytot{margin:14px 20px 0;display:flex;justify-content:space-between;font-size:13px;color:var(--cream-3)}
@@ -134,17 +134,17 @@
 .adm .mcat h3{font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;margin-bottom:4px}
 .adm .mi{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
 .adm .mi img,.adm .mi .ph{width:52px;height:52px;border-radius:10px;object-fit:cover}
-.adm .mi .ph{background:var(--s2);display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--benne-fg)}
+.adm .mi .ph{background:var(--s2);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--benne-fg)}
 .adm .mi b{font-size:15px;display:block}
 .adm .mi .p{font-family:var(--display);font-weight:800;font-size:19px;color:var(--benne-fg)}
 .adm .mi .p s{color:var(--cream-3);font-weight:700;font-size:15px;margin-right:4px}
 .adm .mi.off img{filter:grayscale(1);opacity:.5}
 .adm .mi.off b{color:var(--cream-3)}
-.adm .mi .so{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--chilli);margin-left:6px}
+.adm .mi .so{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--chilli);margin-left:6px}
 .adm .sw{width:52px;height:32px;border-radius:16px;background:var(--leaf);position:relative}
 .adm .sw::after{content:"";position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .adm .sw.off{background:var(--s3)}.sw.off::after{right:auto;left:3px}
-.adm .swlbl{font-size:10px;font-weight:700;color:var(--cream-3);text-align:center;margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
+.adm .swlbl{font-size:12px;font-weight:700;color:var(--cream-3);text-align:center;margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
 .adm .hint{margin:14px 20px 0;font-size:13px;color:var(--cream-2);background:var(--s2);border-radius:12px;padding:12px 14px;line-height:1.45}
 .adm .histlink{display:block;margin:18px 20px 0;font-size:14px;font-weight:600;color:var(--benne-fg);text-decoration:none}
 
@@ -168,7 +168,7 @@
 .adm .period button{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--line);font-size:18px}
 .adm .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 20px 0}
 .adm .kpi{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
-.adm .kpi .eyebrow{font-size:10px}
+.adm .kpi .eyebrow{font-size:12px}
 .adm .kpi b{display:block;font-family:var(--display);font-weight:900;font-size:30px;line-height:1;margin-top:6px}
 .adm .kpi small{font-size:12px;font-weight:600;color:var(--leaf)}
 .adm .kpi small.down{color:var(--chilli)}
@@ -176,9 +176,9 @@
 .adm .days .bars i{flex:1;background:var(--s3);border-radius:5px 5px 0 0}
 .adm .days .bars i.hi{background:var(--benne)}
 .adm .days .axis{display:flex;gap:8px;margin-top:6px}
-.adm .days .axis span{flex:1;text-align:center;font-size:11px;color:var(--cream-3)}
+.adm .days .axis span{flex:1;text-align:center;font-size:12px;color:var(--cream-3)}
 .adm .tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
-.adm .tbl th{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-3);text-align:right;padding:6px 0;border-bottom:1px solid var(--line)}
+.adm .tbl th{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-3);text-align:right;padding:6px 0;border-bottom:1px solid var(--line)}
 .adm .tbl th:first-child,.adm .tbl td:first-child{text-align:left}
 .adm .tbl td{text-align:right;padding:9px 0;border-bottom:1px solid var(--line)}
 .adm .tbl td:first-child{font-weight:600}
@@ -194,7 +194,7 @@
 
 /* LOG */
 .adm .log{margin:6px 20px 0}
-.adm .log .day{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3);margin:16px 0 4px}
+.adm .log .day{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3);margin:16px 0 4px}
 .adm .log .e{display:grid;grid-template-columns:46px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.4}
 .adm .log .e time{font-weight:600;color:var(--cream-2);font-size:13px}
 .adm .log .e small{display:block;color:var(--cream-3);font-size:12px}

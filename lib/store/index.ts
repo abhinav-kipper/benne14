@@ -10,8 +10,9 @@ export interface Store {
   readonly kind: 'memory' | 'supabase';
   placeOrder(input: PlaceOrderInput): Promise<Order>; // idempotent on input.key
   getOrder(id: string): Promise<Order | null>;
-  listLive(): Promise<Order[]>; // today's orders the kitchen/board show, plus recently handed over
-  listToday(): Promise<Order[]>; // every order placed today, newest first (history on the kitchen and board)
+  listLive(): Promise<Order[]>; // unfinished orders from the last LIVE_HOURS (any date), plus just handed over
+  listToday(): Promise<Order[]>; // every order placed today, newest first (kitchen history, dashboard)
+  listCollected(limit: number): Promise<{ id: string; token: string }[]>; // today's last handed-over orders, newest first (TV)
   // `from`: the status the caller last saw. If the order has moved on since (another tablet), the
   // change is refused with 409 instead of silently undoing the other tablet's tap.
   setStatus(id: string, to: OrderStatus, from?: OrderStatus): Promise<Order>;
@@ -20,14 +21,21 @@ export interface Store {
   listRange(fromDay: string, toDay: string): Promise<Order[]>; // orders placed on these IST days, oldest first
   refund(id: string, reason: string): Promise<Order>; // paid, not yet refunded orders only (else 409)
   getOverrides(): Promise<Overrides>; // owner's menu changes; soldOut only for today
-  saveItem(itemId: string, patch: ItemPatch): Promise<void>;
-  saveOptionPrice(groupId: string, optionId: string, price: number): Promise<void>;
+  // One menu edit: the dish's fields, any extras' prices and the history lines, saved together.
+  saveMenuEdit(edit: MenuEdit): Promise<void>;
   addEvent(e: Omit<AdminEvent, 'at'>): Promise<void>;
   listEvents(limit?: number): Promise<AdminEvent[]>; // newest first
+  appliedMigrations(): Promise<string[]>; // names recorded in schema_migrations ([] before 0004 is run)
 }
 
 // undefined = leave as is; null = back to the menu in code.
 export interface ItemPatch { name?: string | null; desc?: string | null; price?: number | null; soldOut?: boolean }
+export interface MenuEdit {
+  itemId: string;
+  patch: ItemPatch;
+  options: { groupId: string; optionId: string; price: number }[];
+  events: Omit<AdminEvent, 'at'>[];
+}
 
 let store: Store | undefined;
 

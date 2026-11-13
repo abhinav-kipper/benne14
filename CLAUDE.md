@@ -1,6 +1,6 @@
 # Claude Code working notes — Benne 14
 
-Self-order kiosk, kitchen display, TV order board and owner admin for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram). Built for the owner (the user's brother). Plan and milestones: `docs/BUILD_PLAN.md`. Live status: `docs/state.md` (read it every session). Payments: `docs/payments.md`.
+Self-order kiosk, kitchen display, TV order board and owner admin for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram). Built for the owner (the user's brother). Plan and milestones: `docs/BUILD_PLAN.md`. Live status: `docs/state.md` (read it every session). Payments: `docs/payments.md`. Open issues and what's fixed: `docs/audit.md` (tick items as they merge).
 
 ## Stack
 
@@ -26,6 +26,7 @@ Commands: `npm run dev` · `npm run typecheck` · `npm test` · `npm run e2e` ·
 - Tokens in `prototype/theme.css` (light is the default theme; dark is kept). Fonts: Big Shoulders (display, prices; Google renamed it from Big Shoulders Display), Familjen Grotesk (body). Both are self-hosted in `public/fonts` (latin + latin-ext, which carries ₹) and declared in `app/globals.css`: no `next/font/google`, so builds never depend on Google.
 - Yellow (`--benne`) is for fills and buttons; text/outlines in yellow use `--benne-fg`.
 - Avoid generic "AI-looking" UI: no pill-chip clutter for information, no gradients-on-everything, no emoji as icons. Use real objects (tokens, chits, paper slips), short human wording. **English only** (owner's call): no Hindi in the app. The `prototype/` still has the old Hindi screens.
+- **Never flatten an approved design.** Before pushing any visual change, render the screen from `main` and from the branch with the same data and compare them side by side (worktree of `main` on another port). When something must shrink or repeat, scale the original object (ticket, chit, slip) with its details intact; don't replace it with a plain tile, row or text line. Report every visual difference to the owner, including ones they asked for.
 - When a screen needs to change: update the prototype, re-render (`THEME=light node prototype/shots-all.js`), get it approved, then build.
 
 ## Rules

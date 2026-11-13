@@ -2,18 +2,19 @@
 import { useEffect, useState } from 'react';
 import { itemById, mergeCatalog, photoOf, setActiveCatalog } from '@/lib/menu';
 import { minutesSince } from '@/lib/orders';
-import { api, useLiveOrders, useTodayOrders } from '@/lib/client';
+import { api, useAutoReload, useCollected, useLiveOrders } from '@/lib/client';
 
 const PROMOS = ['ghee-podi-thatte-idli', 'ghee-podi-benne-dosa', 'medu-vada'];
 const PREP_MAX = 6;
-const DONE_MAX = 8; // collected orders shown in the history row
+const MINI_MAX = 24; // ready orders shown besides the big one; past that the last tile says "+N"
 
 const Bell = () => <svg viewBox="0 0 34 34"><g fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M4 26h26M7 26a10 10 0 0 1 20 0M17 13v3M14 10h6" /></g></svg>;
 const Flame = () => <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z" /></svg>;
 
 export default function Board() {
   const { orders, online } = useLiveOrders(1500);
-  const today = useTodayOrders(true, 10_000);
+  const done = useCollected(10_000);
+  useAutoReload(); // nothing is typed on the TV, so it can reload the moment a new version is out
   // Promo prices and names follow the owner's menu changes (checked every 5 minutes).
   const [, setMenuVersion] = useState(0);
   useEffect(() => {
@@ -34,7 +35,11 @@ export default function Board() {
   const ready = list.filter((o) => o.status === 'ready').sort((a, b) => (b.readyAt ?? '').localeCompare(a.readyAt ?? ''));
   const prep = list.filter((o) => o.status === 'new' || o.status === 'cooking');
   const hero = ready[0];
-  const done = (today ?? []).filter((o) => o.status === 'handed_over').slice(0, DONE_MAX);
+  // Everyone whose order is ready must find their number: the newest is big, the rest sit below and
+  // get smaller as they grow in number (0: two large tickets, 1: up to 6, 2: up to 12, 3: up to 24).
+  const rest = ready.slice(1);
+  const tier = rest.length <= 2 ? 0 : rest.length <= 6 ? 1 : rest.length <= 12 ? 2 : 3;
+  const shown = rest.length > MINI_MAX ? rest.slice(0, MINI_MAX - 1) : rest;
   const p = itemById(PROMOS[promo])!;
   const clock = !now ? '' : new Date(now).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' });
 
@@ -46,7 +51,7 @@ export default function Board() {
         <div className="clock">{clock}</div>
       </div>
 
-      <section className="ready">
+      <section className={`ready t${tier}`} data-testid="board-ready" data-tier={tier}>
         <div className="zh"><span className="ic"><Bell /></span><b>Ready</b><span className="sub">Collect from the counter</span></div>
         {hero ? (
           <div className="hero">
@@ -58,9 +63,11 @@ export default function Board() {
           <div className="calm">Fresh orders are being made.<small>Ready order numbers appear here. Keep an eye on the screen.</small></div>
         )}
         <div className="more">
-          {ready.slice(1, 3).map((o) => (
-            <div className="tkt" key={o.id}><div className="num">{o.token}</div><div className="perf" /><div className="nm">{o.customerName ?? (o.type === 'dine_in' ? 'Table order' : 'Takeaway')}</div></div>
+          {/* The same ticket as before (number, tear line with notches, name) at every size: only its scale changes. */}
+          {shown.map((o) => (
+            <div className="tkt" key={o.id} data-testid={`board-ready-${o.token}`}><div className="num">{o.token}</div><div className="perf" /><div className="nm">{o.customerName ?? (o.type === 'dine_in' ? 'Table order' : 'Takeaway')}</div></div>
           ))}
+          {rest.length > MINI_MAX && <div className="tkt extra"><div className="num">+{rest.length - MINI_MAX + 1}</div><div className="perf" /><div className="nm">more ready</div></div>}
         </div>
       </section>
 

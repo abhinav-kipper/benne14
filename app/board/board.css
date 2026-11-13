@@ -62,3 +62,26 @@
 .board .done .lbl{font-size:18px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3);margin-right:6px}
 .board .done .none{font-size:22px;color:var(--cream-3)}
 .board .done .dn{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;color:var(--cream-3);padding:6px 14px;border-radius:12px;background:var(--s2)}
+/* Many ready orders. The smaller tickets are the original ticket (.more .tkt above: 130px number,
+   30px notches 70px up, 28px name) scaled by one unit --u (10px = original size), so every proportion,
+   the tear line and the notches stay exactly as designed. The big ticket scales the same way (--h). */
+.board .ready.t1 .more,.board .ready.t2 .more,.board .ready.t3 .more{display:grid}
+.board .ready.t1 .more{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 22px;--u:6.6px}
+.board .ready.t2 .more{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 18px;--u:5px}
+.board .ready.t3 .more{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px 14px;--u:4px}
+.board .ready:not(.t0) .more .tkt{border-radius:calc(var(--u) * 2.6);box-shadow:0 calc(var(--u) * 4) calc(var(--u) * 8) calc(var(--u) * -3) rgba(160,110,0,.45)}
+.board .ready:not(.t0) .more .tkt::before,.board .ready:not(.t0) .more .tkt::after{bottom:calc(var(--u) * 7);width:calc(var(--u) * 3);height:calc(var(--u) * 3)}
+.board .ready:not(.t0) .more .tkt::before{left:calc(var(--u) * -1.5)}.board .ready:not(.t0) .more .tkt::after{right:calc(var(--u) * -1.5)}
+.board .ready:not(.t0) .more .tkt .num{font-size:calc(var(--u) * 13);padding:calc(var(--u) * 2.4) calc(var(--u) * 3) calc(var(--u) * 2)}
+.board .ready:not(.t0) .more .tkt .perf{height:max(2px,calc(var(--u) * .3));margin:0 calc(var(--u) * 2.6);background-size:calc(var(--u) * 1.8) 100%}
+.board .ready:not(.t0) .more .tkt .nm{font-size:calc(var(--u) * 2.8);line-height:1.2;padding:calc(var(--u) * 1.6) calc(var(--u) * 3) calc(var(--u) * 2)}
+.board .more .tkt.extra{background:var(--s2);color:var(--cream-3);box-shadow:none}
+/* big ticket at 68% once the grid needs the room (original: 250px number, 40px notches 86px up, 40px name) */
+.board .ready:not(.t0) .hero{--h:.68}
+.board .ready:not(.t0) .hero .tkt{border-radius:calc(26px * var(--h))}
+.board .ready:not(.t0) .hero .tkt::before,.board .ready:not(.t0) .hero .tkt::after{bottom:calc(86px * var(--h));width:calc(40px * var(--h));height:calc(40px * var(--h))}
+.board .ready:not(.t0) .hero .tkt::before{left:calc(-20px * var(--h))}.board .ready:not(.t0) .hero .tkt::after{right:calc(-20px * var(--h))}
+.board .ready:not(.t0) .hero .tkt .num{font-size:calc(250px * var(--h));padding:calc(34px * var(--h)) calc(44px * var(--h)) calc(30px * var(--h))}
+.board .ready:not(.t0) .hero .tkt .perf{margin:0 calc(26px * var(--h))}
+.board .ready:not(.t0) .hero .tkt .nm{font-size:calc(40px * var(--h));padding:calc(22px * var(--h)) calc(44px * var(--h)) calc(28px * var(--h))}
+.board .ready:not(.t0) .callout{font-size:44px}

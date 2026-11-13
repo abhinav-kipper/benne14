@@ -48,6 +48,8 @@ describe('pricing', () => {
     ['two picks in a pick-one', { itemId: 'filter-coffee', qty: 1, choices: { sugar: ['less', 'none'] }, notes: [] }],
     ['podi spice (removed)', { itemId: 'masala-dosa', qty: 1, choices: { spice: ['mild'] }, notes: [] }],
     ['a removed note', { itemId: 'masala-dosa', qty: 1, choices: {}, notes: ['no-onion'] }],
+    ['less oil on a steamed idli', { itemId: 'mallige-idli', qty: 1, choices: {}, notes: ['less-oil'] }],
+    ['extra crisp on a steamed idli', { itemId: 'thatte-idli', qty: 1, choices: {}, notes: ['extra-crisp'] }],
     ['potato on the side for a dosa without potato', { itemId: 'plain-dosa', qty: 1, choices: {}, notes: ['potato-side'] }],
     ['group the item does not have', { itemId: 'filter-coffee', qty: 1, choices: { dosaExtras: ['benne'] }, notes: [] }],
     ['kitchen note on a drink', { itemId: 'masala-tea', qty: 1, choices: {}, notes: ['no-onion'] }],

@@ -1,13 +1,15 @@
 'use client';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { itemById, noteTone, optionTone, photoOf, placeholderOf, type Tone } from '@/lib/menu';
 import { minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { PinGate } from '@/components/PinGate';
-import { api, ApiError, chime, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
+import { api, ApiError, chime, useAutoReload, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
 
 const WARN_MIN = 8;
 const LATE_MIN = 12;
 const PIN_KEY = 'benne14.staffPin';
+const SOUND_KEY = 'benne14.sound';
+const NARROW_FROM = 5; // this many orders on the rail → narrower chits, so five fit instead of four
 
 const Dine = () => <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round"><circle cx="32" cy="34" r="20" /><circle cx="32" cy="34" r="11" /><path d="M6 12v14m0 0c0 3 4 3 4 0V12m-2 14v28M58 12c-4 4-4 14 0 16v26" /></svg>;
 const Bag = () => <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round"><path d="M12 22h40l-3 34H15z" /><path d="M23 22v-4a9 9 0 0 1 18 0v4" /></svg>;
@@ -34,15 +36,36 @@ export default function Kitchen() {
   const [now, setNow] = useState(0);
   useEffect(() => { setNow(Date.now()); const t = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(t); }, []);
 
-  // Sound: browsers only play audio after a tap, so the cook taps "Turn on sound" once after opening.
+  useAutoReload(); // orders live on the server, so the kitchen can reload as soon as a new version is out
+
+  // Sound. The choice is remembered, but a browser only plays audio after a tap on the page, so after
+  // every reload a bar asks for one tap anywhere. New orders also flash the screen, sound or not.
   const audio = useRef<AudioContext | null>(null);
-  const [soundOn, setSoundOn] = useState(false);
+  const [wantSound, setWantSound] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+  const soundOn = wantSound && unlocked;
+  useEffect(() => { setWantSound(localStorage.getItem(SOUND_KEY) === '1'); }, []);
+  const unlock = useCallback(() => {
+    audio.current ??= new AudioContext();
+    audio.current.resume();
+    setUnlocked(true);
+  }, []);
+  useEffect(() => {
+    if (!wantSound || unlocked) return;
+    const tap = () => { unlock(); chime(audio.current, [660]); };
+    window.addEventListener('pointerdown', tap, { once: true });
+    return () => window.removeEventListener('pointerdown', tap);
+  }, [wantSound, unlocked, unlock]);
+  const [flash, setFlash] = useState(0);
   const seen = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (!orders) return;
-    // Chime for new kitchen orders and for UPI "I've paid" claims the counter must check.
+    // Chime + flash for new kitchen orders and for UPI "I've paid" claims the counter must check.
     const fresh = orders.filter((o) => o.status === 'new' || o.status === 'awaiting_cash').map((o) => `${o.id}:${o.status}`);
-    if (seen.current && soundOn && fresh.some((id) => !seen.current!.has(id))) chime(audio.current);
+    if (seen.current && fresh.some((id) => !seen.current!.has(id))) {
+      if (soundOn) chime(audio.current);
+      setFlash((n) => n + 1);
+    }
     seen.current = new Set([...(seen.current ?? []), ...fresh]);
   }, [orders, soundOn]);
 
@@ -85,6 +108,25 @@ export default function Kitchen() {
     if (el && density < 3 && el.scrollHeight > el.clientHeight + 1) setFit({ key: shelfKey, level: density + 1 });
   }, [shelfKey, density]);
   const [showHistory, setShowHistory] = useState(false);
+
+  // The rail scrolls sideways when it's full. Count the chits out of view on each side so a clear
+  // "+3 more →" tab can say so: the newest orders land at the far right.
+  const railRef = useRef<HTMLDivElement>(null);
+  const [hidden, setHidden] = useState({ left: 0, right: 0 });
+  const countHidden = useCallback(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const view = el.getBoundingClientRect();
+    let left = 0, right = 0;
+    for (const c of el.querySelectorAll('.chit')) {
+      const r = c.getBoundingClientRect();
+      const mid = r.left + r.width / 2; // a chit counts as hidden once more than half of it is out of view
+      if (mid < view.left) left++; else if (mid > view.right) right++;
+    }
+    setHidden((h) => (h.left === left && h.right === right ? h : { left, right }));
+  }, []);
+  useLayoutEffect(countHidden, [countHidden, rail.length]);
+  const scrollRail = (dir: 1 | -1) => railRef.current?.scrollBy({ left: dir * railRef.current.clientWidth * 0.8, behavior: 'smooth' });
   const fresh = useFreshIds(list.map((o) => `${o.id}:${o.status === 'cooking' ? 'new' : o.status}`));
   const isFresh = (o: Order) => fresh.has(`${o.id}:${o.status === 'cooking' ? 'new' : o.status}`);
   const tray = useMemo(() => {
@@ -98,25 +140,30 @@ export default function Kitchen() {
     <div className="kitchen">
       <div className="top">
         <div className="logo">Benne <i>14</i></div>
-        <button className={`ibtn ${soundOn ? 'on' : 'ask'}`} onClick={() => {
-          if (soundOn) { setSoundOn(false); return; }
-          audio.current ??= new AudioContext();
-          audio.current.resume();
-          setSoundOn(true);
+        <button className={`ibtn ${wantSound ? 'on' : 'ask'}`} data-testid="sound" onClick={() => {
+          if (wantSound) { localStorage.setItem(SOUND_KEY, '0'); setWantSound(false); return; }
+          localStorage.setItem(SOUND_KEY, '1');
+          unlock(); setWantSound(true);
           chime(audio.current, [660]);
-        }}><Speaker />{soundOn ? 'Sound on' : 'Turn on sound'}</button>
+        }}><Speaker />{wantSound ? 'Sound on' : 'Turn on sound'}</button>
         <button className="ibtn" onClick={() => setShowHistory(true)} data-testid="open-history"><List />Today&apos;s orders</button>
+        {wantSound && !unlocked && <span className="soundbar" data-testid="soundbar">Tap anywhere to turn the sound on</span>}
         {!online && <span className="net"><i />No internet, reconnecting…</span>}
         <div className="clock">{clock}</div>
       </div>
 
-      <div className="railwrap">
-        <div className="rail" />
-        <div className="chits">
-          {rail.map((o) => <Chit key={o.id} o={o} now={now} fresh={isFresh(o)} onGo={() => move(o, o.status === 'new' ? 'cooking' : 'ready')} />)}
+      <div className="railcell">
+        <div className="railwrap" ref={railRef} onScroll={countHidden}>
+          <div className="rail" />
+          <div className={`chits ${rail.length >= NARROW_FROM ? 'narrow' : ''}`}>
+            {rail.map((o) => <Chit key={o.id} o={o} now={now} fresh={isFresh(o)} onGo={() => move(o, o.status === 'new' ? 'cooking' : 'ready')} />)}
+          </div>
+          {orders && rail.length === 0 && <div className="empty"><div><b>No orders right now</b>New orders drop onto this rail with a chime.</div></div>}
         </div>
-        {orders && rail.length === 0 && <div className="empty"><div><b>No orders right now</b>New orders drop onto this rail with a chime.</div></div>}
+        {hidden.left > 0 && <button className="railtab left" onClick={() => scrollRail(-1)} data-testid="rail-earlier">←<b>{hidden.left}</b> earlier</button>}
+        {hidden.right > 0 && <button className="railtab right" onClick={() => scrollRail(1)} data-testid="rail-more"><b>+{hidden.right}</b> more →</button>}
       </div>
+      {flash > 0 && <div className="flash" key={flash} />}
 
       <div className={`pass d${density}`} ref={passRef} data-testid="pass" data-density={density}>
         {due.length > 0 && <>

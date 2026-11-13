@@ -190,6 +190,42 @@ test('kiosk returns to the start screen by itself after the order number', async
   await expect(page.getByTestId('start')).toBeVisible(); // back to the start screen after 2 minutes
 });
 
+test('only choices that make sense: no fried-food notes on idli, no tag for a default', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-mallige-idli').click();
+  await expect(page.getByTestId('sheet')).toContainText('Make it extra');
+  await expect(page.getByTestId('sheet')).not.toContainText('Note for the kitchen'); // steamed: no "less oil" / "extra crisp"
+  await page.getByTestId('sheet').getByRole('button', { name: 'Close' }).click();
+  await page.getByTestId('item-medu-vada').click();
+  await expect(page.getByTestId('sheet')).toContainText('Extra crisp');
+  await page.getByTestId('sheet').getByRole('button', { name: 'Close' }).click();
+  await page.getByTestId('item-filter-coffee').click();
+  await page.getByTestId('add-to-order').click(); // regular sugar, the default
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('sheet').getByRole('button', { name: 'Less sugar' }).click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await expect(page.getByTestId('cart-line').first()).not.toContainText('Regular sugar');
+  await expect(page.getByTestId('cart-line').nth(1)).toContainText('Less sugar');
+});
+
+test('phone screens can be zoomed; the kiosk cannot', async ({ page }) => {
+  const viewport = async (path: string) => { await page.goto(path); return page.locator('meta[name="viewport"]').getAttribute('content'); };
+  expect(await viewport('/kiosk')).toContain('maximum-scale=1');
+  expect(await viewport('/admin')).toContain('user-scalable=yes');
+  expect(await viewport('/r/00000000-0000-0000-0000-000000000000')).toContain('maximum-scale=5');
+});
+
+test('installable: the app icons and manifest are served', async ({ request }) => {
+  const m = await (await request.get('/manifest.webmanifest')).json();
+  const pngs = m.icons.filter((i: { type: string }) => i.type === 'image/png');
+  expect(pngs.length).toBeGreaterThanOrEqual(3);
+  for (const i of pngs) expect((await request.get(i.src)).status(), i.src).toBe(200);
+  expect((await request.get('/icon.png')).status()).toBe(200); // the browser-tab icon
+});
+
 test('the cart asks dine in or takeaway before paying', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.goto('/kiosk');

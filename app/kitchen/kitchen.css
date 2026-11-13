@@ -14,7 +14,8 @@
 .kitchen .clock{margin-left:auto;font-family:var(--display);font-weight:800;font-size:30px}
 
 /* scrolls both ways: a long order can be taller than the screen and its button must stay reachable */
-.kitchen .railwrap{position:relative;overflow:auto;padding:0 16px 0 16px;background:#EEE7D9;scrollbar-width:none}
+.kitchen .railcell{position:relative;min-width:0;min-height:0;background:#EEE7D9}
+.kitchen .railwrap{position:relative;height:100%;overflow:auto;padding:0 16px 0 16px;scrollbar-width:none}
 .kitchen .railwrap::-webkit-scrollbar{display:none}
 .kitchen .rail{position:absolute;left:0;right:0;top:28px;height:14px;min-width:100%;background:linear-gradient(180deg,#5A5A55,#2A2A27 55%,#4A4A45);box-shadow:0 3px 8px rgba(0,0,0,.35)}
 .kitchen .chits{position:relative;display:flex;gap:14px;align-items:flex-start;padding-top:34px;min-height:100%;width:max-content;min-width:100%}
@@ -144,3 +145,26 @@
 .hist .hr .st.cancelled,.hist .hr .st.pending_payment{background:#FBE0D8;color:#8E2511}
 .hist .hr.cancelled .tok,.hist .hr.cancelled .amt,.hist .hr.pending_payment .tok,.hist .hr.pending_payment .amt{color:var(--cream-3);text-decoration:line-through}
 .hist .hr button{height:48px;border-radius:10px;border:1.5px solid var(--line);background:var(--s1);font-size:15px;font-weight:700}
+
+/* Busy rail: narrower chits (five fit), and tabs that say how many more are out of view */
+.kitchen .chits.narrow{gap:12px}
+.kitchen .chits.narrow .chit{flex-basis:184px}
+.kitchen .chits.narrow .chit .tok{font-size:42px}
+.kitchen .chits.narrow .chit .ch-h{padding:14px 10px 8px;gap:6px}
+.kitchen .chits.narrow .chit .min{font-size:22px;padding:2px 6px}
+.kitchen .chits.narrow .chit .who{padding:0 10px 6px;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kitchen .chits.narrow .chit .items{padding:4px 9px 6px}
+.kitchen .chits.narrow .chit .ln{grid-template-columns:36px 1fr;gap:8px;padding:10px 0}
+.kitchen .chits.narrow .chit .qty{width:36px;height:36px;font-size:25px;border-radius:8px}
+.kitchen .chits.narrow .chit .nm{font-size:19px;padding-top:6px}
+.kitchen .chits.narrow .chit .tg{font-size:14.5px;padding:3px 7px;min-height:27px}
+.kitchen .chits.narrow .chit .go{height:68px;font-size:30px;margin:10px 8px;width:calc(100% - 16px)}
+.kitchen .railtab{position:absolute;bottom:14px;z-index:3;height:84px;padding:0 14px;background:var(--cream);color:var(--bg);font-size:16px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 10px 30px -8px rgba(40,30,15,.5)}
+.kitchen .railtab b{font-family:var(--display);font-weight:900;font-size:34px;line-height:.9;color:var(--benne)}
+.kitchen .railtab.right{right:0;border-radius:14px 0 0 14px}
+.kitchen .railtab.left{left:0;border-radius:0 14px 14px 0}
+
+/* Sound reminder after a reload, and the flash for a new order */
+.kitchen .soundbar{height:44px;display:flex;align-items:center;padding:0 16px;border-radius:10px;background:var(--benne);color:var(--benne-ink);font-size:16px;font-weight:700;animation:pulsebtn 1.6s ease-in-out infinite}
+.kitchen .flash{position:absolute;inset:0;z-index:7;pointer-events:none;box-shadow:inset 0 0 0 0 var(--benne);animation:newflash 2.4s ease-out both}
+@keyframes newflash{0%,30%,60%{box-shadow:inset 0 0 0 16px var(--benne)}15%,45%{box-shadow:inset 0 0 0 0 var(--benne)}100%{box-shadow:inset 0 0 0 0 rgba(245,197,66,0)}}

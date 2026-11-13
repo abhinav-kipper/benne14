@@ -1,6 +1,8 @@
 import { getStore, keyKind } from '@/lib/store';
 import { json, paymentMode } from '@/lib/server';
 import { isTestMode } from '@/lib/testmode';
+import { MIGRATIONS } from '@/lib/migrations';
+import { BUILD_ID } from '@/lib/version';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +14,17 @@ export async function GET() {
     staffPin: process.env.STAFF_PIN ? 'set' : 'missing',
     payments: paymentMode(),
     testMode: isTestMode() ? 'on: cash counts as paid' : 'off',
+    build: BUILD_ID.slice(0, 12),
   };
   try {
     const store = getStore();
     out.store = store.kind;
     out.liveOrders = (await store.listLive()).length;
     out.database = 'ok';
+    // Informational: which SQL files still need running in Supabase (see lib/migrations.ts).
+    const applied = await store.appliedMigrations();
+    const missing = MIGRATIONS.filter((m) => !applied.includes(m));
+    out.migrations = missing.length ? `to run: ${missing.join(', ')}` : 'ok';
   } catch (e) {
     out.database = e instanceof Error ? e.message : 'error';
   }

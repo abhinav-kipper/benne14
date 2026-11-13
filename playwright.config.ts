@@ -26,7 +26,7 @@ export default defineConfig({
     { name: 'flow', testMatch: 'order-flow.spec.ts', use: { baseURL: 'http://localhost:3100' } },
     { name: 'test-mode', testMatch: 'test-mode.spec.ts', use: { baseURL: 'http://localhost:3101' } },
     // API abuse + network failures: own server so its orders never disturb the flow suite's board checks.
-    { name: 'robustness', testMatch: ['api.spec.ts', 'resilience.spec.ts'], use: { baseURL: 'http://localhost:3102' } },
+    { name: 'robustness', testMatch: ['api.spec.ts', 'resilience.spec.ts', 'busy.spec.ts'], use: { baseURL: 'http://localhost:3102' } },
     // Owner dashboard: changes prices and sold-out state, so it gets a server of its own.
     { name: 'admin', testMatch: 'admin.spec.ts', use: { baseURL: 'http://localhost:3103' } },
   ],

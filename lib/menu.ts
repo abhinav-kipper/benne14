@@ -83,9 +83,12 @@ export const GROUPS: Record<string, ModGroup> = {
   },
 };
 
+const FRIED = ['ghee-podi-benne-dosa', 'masala-dosa', 'plain-benne-dosa', 'plain-dosa', 'medu-vada'];
+
 export const NOTES: KitchenNote[] = [
-  { id: 'less-oil', label: 'Less oil', tone: 'less' },
-  { id: 'extra-crisp', label: 'Extra crisp', tone: 'add' },
+  // Steamed idlis have no oil and can't be crisp: these two are for dosas and vada.
+  { id: 'less-oil', label: 'Less oil', tone: 'less', items: FRIED },
+  { id: 'extra-crisp', label: 'Extra crisp', tone: 'add', items: FRIED },
   { id: 'potato-side', label: 'Potato stuffing on the side', items: ['masala-dosa'] },
 ];
 

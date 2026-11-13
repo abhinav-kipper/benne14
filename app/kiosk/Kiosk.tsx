@@ -4,7 +4,7 @@ import { activeCatalog, CART_UPSELL, CATEGORIES, mergeCatalog, PAIRING, itemById
 import { priceLine, priceOrder, type CartLine } from '@/lib/pricing';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
 import { orderedSentence } from '@/lib/wording';
-import { api, ApiError, newKey, useOrder } from '@/lib/client';
+import { api, ApiError, newKey, useOrder, useAutoReload } from '@/lib/client';
 
 type Screen = 'home' | 'menu' | 'cart' | 'pay' | 'upi' | 'done';
 interface Line extends CartLine { uid: string }
@@ -39,6 +39,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     api.menu().then((o) => { setActiveCatalog(mergeCatalog(o)); setMenuVersion((v) => v + 1); }).catch(() => {});
   }, []);
   useEffect(() => { if (screen === 'home') loadMenu(); }, [screen, loadMenu]);
+  useAutoReload(screen === 'home'); // pick up a new version between customers, never mid-order
 
   const reset = useCallback(() => {
     setScreen('home'); setType(null); setLines([]); setSheet(null); setName(''); setOrderId(null); setPlaced(null); setIdle(false);
@@ -112,7 +113,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             setSheet(null);
           }} />
       )}
-      {testMode && <div className="k-test" data-testid="test-ribbon">TEST MODE · cash counts as paid</div>}
+      {testMode && <div className="k-test" data-testid="test-ribbon">Test mode · cash = paid</div>}
       {idle && <Idle onStay={() => { lastTouch.current = Date.now(); setIdle(false); }} onReset={reset} />}
     </div>
   );
@@ -311,7 +312,7 @@ function ItemSheet({ itemId, editing, pairingInCart, onClose, onAdd }: {
               </div>
             );
           })}
-          {item.notes && (
+          {notesFor(item).length > 0 && (
             <div className="grp">
               <div className="gh"><h3 className="disp">Note for the kitchen</h3><small>Tap any</small></div>
               <div className="notes">
@@ -367,7 +368,8 @@ function Cart(p: {
                 <h3>{it.name}</h3>
                 {it.soldOut && <div className="gone" data-testid="cart-sold-out">Just sold out. Please remove it.</div>}
                 <div className="mods">
-                  {pl.mods.map((m) => <span key={m.groupId + m.id} className={m.price ? 'paid' : ''}>{m.name}{m.price ? ` +₹${m.price}` : ''}</span>)}
+                  {/* the default of a pick-one choice (e.g. regular sugar) isn't worth a tag */}
+                  {pl.mods.filter((m) => m.price || m.id !== activeCatalog().groups[m.groupId]?.defaultId).map((m) => <span key={m.groupId + m.id} className={m.price ? 'paid' : ''}>{m.name}{m.price ? ` +₹${m.price}` : ''}</span>)}
                   {pl.notes.map((n) => <span key={n.id}>{n.label}</span>)}
                 </div>
                 <button className="edit" onClick={() => p.onEdit(l.uid)}>Edit</button>
@@ -473,7 +475,7 @@ function Pay({ priced, lines, type, name, onBack, onChoose }: {
         </button>
         <button className="tile half cash" onClick={() => choose('cash')} disabled={!!busy} data-testid="pay-cash">
           <svg viewBox="0 0 170 110" fill="none" stroke="currentColor" strokeWidth="7" strokeLinejoin="round"><rect x="24" y="4" width="140" height="74" rx="8" opacity=".45" /><rect x="4" y="28" width="140" height="78" rx="8" fill="#FFFFFF" /><circle cx="74" cy="67" r="20" /><path d="M66 58h17M66 66h17M70 58c10 0 10 14 0 14l12 12" strokeLinecap="round" strokeWidth="5" /></svg>
-          <span className="big">Cash</span><span className="alt">Pay cash at the counter</span><small>Take your token, pay at the counter</small>
+          <span className="big">Cash</span><span className="alt">Pay cash at the counter</span><small>Take your order number, pay at the counter</small>
         </button>
       </div>
       {err && <div className="err">{err}</div>}
@@ -524,7 +526,7 @@ function Upi({ order, mock, onPaid, onOther, onCancel }: { order: Order; mock: b
         <div><b>3</b>Tap below<span>Get your order number</span></div>
       </div>
       <button className="paidbtn" onClick={paid} disabled={claiming} data-testid="i-paid">
-        <span><b>{claiming ? 'Getting your token…' : "I've paid"}</b><span className="alt">Tap after paying</span></span><span className="arr">✓</span>
+        <span><b>{claiming ? 'Getting your order number…' : "I've paid"}</b><span className="alt">Tap after paying</span></span><span className="arr">✓</span>
       </button>
       <div className="foot">
         <span>{mock ? 'Demo mode: no real money moves.' : 'Paid to Benne 14 · counter confirms on the soundbox'}</span>

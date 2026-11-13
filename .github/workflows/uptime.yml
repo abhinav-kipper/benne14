@@ -1,0 +1,31 @@
+name: Uptime (shop hours)
+# Every 15 minutes while the shop is open, check that production can take orders (database reachable,
+# staff PIN set). When it fails, GitHub emails the repository owner (Settings → Notifications →
+# Actions). It also keeps the free Supabase project from pausing for inactivity.
+# Note: GitHub pauses scheduled workflows after 60 days without any commit; re-enable in the Actions tab.
+on:
+  schedule:
+    - cron: '*/15 2-17 * * *' # 07:30–23:15 IST (UTC+5:30)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://benne14-git-main-abhinav-mudgal-s-projects.vercel.app' }}
+
+jobs:
+  health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Health check (3 tries, so one slow answer doesn't raise an alarm)
+        run: |
+          for i in 1 2 3; do
+            body=$(curl -sS -m 20 "$PRODUCTION_URL/api/health" || true)
+            echo "try $i: $body"
+            if echo "$body" | grep -q '"ok":true'; then exit 0; fi
+            sleep 20
+          done
+          echo "::error::Benne 14 production is not healthy: $body"
+          exit 1

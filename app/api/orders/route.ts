@@ -32,11 +32,14 @@ export async function POST(req: Request) {
   }
 }
 
-// Live orders for the kitchen and the board; ?view=today gives today's full history, newest first.
+// Live orders for the kitchen and the board. ?view=today: today's full history, newest first.
+// ?view=collected: just the last few collected order numbers (the TV's "Collected" row).
 export async function GET(req: Request) {
   try {
     const store = getStore();
-    if (new URL(req.url).searchParams.get('view') === 'today') return json(await store.listToday());
+    const view = new URL(req.url).searchParams.get('view');
+    if (view === 'today') return json(await store.listToday());
+    if (view === 'collected') return json(await store.listCollected(8));
     return json(await store.listLive());
   } catch (e) {
     return fail(e);
