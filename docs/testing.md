@@ -1,7 +1,8 @@
 # Testing
 
-Every push runs CI (`.github/workflows/ci.yml`); every Vercel deployment runs the smoke checks
-(`.github/workflows/smoke.yml`). A change isn't done until all of these pass.
+Every push runs CI (`.github/workflows/ci.yml`). Every push to `main` also waits for Vercel to deploy
+it, then runs the read-only smoke checks against production (`.github/workflows/smoke.yml`; any URL
+can be checked by hand from the Actions tab → Smoke → Run workflow). A change isn't done until all of these pass.
 
 | Layer | Command | What it proves |
 |---|---|---|
