@@ -25,7 +25,7 @@ wrong order or a wrong report today. **Medium** = correct today, but nothing sto
 
 ## A. Can go wrong today (High)
 
-- [ ] **A1 An edited cart can be saved as the old order.** The kiosk keeps one checkout key per
+- [x] **A1 An edited cart can be saved as the old order.** The kiosk keeps one checkout key per
   customer (`app/kiosk/Kiosk.tsx`) and only renews it on reset or "Other ways to pay". If a checkout
   reaches the server but the reply is lost, and the customer then goes back, changes the order (or
   picks cash instead of UPI) and pays again, the server sees the same key and returns the **first**
@@ -33,16 +33,16 @@ wrong order or a wrong report today. **Medium** = correct today, but nothing sto
   Fix: the server stores a fingerprint of the request with the key and refuses (409) a different
   request under the same key; the kiosk takes a new key whenever the cart, type, code or payment
   method changes.
-- [ ] **A2 A paid order can be cancelled and simply vanishes from the takings.** The state machine
+- [x] **A2 A paid order can be cancelled and simply vanishes from the takings.** The state machine
   allows `new → cancelled` (`lib/orders.ts` `NEXT`). The screens don't offer it, but the API accepts
   it with the staff PIN. Probe: takings ₹219 → ₹0, no refund recorded, not in the bills CSV.
   Fix: once paid, an order can only be refunded, never cancelled. Remove the move; test every pair.
-- [ ] **A3 The amount on the pay screen can differ from what is charged.** The pay screen shows the
+- [x] **A3 The amount on the pay screen can differ from what is charged.** The pay screen shows the
   kiosk's own total; the order is priced by the server. If a price, sold-out state or code changed
   in between, the customer sees one amount and the UPI QR or counter asks another, with no notice.
   Fix: the kiosk sends the total it showed; the server refuses (409, "prices changed, please check
   your order") when its own total differs, and the kiosk reloads the menu.
-- [ ] **A4 Two definitions of "takings".** The kitchen's Today panel counts refunded orders
+- [x] **A4 Two definitions of "takings".** The kitchen's Today panel counts refunded orders
   (`app/kitchen/Kitchen.tsx`), the dashboard doesn't; `app/admin/screens/Orders.tsx` has a third
   copy of the rule. After a refund the kitchen and the dashboard disagree.
   Fix: one exported rule (`counts` in `lib/reports.ts`) used by every screen.
@@ -54,7 +54,7 @@ wrong order or a wrong report today. **Medium** = correct today, but nothing sto
 
 ## B. Correct today, but not locked (Medium)
 
-- [ ] **B1 Money is floating-point rupees.** Results are right (probe), but by coincidence of the
+- [x] **B1 Money is floating-point rupees.** Results are right (probe), but by coincidence of the
   values, not by construction. Fix: do GST and discount in integer paise/rupees with explicit
   round-half-up, and keep the exhaustive comparison as a permanent test.
 - [ ] **B2 The database accepts a bill that doesn't add up.** `orders` has no rule that
@@ -70,12 +70,12 @@ wrong order or a wrong report today. **Medium** = correct today, but nothing sto
 - [ ] **B5 A double submit can skip an order number.** Two simultaneous requests with the same key
   both take a number; one is discarded, leaving a gap (44, 46). Harmless for customers, wrong if
   numbers are ever used as invoice numbers. Fix: lock on the key before taking a number.
-- [ ] **B6 Order numbers under load are only tested on the in-memory store.** Fix: the same
+- [x] **B6 Order numbers under load are only tested on the in-memory store.** Fix: the same
   "30 kiosks at once" test against real Postgres in CI.
-- [ ] **B7 Checks happen before the idempotency lookup.** A retry of an order that was already
+- [x] **B7 Checks happen before the idempotency lookup.** A retry of an order that was already
   saved can be refused (dish sold out or code switched off in between) although the order exists.
   Fix: look the key up first and return the saved order.
-- [ ] **B8 The report rules are not tested as identities.** Add property tests over random days of
+- [x] **B8 The report rules are not tested as identities.** Add property tests over random days of
   orders: summary total = sum of bills CSV = sum of GST-by-day CSV; split by payment = takings;
   dishes + extras − discounts = taxable; refunds never counted twice.
 - [ ] **B9 Old rows mean something else.** Orders from before 12 Nov may carry a `savings` or
@@ -107,3 +107,20 @@ wrong order or a wrong report today. **Medium** = correct today, but nothing sto
 ## Decisions log
 
 (date · item · decision)
+
+2026-11-14 · owner's choices: fix A1–A4 with B1, B6–B8 now (code and tests only); then B2–B5 with one
+migration; C2 (refunds) stays as it is for now; C1 (invoice numbers) waits for the GSTIN and address.
+
+2026-11-14 · first PR, what was done:
+- A1: the stored checkout key is `<kiosk key>:<fingerprint of the request>`. A retry returns the saved
+  order (looked up before any other check: B7). A changed request under the same key withdraws the
+  earlier unpaid order and places the new one; if the earlier one is already paid it is refused (409).
+- A2: `new → cancelled` removed. A paid order can only be refunded.
+- A3: the kiosk sends the total it showed (`expectTotal`); the server refuses (409) if its own differs.
+- A4: one rule, `counts` in `lib/orders.ts`, used by the kitchen, the dashboard and the reports.
+- B1: GST and discounts are integer maths (`gstOn`, `discountFor`); a fractional or negative price is refused.
+- B6: 30 simultaneous orders get 1…30 in both stores (the Supabase one on real Postgres in CI).
+- B8: `tests/unit/money.test.ts`: GST exhaustively to ₹2,00,000 against a BigInt reference; discounts
+  exhaustively; 600 random orders where the dashboard, the bills CSV, the GST CSV and the dish CSV must agree.
+- Found by B8: the discount line in the dish CSV was exported as text (`'-42.00`), so a spreadsheet
+  could not sum it. Fixed.

@@ -1,7 +1,8 @@
 import { cleanCode, cleanPhone, usable, type DiscountRule } from '@/lib/discounts';
 import { priceOrder, type CartLine } from '@/lib/pricing';
 import { itemById, mergeCatalog } from '@/lib/menu';
-import { cleanName, istDay, type OrderType, type PayMethod } from '@/lib/orders';
+import { createHash } from 'node:crypto';
+import { cleanName, isCheckoutKey, isPaid, istDay, storedKey, type OrderType, type PayMethod } from '@/lib/orders';
 import { getStore } from '@/lib/store';
 import { fail, json, readJson } from '@/lib/server';
 import { isTestMode } from '@/lib/testmode';
@@ -19,9 +20,9 @@ export async function POST(req: Request) {
       lines?: unknown;
       code?: unknown;
       phone?: unknown;
+      expectTotal?: unknown;
     };
-    if (typeof b.key !== 'string' || b.key.length < 8 || b.key.length > 80)
-      return json({ error: 'Missing checkout key' }, 400);
+    if (!isCheckoutKey(b.key)) return json({ error: 'Missing checkout key' }, 400);
     if (b.type !== 'dine_in' && b.type !== 'takeaway') return json({ error: 'Pick dine-in or takeaway' }, 400);
     if (b.payMethod !== 'upi' && b.payMethod !== 'card' && b.payMethod !== 'cash')
       return json({ error: 'Pick a payment method' }, 400);
@@ -38,7 +39,19 @@ export async function POST(req: Request) {
       (b.lines as CartLine[]).some((l) => itemById((l as Partial<CartLine> | null)?.itemId ?? '')?.testOnly)
     )
       return json({ error: 'That item is only for testing' }, 400);
+    if (b.expectTotal !== undefined && !Number.isSafeInteger(b.expectTotal))
+      return json({ error: 'Bad expected total' }, 400);
     const store = getStore();
+
+    // Is this a retry? The same key with the same request is: hand back the order already saved,
+    // before any check that may have changed since (a dish sold out, a code switched off).
+    const fingerprint = createHash('sha256')
+      .update(JSON.stringify([b.type, b.payMethod, name, phone, code, b.lines]))
+      .digest('hex')
+      .slice(0, 24);
+    const before = await store.findByCheckout(b.key);
+    if (before && before.fingerprint === fingerprint) return json(before.order, 201);
+
     // Price from the menu as the owner set it (prices, sold out today), never from the request.
     const catalog = mergeCatalog(await store.getOverrides());
     const out = (b.lines as CartLine[])
@@ -61,8 +74,22 @@ export async function POST(req: Request) {
         { error: `Code ${rule.code} needs an order of ₹${rule.minOrder} or more. Add a dish or remove the code.` },
         409,
       );
+    // The kiosk says what total it showed. If the menu or a code changed since, don't charge a
+    // different amount without the customer seeing it first.
+    if (b.expectTotal !== undefined && b.expectTotal !== priced.total)
+      return json({ error: `Prices just changed: the total is now ₹${priced.total}. Please check your order.` }, 409);
+    // Same key, different request: the customer changed the order after a checkout whose reply was
+    // lost. The earlier order was never shown to them, so it is withdrawn, unless it is already paid.
+    if (before) {
+      if (isPaid(before.order))
+        return json(
+          { error: `Order ${before.order.token} was already placed and paid. Please ask at the counter.` },
+          409,
+        );
+      if (before.order.status !== 'cancelled') await store.setStatus(before.order.id, 'cancelled');
+    }
     let order = await store.placeOrder({
-      key: b.key,
+      key: storedKey(b.key, fingerprint),
       type: b.type as OrderType,
       customerName: name,
       customerPhone: settings?.phone ? phone : null,

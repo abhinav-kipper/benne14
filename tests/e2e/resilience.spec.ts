@@ -163,3 +163,48 @@ test('kiosk: if a discount code can’t be checked, the cart says so and the ord
   await expect(page.getByTestId('token')).toBeVisible();
   expect(await todayCount(page)).toBe(before + 1);
 });
+
+test('kiosk: reply lost, then the customer changes the order: the kitchen gets the new one only', async ({ page }) => {
+  await kioskTo(page);
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('continue-to-pay').click();
+  const before = await todayCount(page);
+  await page.route(
+    '**/api/orders',
+    async (r) => {
+      if (r.request().method() !== 'POST') return r.continue();
+      await r.fetch(); // saved on the server…
+      await r.abort('connectionreset'); // …but the tablet never hears
+    },
+    { times: 1 },
+  );
+  await page.getByTestId('pay-upi').click();
+  await expect(page.getByText("Your order didn't go through")).toBeVisible();
+  // back to the cart: one more tea, and cash instead of UPI
+  await page.locator('.k-pay .back').click();
+  await page.locator('.k-cart .step button').last().click();
+  await page.getByTestId('continue-to-pay').click();
+  await page.getByTestId('pay-cash').click();
+  await expect(page.getByTestId('token')).toBeVisible();
+  const today = await (await page.request.get('/api/orders?view=today')).json();
+  expect(today.length).toBe(before + 2);
+  expect(today[0]).toMatchObject({ payMethod: 'cash', itemCount: 2 }); // what the customer finally ordered
+  expect(today[1]).toMatchObject({ payMethod: 'upi', itemCount: 1, status: 'cancelled' }); // the lost one is withdrawn
+  await expect(page.locator('.k-done .token .num')).toHaveText(today[0].token);
+});
+
+test('kiosk: a price changed while the customer was paying is shown before anything is charged', async ({ page }) => {
+  await kioskTo(page);
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('continue-to-pay').click();
+  const before = await todayCount(page);
+  // the kiosk believes an older, cheaper menu: the server's total differs from what the screen shows
+  await page.route('**/api/orders', async (r) => {
+    if (r.request().method() !== 'POST') return r.continue();
+    const body = r.request().postDataJSON();
+    await r.continue({ postData: JSON.stringify({ ...body, expectTotal: body.expectTotal - 5 }) });
+  });
+  await page.getByTestId('pay-cash').click();
+  await expect(page.locator('.k-pay .err')).toContainText('Prices just changed');
+  expect(await todayCount(page)).toBe(before); // nothing was placed at the unseen price
+});

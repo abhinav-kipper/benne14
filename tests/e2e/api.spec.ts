@@ -192,3 +192,50 @@ test('health reports setup without leaking secrets', async ({ request }) => {
   expect(text).not.toContain(PIN);
   expect(JSON.parse(text)).toMatchObject({ ok: true, staffPin: 'set', database: 'ok' });
 });
+
+test('a paid order cannot be cancelled, only refunded', async ({ request }) => {
+  const o = await (await place(request, {})).json();
+  expect((await status(request, o.id, { to: 'new' })).status()).toBe(200); // paid at the counter
+  const r = await status(request, o.id, { to: 'cancelled' });
+  expect(r.status()).toBe(409);
+  expect((await (await request.get(`/api/orders/${o.id}`)).json()).status).toBe('new'); // still in the takings
+  // an unpaid one still can be
+  const u = await (await place(request, {})).json();
+  expect((await status(request, u.id, { to: 'cancelled' })).status()).toBe(200);
+});
+
+test('same checkout key, changed order: the new cart is placed, never the old one handed back', async ({ request }) => {
+  const k = key();
+  const first = await (await place(request, { key: k, lines: [line('masala-dosa')] })).json();
+  const retry = await (await place(request, { key: k, lines: [line('masala-dosa')] })).json();
+  expect(retry.id).toBe(first.id); // an exact retry is the same order
+  // the reply was lost, the customer went back, changed the cart and the payment type, and paid again
+  const r = await place(request, { key: k, payMethod: 'upi', lines: [line('masala-tea', 2)] });
+  expect(r.status()).toBe(201);
+  const second = await r.json();
+  expect(second.id).not.toBe(first.id);
+  expect(second).toMatchObject({ payMethod: 'upi', status: 'pending_payment', itemCount: 2 });
+  expect(second.lines[0].itemId).toBe('masala-tea');
+  expect((await (await request.get(`/api/orders/${first.id}`)).json()).status).toBe('cancelled'); // withdrawn, not left for the kitchen
+  // and a retry of the changed order is again the same order
+  expect((await (await place(request, { key: k, payMethod: 'upi', lines: [line('masala-tea', 2)] })).json()).id).toBe(
+    second.id,
+  );
+  // once the earlier order is paid, a different cart under its key is refused instead of replacing it
+  await status(request, second.id, { to: 'new' });
+  const late = await place(request, { key: k, lines: [line('plain-dosa')] });
+  expect(late.status()).toBe(409);
+  expect((await late.json()).error).toContain('already placed and paid');
+});
+
+test('the total the customer saw must be the total charged', async ({ request }) => {
+  const seen = 219; // masala dosa ₹209 + ₹10 GST
+  expect((await place(request, { expectTotal: seen })).status()).toBe(201);
+  const r = await place(request, { expectTotal: seen - 10 });
+  expect(r.status()).toBe(409);
+  expect((await r.json()).error).toContain('the total is now ₹219');
+  for (const bad of ['219', 219.5, null, 1e99])
+    expect((await place(request, { expectTotal: bad })).status(), String(bad)).toBe(400);
+  for (const k of ['has spaces in it', 'semi;colon;key', 'per%cent%key', 'a:b:c:d:e'])
+    expect((await place(request, { key: k })).status(), k).toBe(400);
+});

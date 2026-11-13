@@ -2,7 +2,7 @@
 // Today's orders, and one order's sheet: bill, timeline, Paid / Cancel / recorded refund.
 import { useState } from 'react';
 import { admin, api, ApiError, useTodayOrders } from '@/lib/client';
-import { isPaid, type Order } from '@/lib/orders';
+import { counts, type Order } from '@/lib/orders';
 import { Bar, PAY, STATUS, inr, inr2, time, type Ctx } from './shared';
 
 export function Orders(p: Ctx & { refreshLive: () => void }) {
@@ -17,7 +17,7 @@ export function Orders(p: Ctx & { refreshLive: () => void }) {
       filter === 'all' ||
       (filter === 'confirm' ? o.status === 'awaiting_cash' : o.status === 'cancelled' || !!o.refundedAt),
   );
-  const counted = list.filter((o) => isPaid(o) && !o.refundedAt);
+  const counted = list.filter(counts);
   const sel = list.find((o) => o.id === open) ?? null;
   return (
     <section>
@@ -216,7 +216,7 @@ export function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: 
               {sure ? 'Yes, cancel this order' : 'Cancel order'}
             </button>
           )}
-          {isPaid(o) && !o.refundedAt && !refunding && (
+          {counts(o) && !refunding && (
             <button className="btn r" onClick={() => setRefunding(true)} data-testid="sheet-refund">
               Refund this order…
             </button>
