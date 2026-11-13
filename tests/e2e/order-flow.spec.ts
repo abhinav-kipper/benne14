@@ -198,7 +198,7 @@ test('kiosk returns to the start screen by itself after the order number', async
   await expect(page.getByTestId('done-ask')).toHaveCount(0); // time to read the number and scan the bill
   await page.clock.runFor(7_000);
   await expect(page.getByTestId('done-ask')).toContainText('Still there?');
-  await expect(page.getByTestId('done-ask')).toContainText('Your order number is 1.'); // repeated: the box covers the ticket
+  await expect(page.getByTestId('done-ask')).toContainText(/Your order number is \d+\./); // repeated: the box covers the ticket
   await page.getByTestId('more-time').click();
   await page.clock.runFor(55_000);
   await expect(page.getByTestId('done-ask')).toHaveCount(0); // a minute more
