@@ -77,12 +77,12 @@ export function Upi({
       clearInterval(t);
     };
   }, [auto]);
-  // The shop's own QR keeps its 5-minute timer (staff confirm those by hand).
+  // The shop's own QR keeps its 5-minute timer (staff confirm those by hand). It counts from the
+  // moment the screen opens, whatever the network is doing; it only acts when that QR is what's shown.
   useEffect(() => {
-    if (view?.kind !== 'direct') return;
     const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
-  }, [view]);
+  }, []);
   // Staff may confirm on the soundbox before the customer taps: move on as soon as the order leaves pending.
   useEffect(() => {
     if (!live || live.status === 'pending_payment') return;
@@ -95,8 +95,8 @@ export function Upi({
     then();
   };
   useEffect(() => {
-    if (left === 0) drop(onCancel);
-  }, [left]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (left === 0 && view?.kind === 'direct') drop(onCancel);
+  }, [left, view]); // eslint-disable-line react-hooks/exhaustive-deps
   // Nobody answered "Still there?". If a QR was on screen it may yet be paid: leave the order waiting
   // (the kitchen screen keeps checking it) and just free the kiosk. If no QR ever appeared, nothing can
   // be paid, so the order is cancelled.

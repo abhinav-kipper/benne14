@@ -466,6 +466,25 @@ test('the owner can switch the code box and the phone box off; the server then i
   for (const c of (await (await request.get('/api/admin/offers', { headers: H })).json()).codes)
     await offers(request, { code: { ...c, active: false } });
   expect(await (await request.get('/api/kiosk')).json()).toEqual({ codes: false, phone: true });
+  // a code can be deleted from its sheet (asked twice); orders that used it keep its name
+  expect((await offers(request, { remove: 'NOSUCHCODE' })).status()).toBe(404);
+  expect((await offers(request, { remove: 'BIG100' }, {})).status()).toBe(401);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin');
+  await page.getByTestId('tab-offers').click();
+  await page.getByTestId('code-BIG100').locator('.open').click();
+  await page.getByTestId('dc-delete').click();
+  await expect(page.getByTestId('dc-delete')).toHaveText('Yes, delete BIG100');
+  await page.getByTestId('dc-delete').click();
+  await expect(page.getByTestId('code-BIG100')).toHaveCount(0);
+  await expect(page.getByTestId('code-WELCOME10')).toBeVisible();
+  expect(
+    (await (await request.get('/api/admin/offers', { headers: H })).json()).codes.map((c: { code: string }) => c.code),
+  ).toEqual(['WELCOME10']);
+  const usedIt = (await (await request.get('/api/orders?view=today')).json()).find(
+    (x: { discountCode?: string }) => x.discountCode === 'WELCOME10',
+  );
+  expect(usedIt.savings).toBeGreaterThan(0);
   const history = await (await request.get('/api/admin/events', { headers: H })).json();
   expect(history.some((e: { kind: string }) => e.kind === 'setting')).toBe(true);
   expect(history.some((e: { kind: string }) => e.kind === 'discount')).toBe(true);

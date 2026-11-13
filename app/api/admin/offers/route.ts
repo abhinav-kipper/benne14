@@ -21,6 +21,7 @@ export async function GET(req: Request) {
 
 // { settings: { codes?, phone? } } switches what the kiosk asks for.
 // { code: { code, kind, value, minOrder?, maxDiscount?, expiresOn?, active? } } creates a code or replaces it.
+// { remove: 'CODE' } deletes a code for good (past orders keep their discount and the code's name).
 export async function POST(req: Request) {
   const denied = adminDenied(req);
   if (denied) return denied;
@@ -50,6 +51,17 @@ export async function POST(req: Request) {
       return json({ settings: await store.saveSettings(patch, events) });
     }
 
+    const say = (x: DiscountCode) =>
+      `${describeCode(x)}${x.expiresOn ? `, until ${x.expiresOn}` : ''} · ${x.active ? 'on' : 'off'}`;
+
+    if (b.remove !== undefined) {
+      const gone = cleanCode(b.remove);
+      const was = gone ? await store.getCode(gone) : null;
+      if (!gone || !was) return json({ error: 'No such code' }, 404);
+      await store.deleteCode(gone, { kind: 'discount', subject: gone, before: say(was), after: 'Deleted' });
+      return json({ removed: gone });
+    }
+
     const c = b.code as Record<string, unknown> | null;
     if (!c || typeof c !== 'object' || Array.isArray(c)) throw new BadRequest('Send settings or a code');
     const code = cleanCode(c.code);
@@ -74,8 +86,6 @@ export async function POST(req: Request) {
       active: (c.active as boolean | undefined) ?? true,
     };
     const was = await store.getCode(code);
-    const say = (x: DiscountCode) =>
-      `${describeCode(x)}${x.expiresOn ? `, until ${x.expiresOn}` : ''} · ${x.active ? 'on' : 'off'}`;
     await store.saveCode(next, { kind: 'discount', subject: code, before: was ? say(was) : null, after: say(next) });
     return json({ code: next });
   } catch (e) {

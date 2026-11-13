@@ -334,6 +334,12 @@ export const admin = {
       body: JSON.stringify({ code }),
       headers: pinHeader(pin),
     }),
+  deleteCode: (pin: string, code: string) =>
+    call<{ removed: string }>('/api/admin/offers', {
+      method: 'POST',
+      body: JSON.stringify({ remove: code }),
+      headers: pinHeader(pin),
+    }),
   customers: (pin: string) => call<Customer[]>('/api/admin/customers', { headers: pinHeader(pin) }),
   // CSV comes back as a file; the browser saves it (a plain link can't send the PIN header).
   async download(pin: string, kind: 'bills' | 'gst' | 'dishes' | 'customers', from = '', to = '') {

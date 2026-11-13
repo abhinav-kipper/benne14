@@ -210,6 +210,14 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       ).toEqual({ codes: true, phone: false });
       expect(await s.getSettings()).toEqual({ codes: true, phone: false });
       expect((await s.listEvents()).map((e) => e.kind)).toEqual(['setting', 'discount', 'discount', 'discount']);
+      // a code can be deleted for good; deleting one that isn't there says so
+      await s.deleteCode('FLAT40', { kind: 'discount', subject: 'FLAT40', before: '₹40 off', after: 'Deleted' });
+      expect((await s.listCodes()).map((c) => c.code)).toEqual(['WELCOME10']);
+      expect(await s.getCode('FLAT40')).toBeNull();
+      await expect(s.deleteCode('FLAT40', { kind: 'discount', subject: 'FLAT40' })).rejects.toMatchObject({
+        status: 404,
+      });
+      expect((await s.listEvents())[0]).toMatchObject({ kind: 'discount', subject: 'FLAT40', after: 'Deleted' });
     });
 
     it('stores a discount with the order, and phone numbers only where the dashboard reads them', async () => {
