@@ -11,6 +11,8 @@ section A are open.
 
 ## Up next
 
+0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Owner wants the UI raised first; the launch blockers below are on hold until then, not dropped.
+
 1. **Launch blockers: `docs/audit.md` section A** (not yet discussed with the owner): device key + rate
    limit for placing orders, PIN on the order list, separate owner PIN, reword the "money comes back"
    line, hide "Paid" until the customer taps, move the server region next to Supabase (need the

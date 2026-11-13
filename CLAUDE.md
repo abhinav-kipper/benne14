@@ -1,6 +1,6 @@
 # Claude Code working notes — Benne 14
 
-Self-order kiosk, kitchen display, TV order board and owner admin for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram). Built for the owner (the user's brother). Live status: `docs/state.md` (read it every session). How it works: `docs/ARCHITECTURE.md`. Payments: `docs/payments.md`. Open issues and what's fixed: `docs/audit.md` (tick items as they merge).
+Self-order kiosk, kitchen display, TV order board and owner admin for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram). Built for the owner (the user's brother). Live status: `docs/state.md` (read it every session). How it works: `docs/ARCHITECTURE.md`. Payments: `docs/payments.md`. Open issues and what's fixed: `docs/audit.md` (system) and `docs/ui-audit.md` (UI and customer flow); tick items as they merge.
 
 ## Stack
 
