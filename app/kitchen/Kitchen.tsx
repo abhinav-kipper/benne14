@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { itemById, noteTone, optionTone, photoOf, placeholderOf, type Tone } from '@/lib/menu';
-import { counts, minutesSince, type Order, type OrderStatus } from '@/lib/orders';
+import { allGiven, counts, givenOf, minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { PinGate } from '@/components/PinGate';
 import { api, ApiError, chime, useAutoReload, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
 
@@ -196,13 +196,39 @@ export default function Kitchen() {
         undoable && UNDO_TEXT[to] ? { text: `Order ${o.token} ${UNDO_TEXT[to]}`, undo: { id: o.id, to: from } } : null,
       );
     } catch (e) {
-      // Only a PIN the server now rejects (e.g. changed in Vercel) sends the cook back to the PIN screen.
-      if (e instanceof ApiError && e.status === 401) {
-        localStorage.removeItem(PIN_KEY);
-        setPinNote('The PIN was changed. Enter the new PIN.');
-        setPin(null);
-      }
-      setToast({ text: e instanceof ApiError ? e.message : 'No internet. Tap again.', err: true });
+      failed(e);
+    }
+    refresh();
+  };
+  const failed = (e: unknown) => {
+    // Only a PIN the server now rejects (e.g. changed in Vercel) sends the cook back to the PIN screen.
+    if (e instanceof ApiError && e.status === 401) {
+      localStorage.removeItem(PIN_KEY);
+      setPinNote('The PIN was changed. Enter the new PIN.');
+      setPin(null);
+    }
+    setToast({ text: e instanceof ApiError ? e.message : 'No internet. Tap again.', err: true });
+  };
+
+  // A long order goes out in parts: a tap on a line counts one more of it as given, a hold takes one
+  // back. Kept on the server so every kitchen screen agrees and a reload doesn't forget.
+  const tick = async (o: Order, line: number, by: 1 | -1) => {
+    if (!pin) return;
+    const given = givenOf(o);
+    const count = given[line] + by;
+    if (count < 0) return;
+    if (count > o.lines[line].qty) {
+      setToast({ text: 'Already given. Hold the line to take a tick back.' });
+      return;
+    }
+    given[line] = count;
+    noteLocalChange();
+    setOrders((cur) => cur?.map((x) => (x.id === o.id ? { ...x, given, status: 'cooking' } : x)) ?? cur);
+    try {
+      await api.setGiven(o.id, line, count, pin);
+      noteLocalChange();
+    } catch (e) {
+      failed(e);
     }
     refresh();
   };
@@ -257,8 +283,14 @@ export default function Kitchen() {
   const isFresh = (o: Order) => fresh.has(`${o.id}:${o.status === 'cooking' ? 'new' : o.status}`);
   const tray = useMemo(() => {
     const m = new Map<string, number>();
-    for (const o of rail) for (const l of o.lines) m.set(l.itemId, (m.get(l.itemId) ?? 0) + l.qty);
-    return [...m.entries()].sort((a, b) => (itemById(a[0])?.cat ?? '').localeCompare(itemById(b[0])?.cat ?? ''));
+    // what is still to be made: dishes already given (ticked) are off the tray
+    for (const o of rail) {
+      const given = givenOf(o);
+      o.lines.forEach((l, i) => m.set(l.itemId, (m.get(l.itemId) ?? 0) + l.qty - given[i]));
+    }
+    return [...m.entries()]
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => (itemById(a[0])?.cat ?? '').localeCompare(itemById(b[0])?.cat ?? ''));
   }, [rail]);
   const clock = !now
     ? ''
@@ -322,6 +354,7 @@ export default function Kitchen() {
                 now={now}
                 fresh={isFresh(o)}
                 onGo={() => move(o, o.status === 'new' ? 'cooking' : 'ready')}
+                onTick={(line, by) => tick(o, line, by)}
               />
             ))}
           </div>
@@ -485,7 +518,31 @@ export default function Kitchen() {
   );
 }
 
-function Chit({ o, now, fresh, onGo }: { o: Order; now: number; fresh: boolean; onGo: () => void }) {
+const HOLD_MS = 550;
+
+function Chit({
+  o,
+  now,
+  fresh,
+  onGo,
+  onTick,
+}: {
+  o: Order;
+  now: number;
+  fresh: boolean;
+  onGo: () => void;
+  onTick: (line: number, by: 1 | -1) => void;
+}) {
+  const given = givenOf(o);
+  const all = allGiven(o);
+  // A hold (not a tap) on a line takes one tick back. The tap that ends a hold is swallowed.
+  const hold = useRef<{ t: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
+  const held = useRef(false);
+  const endHold = () => {
+    if (hold.current) clearTimeout(hold.current.t);
+    hold.current = null;
+  };
+  useEffect(() => endHold, []);
   const m = minutesSince(o.paidAt ?? o.createdAt, now);
   const age = m >= LATE_MIN ? 'late' : m >= WARN_MIN ? 'warn' : '';
   return (
@@ -508,10 +565,49 @@ function Chit({ o, now, fresh, onGo }: { o: Order; now: number; fresh: boolean; 
         {o.lines.map((l, i) => {
           const tags = lineTags(l);
           return (
-            <div className="ln" key={i}>
-              <span className={`qty ${l.qty === 1 ? 'one' : ''}`}>{l.qty}</span>
+            <div
+              className={`ln ${given[i] === l.qty ? 'given' : given[i] > 0 ? 'part' : ''}`}
+              key={i}
+              role="button"
+              tabIndex={0}
+              aria-label={`${l.name}: ${given[i]} of ${l.qty} given`}
+              data-testid={`ln-${o.token}-${i}`}
+              onClick={() => {
+                if (held.current) held.current = false;
+                else onTick(i, 1);
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && onTick(i, 1)}
+              onPointerDown={(e) => {
+                endHold();
+                held.current = false;
+                hold.current = {
+                  x: e.clientX,
+                  y: e.clientY,
+                  t: setTimeout(() => {
+                    hold.current = null;
+                    if (given[i] === 0) return;
+                    held.current = true;
+                    onTick(i, -1);
+                  }, HOLD_MS),
+                };
+              }}
+              onPointerMove={(e) => {
+                const h = hold.current; // a finger that moves is scrolling, not holding
+                if (h && Math.abs(e.clientX - h.x) + Math.abs(e.clientY - h.y) > 12) endHold();
+              }}
+              onPointerUp={endHold}
+              onPointerLeave={endHold}
+              onPointerCancel={endHold}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <span className={`qty ${l.qty === 1 ? 'one' : ''}`}>{given[i] === l.qty ? <Check /> : l.qty}</span>
               <div>
                 <div className="nm">{l.name}</div>
+                {given[i] > 0 && given[i] < l.qty && (
+                  <div className="gv" data-testid={`gv-${o.token}-${i}`}>
+                    {given[i]} of {l.qty} given
+                  </div>
+                )}
                 {tags.length > 0 && (
                   <div className="tags">
                     {tags.map((t) => (
@@ -530,7 +626,11 @@ function Chit({ o, now, fresh, onGo }: { o: Order; now: number; fresh: boolean; 
           );
         })}
       </div>
-      <button className="go" onClick={onGo} data-testid={`go-${o.token}`}>
+      <button
+        className={`go ${all && o.status === 'cooking' ? 'all' : ''}`}
+        onClick={onGo}
+        data-testid={`go-${o.token}`}
+      >
         {o.status === 'new' ? (
           <>
             <Flame />

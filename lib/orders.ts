@@ -31,6 +31,9 @@ export interface Order {
   payRef?: string | null;
   // The customer's phone number is deliberately not part of an order as screens see it: orders are
   // read by the TV and the phone bill. The dashboard's customer list reads it through the store.
+  // Kitchen ticks: how many of each line have already been given to the customer, one count per
+  // line. Missing or short = nothing given for those lines. Read it through givenOf().
+  given?: number[];
   createdAt: string;
   updatedAt: string;
   paidAt: string | null;
@@ -117,6 +120,20 @@ export const NEXT: Record<OrderStatus, OrderStatus[]> = {
   handed_over: ['ready'],
   cancelled: [],
 };
+
+// How many of each line are already given: always one whole number per line, never more than ordered.
+export const givenOf = (o: Pick<Order, 'lines' | 'given'>): number[] =>
+  o.lines.map((l, i) => Math.max(0, Math.min(l.qty, Math.trunc(Number(o.given?.[i]) || 0))));
+export const allGiven = (o: Pick<Order, 'lines' | 'given'>) => givenOf(o).every((g, i) => g === o.lines[i].qty);
+// Ticks are for orders on the kitchen rail. Why a tick is refused, or null when it is fine.
+export function tickProblem(o: Order, line: number, count: number): { message: string; status: number } | null {
+  if (!Number.isInteger(line) || line < 0 || line >= o.lines.length) return { message: 'No such line', status: 400 };
+  if (!Number.isInteger(count) || count < 0 || count > o.lines[line].qty)
+    return { message: 'That is more than was ordered', status: 400 };
+  if (o.status !== 'new' && o.status !== 'cooking')
+    return { message: `Order ${o.token} is no longer in the kitchen`, status: 409 };
+  return null;
+}
 
 export const canMove = (from: OrderStatus, to: OrderStatus) => NEXT[from].includes(to);
 

@@ -72,6 +72,12 @@ export const api = {
       },
     ),
   // `from` = the status this screen shows; the server refuses (409) if another screen changed it first.
+  setGiven: (id: string, line: number, count: number, pin: string) =>
+    call<Order>(`/api/orders/${id}/given`, {
+      method: 'POST',
+      body: JSON.stringify({ line, count }),
+      headers: { 'x-staff-pin': pin },
+    }),
   setStatus: (id: string, to: OrderStatus, pin: string, from?: OrderStatus) =>
     call<Order>(`/api/orders/${id}/status`, {
       method: 'POST',

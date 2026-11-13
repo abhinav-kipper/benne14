@@ -3,6 +3,8 @@
 import { randomUUID } from 'node:crypto';
 import {
   canMove,
+  givenOf,
+  tickProblem,
   formatToken,
   HANDED_MIN,
   isPaid,
@@ -152,6 +154,19 @@ export class MemoryStore {
     };
     this.orders.set(id, next);
     this.log(id, { kind: 'status', from: o.status, to, note: null });
+    return next;
+  }
+
+  async setGiven(id: string, line: number, count: number) {
+    const o = this.orders.get(id);
+    if (!o) throw new StoreError('Order not found', 404);
+    const bad = tickProblem(o, line, count);
+    if (bad) throw new StoreError(bad.message, bad.status);
+    const given = givenOf(o);
+    given[line] = count;
+    const next: Order = { ...o, given, status: 'cooking', updatedAt: new Date().toISOString() };
+    this.orders.set(id, next);
+    if (o.status === 'new') this.log(id, { kind: 'status', from: 'new', to: 'cooking', note: null });
     return next;
   }
 

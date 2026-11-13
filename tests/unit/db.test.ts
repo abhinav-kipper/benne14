@@ -318,6 +318,32 @@ describe('database (supabase/migrations)', () => {
       );
     });
 
+    it('counts kitchen ticks under a lock, starts a new order on its first tick, and leaves the bill alone (0008)', async () => {
+      const o = await place('db-given', 'cash'); // one line: 2 × Masala Dosa
+      const tick = (line: number, count: number) =>
+        db.query<{ given: number[]; status: string; total: string }>('select * from set_given($1, $2, $3)', [
+          o.id,
+          line,
+          count,
+        ]);
+      await expect(tick(0, 1)).rejects.toThrow(/no longer in the kitchen/); // not paid yet
+      await db.query("update orders set status = 'new', paid_at = now() where id = $1", [o.id]);
+      const one = (await tick(0, 1)).rows[0];
+      expect(one.given).toEqual([1]);
+      expect(one.status).toBe('cooking');
+      expect(Number(one.total)).toBe(Number(o.total));
+      expect((await tick(0, 2)).rows[0].given).toEqual([2]);
+      expect((await tick(0, 0)).rows[0].given).toEqual([0]);
+      await expect(tick(0, 3)).rejects.toThrow(/more than was ordered/);
+      await expect(tick(1, 1)).rejects.toThrow(/no such line/);
+      await expect(tick(-1, 1)).rejects.toThrow(/no such line/);
+      const log = await db.query<{ to_status: string }>(
+        "select to_status from order_events where order_id = $1 and kind = 'status' order by id",
+        [o.id],
+      );
+      expect(log.rows.map((r) => r.to_status)).toEqual(['new', 'cooking']); // the start is in the order's history
+    });
+
     it('logs every change of state by itself, in order', async () => {
       const o = await place('log-order-1', 'upi');
       for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'])

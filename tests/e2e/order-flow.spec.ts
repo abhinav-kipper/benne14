@@ -477,3 +477,61 @@ test('kitchen: a long order opens in full on a tap, and the screen uses the whol
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect.poll(width).toBe(1280);
 });
+
+test('kitchen: a long order goes out in parts, ticked line by line, and the ticks survive a reload', async ({
+  page,
+  request,
+}) => {
+  const o = await (
+    await request.post('/api/orders', {
+      data: {
+        key: `ticks-${Date.now()}`,
+        type: 'dine_in',
+        name: 'Parts',
+        payMethod: 'cash',
+        lines: [
+          { itemId: 'medu-vada', qty: 3, choices: {}, notes: [] },
+          { itemId: 'filter-coffee', qty: 1, choices: {}, notes: [] },
+        ],
+      },
+    })
+  ).json();
+  await request.post(`/api/orders/${o.id}/status`, { data: { to: 'new' }, headers: { 'x-staff-pin': PIN } });
+  await staff(page);
+  await page.goto('/kitchen');
+  const chit = page.getByTestId(`chit-${o.token}`);
+  const vada = page.getByTestId(`ln-${o.token}-0`);
+  const coffee = page.getByTestId(`ln-${o.token}-1`);
+  const go = page.getByTestId(`go-${o.token}`);
+  await expect(chit).toHaveClass(/new/);
+
+  await coffee.click(); // the coffee went out first
+  await expect(coffee).toHaveClass(/given/);
+  await expect(chit).toHaveClass(/cooking/); // giving something starts the order
+  await vada.click();
+  await vada.click();
+  await expect(page.getByTestId(`gv-${o.token}-0`)).toHaveText('2 of 3 given');
+  await expect(go).not.toHaveClass(/all/);
+
+  await page.reload(); // another tablet, or this one after a restart, shows the same ticks
+  await expect(page.getByTestId(`gv-${o.token}-0`)).toHaveText('2 of 3 given');
+  await expect(coffee).toHaveClass(/given/);
+
+  // a hold takes one back
+  await vada.dispatchEvent('pointerdown', { clientX: 10, clientY: 10 });
+  await expect(page.getByTestId(`gv-${o.token}-0`)).toHaveText('1 of 3 given');
+  await vada.dispatchEvent('pointerup');
+
+  await vada.click();
+  await vada.click();
+  await expect(vada).toHaveClass(/given/);
+  await expect(go).toHaveClass(/all/); // everything is out: Ready is lit, the cook still taps it
+  await expect(go).toHaveText('Ready');
+  await vada.click(); // one tap too many does nothing but say how to undo
+  await expect(page.locator('.kitchen')).toContainText('Hold the line');
+  const saved = await (await request.get(`/api/orders/${o.id}`)).json();
+  expect(saved.given).toEqual([3, 1]);
+  expect(saved.status).toBe('cooking');
+  await go.click();
+  await expect(page.getByTestId(`ready-${o.token}`)).toBeVisible();
+});
