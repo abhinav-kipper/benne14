@@ -40,14 +40,13 @@
 .chit .qty.one{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
 .chit .ln > div{min-width:0}
 .chit .nm{font-size:22px;font-weight:700;line-height:1.15;padding-top:9px}
-/* What changes on a dish: a short list of lines, + in green and − in red (no boxes: six boxed tags
-   on one dish read as clutter). A free instruction (.note) keeps its ink box so it stands out. */
-.chit .tags{display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin-top:6px}
-.chit .tg{font-size:17px;font-weight:700;line-height:1.2;max-width:100%;display:inline-flex;align-items:baseline;gap:6px;overflow-wrap:anywhere}
-.chit .tg i{font-style:normal;font-weight:900;font-size:19px;line-height:1;width:12px;text-align:center;flex:none}
-.chit .tg.more{color:#1E6A37}
-.chit .tg.less{color:#B03A1E}
-.chit .tg.note{font-size:15.5px;padding:4px 9px;border-radius:6px;margin-top:3px;background:var(--ink);color:var(--chit)}
+.chit .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:flex-start}
+/* Tags wrap inside the chit instead of running past its edge. */
+.chit .tg{font-size:16px;font-weight:700;line-height:1.15;min-height:30px;max-width:100%;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:6px;overflow-wrap:anywhere;border:1.5px solid transparent}
+.chit .tg i{font-style:normal;font-weight:900;font-size:19px;line-height:1}
+.chit .tg.more{background:#DDF0E1;color:#1E5A31;border-color:#9CCDA9}
+.chit .tg.less{background:#FBE0D8;color:#8E2511;border-color:#EDA592}
+.chit .tg.note{background:var(--ink);color:var(--chit)}
 .chit .go{margin:12px 10px;height:80px;width:calc(100% - 20px);border-radius:10px;font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:36px;display:flex;align-items:center;justify-content:center;gap:12px}
 .chit .go svg{width:28px;height:28px}
 .chit.new .clip{background:var(--benne);box-shadow:0 0 0 4px rgba(245,197,66,.25),inset 0 -3px 0 rgba(0,0,0,.2)}
@@ -158,8 +157,7 @@
 .kitchen .chits.narrow .chit .ln{grid-template-columns:36px 1fr;gap:8px;padding:10px 0}
 .kitchen .chits.narrow .chit .qty{width:36px;height:36px;font-size:25px;border-radius:8px}
 .kitchen .chits.narrow .chit .nm{font-size:19px;padding-top:6px}
-.kitchen .chits.narrow .chit .tg{font-size:15.5px}
-.kitchen .chits.narrow .chit .tg.note{font-size:14px;padding:3px 7px}
+.kitchen .chits.narrow .chit .tg{font-size:14.5px;padding:3px 7px;min-height:27px}
 .kitchen .chits.narrow .chit .go{height:68px;font-size:30px;margin:10px 8px;width:calc(100% - 16px)}
 .kitchen .railtab{position:absolute;bottom:14px;z-index:3;height:84px;padding:0 14px;background:var(--cream);color:var(--bg);font-size:16px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 10px 30px -8px rgba(40,30,15,.5)}
 .kitchen .railtab b{font-family:var(--display);font-weight:900;font-size:34px;line-height:.9;color:var(--benne)}

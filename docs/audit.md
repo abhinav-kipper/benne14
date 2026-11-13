@@ -38,7 +38,7 @@ Legend: `[ ]` pending · `[x]` done · `[-]` decided not to do (with reason)
 - [-] C4 (tablet is portrait Android 16:10: fits as built) Kiosk only fits a portrait 800×1280-shaped tablet; on landscape or 4:3 it letterboxes into a narrow strip. Confirm the tablet; decide whether to adapt.
 - [-] C5 (owner: photo upload comes with add/remove dishes; caching not chosen) Photos are Wikimedia placeholders; filter coffee has none. Images (110–210 KB) and fonts are served with `max-age=0`.
 - [x] C6 No PNG app icons (manifest has SVG only) and no favicon (a 404 on every page).
-- [x] C7 (done: calmer kitchen tags, corner test tag; dashboard restyle not chosen) Design weak spots: dashboard KPI tiles + switch rows look generic; a chit with 6 tags is cluttered; empty lower half of the item sheet and the board's left side when quiet; test ribbon overlaps headings.
+- [x] C7 (done: corner test tag. Kitchen tags stay as the original boxed tags: the plain-line version was tried and reverted, see log; dashboard restyle not chosen) Design weak spots: dashboard KPI tiles + switch rows look generic; a chit with 6 tags is cluttered; empty lower half of the item sheet and the board's left side when quiet; test ribbon overlaps headings.
 
 ## D. Code and long-term upkeep
 
@@ -97,3 +97,5 @@ production deploy; self-hosted fonts; distinctive, non-generic visual design on 
 | D10 | Fix: dependency update PRs, newer actions, dead fields. User deletes merged branches |
 
 2026-11-13 · B1 follow-up · owner noticed the TV's smaller ready orders had become plain tiles; they are tickets again (notches + dotted tear line) at every size. Rule: when shrinking something to fit, keep its object shape.
+
+2026-11-13 · design check · compared `main` and the branch side by side with the same orders (TV, kitchen, kiosk cart, dashboard). Two flattenings found and undone: (1) TV small ready tickets are now the original ticket scaled by one unit, not tiles; (2) kitchen tags are the original boxed tags again (plain + / − lines looked cheaper; owner may still choose them). Rule added to CLAUDE.md.

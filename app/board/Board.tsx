@@ -63,18 +63,11 @@ export default function Board() {
           <div className="calm">Fresh orders are being made.<small>Ready order numbers appear here. Keep an eye on the screen.</small></div>
         )}
         <div className="more">
-          {tier === 0
-            ? rest.map((o) => (
-              <div className="tkt" key={o.id} data-testid={`board-ready-${o.token}`}><div className="num">{o.token}</div><div className="perf" /><div className="nm">{o.customerName ?? (o.type === 'dine_in' ? 'Table order' : 'Takeaway')}</div></div>
-            ))
-            : shown.map((o) => (
-              // still a ticket at every size: number, tear line with notches, and a stub (with the name while there's room)
-              <div className="mini" key={o.id} data-testid={`board-ready-${o.token}`}>
-                <span className="num">{o.token}</span><div className="perf" />
-                <span className="nm">{tier === 1 ? o.customerName ?? (o.type === 'dine_in' ? 'Table order' : 'Takeaway') : ''}</span>
-              </div>
-            ))}
-          {rest.length > MINI_MAX && <div className="mini extra">+{rest.length - MINI_MAX + 1}</div>}
+          {/* The same ticket as before (number, tear line with notches, name) at every size: only its scale changes. */}
+          {shown.map((o) => (
+            <div className="tkt" key={o.id} data-testid={`board-ready-${o.token}`}><div className="num">{o.token}</div><div className="perf" /><div className="nm">{o.customerName ?? (o.type === 'dine_in' ? 'Table order' : 'Takeaway')}</div></div>
+          ))}
+          {rest.length > MINI_MAX && <div className="tkt extra"><div className="num">+{rest.length - MINI_MAX + 1}</div><div className="perf" /><div className="nm">more ready</div></div>}
         </div>
       </section>
 
