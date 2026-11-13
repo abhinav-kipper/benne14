@@ -1,8 +1,8 @@
 'use client';
 // Today's orders, and one order's sheet: bill, timeline, Paid / Cancel / recorded refund.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { admin, api, ApiError, useTodayOrders } from '@/lib/client';
-import { counts, type Order } from '@/lib/orders';
+import { counts, type Order, type OrderEvent } from '@/lib/orders';
 import { Bar, PAY, STATUS, inr, inr2, time, type Ctx } from './shared';
 
 export function Orders(p: Ctx & { refreshLive: () => void }) {
@@ -94,6 +94,20 @@ export function Orders(p: Ctx & { refreshLive: () => void }) {
   );
 }
 
+// How a change of state reads in an order's history.
+const MOVES: Record<string, string> = {
+  'pending_payment>awaiting_cash': 'Customer tapped "I\'ve paid"',
+  'pending_payment>new': 'Payment confirmed',
+  'awaiting_cash>new': 'Payment confirmed',
+  'pending_payment>cancelled': 'Cancelled before paying',
+  'awaiting_cash>cancelled': 'Cancelled before paying',
+  'new>cooking': 'Started cooking',
+  'cooking>ready': 'Ready at the counter',
+  'cooking>new': 'Put back to waiting',
+  'ready>handed_over': 'Handed over',
+  'ready>cooking': 'Sent back to the kitchen',
+  'handed_over>ready': 'Brought back to the counter',
+};
 const REASONS = ['Wrong order', 'Customer left', 'Food issue', 'Paid twice'];
 
 export function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: Order) => void }) {
@@ -117,6 +131,20 @@ export function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: 
     }
     setBusy(false);
   };
+  // The order's own history. Reloaded whenever its state changes; until it arrives (or before
+  // migration 0006) the sheet shows the few times stored on the order itself.
+  const [log, setLog] = useState<OrderEvent[]>([]);
+  const { pin } = p;
+  useEffect(() => {
+    let live = true;
+    admin
+      .orderEvents(pin, o.id)
+      .then((l) => live && setLog(l))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [pin, o.id, o.status, o.refundedAt]);
   const unpaid = o.status === 'awaiting_cash' || o.status === 'pending_payment';
   const why = reason === 'Other' ? other.trim() : reason;
   const [label] = o.refundedAt ? ['Refunded'] : STATUS[o.status];
@@ -174,24 +202,40 @@ export function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: 
             <b>{inr2(o.total)}</b>
           </div>
         </div>
-        <div className="timeline">
-          <div>
-            <time>{time(o.createdAt)}</time>Ordered at the kiosk
-          </div>
-          {o.paidAt && (
-            <div>
-              <time>{time(o.paidAt)}</time>Payment confirmed
-            </div>
-          )}
-          {o.readyAt && (
-            <div>
-              <time>{time(o.readyAt)}</time>Ready at the counter
-            </div>
-          )}
-          {o.refundedAt && (
-            <div>
-              <time>{time(o.refundedAt)}</time>Refunded {inr(o.refundAmount ?? o.total)} · {o.refundReason}
-            </div>
+        <div className="timeline" data-testid="timeline">
+          {log.length > 0 ? (
+            // every change of state, as the database recorded it
+            log.map((e, i) => (
+              <div key={i}>
+                <time>{time(e.at)}</time>
+                {e.kind === 'placed'
+                  ? 'Ordered at the kiosk'
+                  : e.kind === 'refund'
+                    ? `Refunded ${e.note ?? ''}`
+                    : (MOVES[`${e.from}>${e.to}`] ?? `${STATUS[e.to!][0]}`)}
+              </div>
+            ))
+          ) : (
+            <>
+              <div>
+                <time>{time(o.createdAt)}</time>Ordered at the kiosk
+              </div>
+              {o.paidAt && (
+                <div>
+                  <time>{time(o.paidAt)}</time>Payment confirmed
+                </div>
+              )}
+              {o.readyAt && (
+                <div>
+                  <time>{time(o.readyAt)}</time>Ready at the counter
+                </div>
+              )}
+              {o.refundedAt && (
+                <div>
+                  <time>{time(o.refundedAt)}</time>Refunded {inr(o.refundAmount ?? o.total)} · {o.refundReason}
+                </div>
+              )}
+            </>
           )}
         </div>
         {err && <div className="err">{err}</div>}

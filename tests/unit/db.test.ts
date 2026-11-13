@@ -4,6 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { priceOrder } from '@/lib/pricing';
 import { MIGRATIONS } from '@/lib/migrations';
+import { canMove, type OrderStatus } from '@/lib/orders';
 
 // Runs the real migrations in an in-memory Postgres (PGlite), so the SQL that runs in Supabase
 // (place_order: daily numbers, idempotency, first status) is tested, not just the app around it.
@@ -152,6 +153,7 @@ describe('database (supabase/migrations)', () => {
     );
     await expect(db.query("insert into admin_events (kind, subject) values ('hack', 'x')")).rejects.toThrow();
     const o = await place('db-refund', 'cash');
+    await db.query("update orders set status = 'new', paid_at = now() where id = $1", [o.id]); // paid at the counter
     await db.query(
       "update orders set refunded_at = now(), refund_reason = 'Wrong order', refund_amount = total where id = $1",
       [o.id],
@@ -160,6 +162,167 @@ describe('database (supabase/migrations)', () => {
       "select count(*)::int n from pg_class where relname in ('menu_overrides','option_overrides','admin_events') and relrowsecurity",
     );
     expect(rls.rows[0].n).toBe(3);
+  });
+
+  describe('order integrity (0006)', () => {
+    const ALL: OrderStatus[] = [
+      'pending_payment',
+      'awaiting_cash',
+      'new',
+      'cooking',
+      'ready',
+      'handed_over',
+      'cancelled',
+    ];
+    let seq = 0;
+    const raw = (over: Record<string, unknown>) => {
+      seq += 1;
+      const row: Record<string, unknown> = {
+        idempotency_key: `raw-key-${seq}`,
+        token: `r${seq}`,
+        token_day: '2031-01-01',
+        type: 'takeaway',
+        pay_method: 'cash',
+        status: 'awaiting_cash',
+        lines: '[]',
+        item_count: 1,
+        subtotal: 100,
+        cgst: 2.5,
+        sgst: 2.5,
+        round_off: 0,
+        total: 105,
+        savings: 0,
+        ...over,
+      };
+      const cols = Object.keys(row);
+      const marks = cols.map((_, i) => '$' + (i + 1));
+      return db.query(
+        'insert into orders (' + cols.join(',') + ') values (' + marks.join(',') + ') returning id',
+        Object.values(row),
+      );
+    };
+
+    it('refuses a bill that does not add up, whoever writes it', async () => {
+      await raw({}); // a sound bill goes in
+      const bad: [string, Record<string, unknown>][] = [
+        ['total too high', { total: 106 }],
+        ['GST missing from the total', { total: 100 }],
+        ['CGST and SGST differ', { cgst: 3, sgst: 2 }],
+        ['negative taxable value', { subtotal: -100, cgst: 0, sgst: 0, total: -100 }],
+        ['nothing to pay', { subtotal: 0, cgst: 0, sgst: 0, total: 0 }],
+        ['paise in the total', { subtotal: 100.5, total: 105.5 }],
+        ['no items', { item_count: 0 }],
+        ['a discount without a code', { savings: 10 }],
+        ['a code without a discount', { discount_code: 'TEN' }],
+        ['half a refund', { refunded_at: '2031-01-01T05:00:00Z', refund_amount: 50, refund_reason: 'x' }],
+      ];
+      for (const [why, over] of bad) await expect(raw(over), why).rejects.toThrow();
+    });
+
+    it('a saved bill cannot be edited: dishes, amounts, number, day, type and payment type are locked', async () => {
+      const o = await place('lock-order-1', 'cash');
+      const edits = [
+        'total = total + 1',
+        'subtotal = 1, cgst = 0, sgst = 0, total = 1',
+        "lines = '[]'::jsonb",
+        'item_count = 99',
+        "token = '999'",
+        "token_day = '2020-01-01'",
+        "pay_method = 'upi'",
+        "type = 'dine_in'",
+        "idempotency_key = 'another'",
+        "savings = 5, discount_code = 'X', subtotal = subtotal - 5, total = total - 5",
+        "created_at = now() - interval '1 day'",
+      ];
+      for (const set of edits)
+        await expect(db.query('update orders set ' + set + ' where id = $1', [o.id]), set).rejects.toThrow(
+          /cannot be changed/,
+        );
+      // what may change: the name and phone, and the state along the allowed moves
+      await db.query("update orders set customer_name = 'Asha', customer_phone = null where id = $1", [o.id]);
+      const now = (
+        await db.query<{ total: string; customer_name: string }>('select * from orders where id = $1', [o.id])
+      ).rows[0];
+      expect(now.customer_name).toBe('Asha');
+      expect(now.total).toBe(o.total);
+    });
+
+    it('allows exactly the status moves the app allows (every pair), and nothing else', async () => {
+      const PATH: Record<OrderStatus, OrderStatus[]> = {
+        pending_payment: [],
+        awaiting_cash: ['awaiting_cash'],
+        new: ['new'],
+        cooking: ['new', 'cooking'],
+        ready: ['new', 'cooking', 'ready'],
+        handed_over: ['new', 'cooking', 'ready', 'handed_over'],
+        cancelled: ['cancelled'],
+      };
+      let n = 0;
+      for (const from of ALL)
+        for (const to of ALL) {
+          if (from === to) continue;
+          n += 1;
+          const o = await place('state-pair-' + n, 'upi');
+          for (const step of PATH[from]) await db.query('update orders set status = $2 where id = $1', [o.id, step]);
+          const move = db.query('update orders set status = $2 where id = $1', [o.id, to]);
+          if (canMove(from, to)) await move;
+          else await expect(move, from + ' to ' + to).rejects.toThrow(/cannot go from/);
+        }
+    });
+
+    it('a payment time and a refund are written once; only a paid order can be refunded', async () => {
+      const o = await place('pay-once-1', 'cash');
+      const refund = "refunded_at = now(), refund_reason = 'Wrong order', refund_amount = total";
+      await expect(db.query('update orders set ' + refund + ' where id = $1', [o.id])).rejects.toThrow(/not paid/);
+      await db.query("update orders set status = 'new', paid_at = now() where id = $1", [o.id]);
+      await expect(
+        db.query("update orders set paid_at = now() + interval '1 hour' where id = $1", [o.id]),
+      ).rejects.toThrow(/payment time/);
+      await expect(db.query('update orders set paid_at = null where id = $1', [o.id])).rejects.toThrow(/payment time/);
+      await expect(
+        db.query("update orders set refunded_at = now(), refund_reason = 'x', refund_amount = 1 where id = $1", [o.id]),
+      ).rejects.toThrow(); // a refund is the whole bill
+      await db.query('update orders set ' + refund + ' where id = $1', [o.id]);
+      await expect(
+        db.query("update orders set refund_reason = 'changed my mind' where id = $1", [o.id]),
+      ).rejects.toThrow(/already recorded/);
+      await expect(
+        db.query('update orders set refunded_at = null, refund_amount = null, refund_reason = null where id = $1', [
+          o.id,
+        ]),
+      ).rejects.toThrow(/already recorded/);
+    });
+
+    it('logs every change of state by itself, in order', async () => {
+      const o = await place('log-order-1', 'upi');
+      for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'])
+        await db.query('update orders set status = $2 where id = $1', [o.id, to]);
+      await db.query("update orders set customer_name = 'no event for this' where id = $1", [o.id]);
+      await db.query(
+        "update orders set refunded_at = now(), refund_reason = 'Food issue', refund_amount = total where id = $1",
+        [o.id],
+      );
+      const log = (
+        await db.query<{ kind: string; from_status: string | null; to_status: string | null; note: string | null }>(
+          'select kind, from_status, to_status, note from order_events where order_id = $1 order by id',
+          [o.id],
+        )
+      ).rows;
+      expect(log.map((e) => e.kind + ':' + (e.from_status ?? '') + '>' + (e.to_status ?? ''))).toEqual([
+        'placed:>pending_payment',
+        'status:pending_payment>awaiting_cash',
+        'status:awaiting_cash>new',
+        'status:new>cooking',
+        'status:cooking>ready',
+        'status:ready>handed_over',
+        'refund:>',
+      ]);
+      expect(log[6].note).toBe('₹' + Number(o.total) + ' · Food issue');
+      const priv = await db.query<{ rls: boolean; a: boolean }>(
+        "select (select relrowsecurity from pg_class where relname = 'order_events') rls, has_function_privilege('anon', 'orders_log()', 'execute') a",
+      );
+      expect(priv.rows[0]).toEqual({ rls: true, a: false });
+    });
   });
 
   it('migrations can run twice (safe to re-run in Supabase)', async () => {

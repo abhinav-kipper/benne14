@@ -14,6 +14,7 @@ import {
   UPI_OPEN_MIN,
   type AdminEvent,
   type Order,
+  type OrderEvent,
   type OrderStatus,
   type PlaceOrderInput,
 } from '../orders';
@@ -74,6 +75,10 @@ const eventRow = (v: Omit<AdminEvent, 'at'>) => ({
   after: v.after ?? null,
   note: v.note ?? null,
 });
+
+// The database's own guard (migration 0006) refused the change: it is a conflict, not a crash.
+const storeError = (e: { message: string; code?: string }) =>
+  new StoreError(e.message, e.code === 'P0001' || e.code === '23514' ? 409 : 500);
 
 const toOrder = (r: Row): Order => ({
   id: r.id,
@@ -222,9 +227,34 @@ export class SupabaseStore {
       .eq('status', cur.status)
       .select('*')
       .maybeSingle();
-    if (error) throw new StoreError(error.message, 500);
+    if (error) throw storeError(error);
     if (!data) throw new StoreError(`Order ${cur.token} was just changed on another screen`, 409);
     return toOrder(data as Row);
+  }
+
+  async listOrderEvents(id: string): Promise<OrderEvent[]> {
+    const { data, error } = await this.db
+      .from('order_events')
+      .select('at,kind,from_status,to_status,note')
+      .eq('order_id', id)
+      .order('id');
+    if (missing(error)) return [];
+    if (error) throw new StoreError(error.message, 500);
+    return (
+      data as {
+        at: string;
+        kind: OrderEvent['kind'];
+        from_status: string | null;
+        to_status: string | null;
+        note: string | null;
+      }[]
+    ).map((r) => ({
+      at: r.at,
+      kind: r.kind,
+      from: r.from_status as OrderStatus | null,
+      to: r.to_status as OrderStatus | null,
+      note: r.note,
+    }));
   }
 
   async listRange(fromDay: string, toDay: string) {
@@ -254,7 +284,7 @@ export class SupabaseStore {
       .is('refunded_at', null)
       .select('*')
       .maybeSingle();
-    if (error) throw new StoreError(error.message, 500);
+    if (error) throw storeError(error);
     if (!data) throw new StoreError(`Order ${cur.token} is already refunded`, 409);
     return toOrder(data as Row);
   }

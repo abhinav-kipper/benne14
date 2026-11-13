@@ -11,7 +11,7 @@ section A are open.
 
 ## Up next
 
-- **Owner to do now: run `supabase/migrations/0005_discount_codes_and_phone.sql`** in Supabase. Until then the kiosk shows neither the code box nor the phone box, and the Offers tab can't save.
+- **Owner to do now: run `supabase/migrations/0005_discount_codes_and_phone.sql`, then `0006_order_integrity.sql`** in Supabase. Without 0005 the kiosk shows neither the code box nor the phone box and the Offers tab can't save. Without 0006 the database doesn't yet guard saved bills or log status changes (the app still works).
 
 0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Round 1 (flow) is merged; round 2 (feel) is on `feat/ui-round-2`. Left: round 3 needs the owner (photos, veg marks, invoice numbers, keyboard check on the tablet), round 4 is the staff screens. The launch blockers below are on hold until then, not dropped.
 
@@ -59,6 +59,8 @@ section A are open.
 - Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
 
 ## Done
+
+- 2026-11-14 — Accuracy audit, database safeguards (migration 0006): bills must add up, saved bills can't be edited, only allowed status moves, every change of state logged and shown on the order, no skipped numbers on a double submit.
 
 - 2026-11-14 — Accuracy audit (`docs/accuracy-audit.md`), first fixes: a changed cart can no longer be saved as the old order, paid orders can't be cancelled (refund only), the total shown must be the total charged, one rule for takings on every screen, integer money maths, and reports cross-checked against the CSVs by tests.
 - 2026-11-14 — Owner's notes: price changes reach the TV banner and an open kiosk within 30 s; cart suggestions depend on the order and on best sellers; kitchen timers say "min"; round chevron buttons replace the long arrows; three sub-lines removed.

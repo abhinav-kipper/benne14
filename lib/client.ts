@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Customer, DiscountCode, DiscountRule, KioskSettings } from './discounts';
 import type { CartLine } from './pricing';
 import type { Overrides } from './menu';
-import type { AdminEvent, Order, OrderStatus, OrderType, PayMethod } from './orders';
+import type { AdminEvent, Order, OrderEvent, OrderStatus, OrderType, PayMethod } from './orders';
 import type { Summary } from './reports';
 import { BUILD_ID } from './version';
 
@@ -283,6 +283,8 @@ export const admin = {
   report: (pin: string, from: string, to: string) =>
     call<Report>(`/api/admin/report?from=${from}&to=${to}`, { headers: pinHeader(pin) }),
   events: (pin: string) => call<AdminEvent[]>('/api/admin/events', { headers: pinHeader(pin) }),
+  orderEvents: (pin: string, id: string) =>
+    call<OrderEvent[]>(`/api/admin/orders/${id}/events`, { headers: pinHeader(pin) }),
   // One request per edit: the dish's fields and any extras' prices save together or not at all.
   saveItem: (
     pin: string,

@@ -3,7 +3,7 @@
 import 'server-only';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import type { Overrides } from '../menu';
-import type { AdminEvent, Order, OrderStatus, PlaceOrderInput } from '../orders';
+import type { AdminEvent, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
 import { MemoryStore, StoreError } from './memory';
 import { SupabaseStore } from './supabase';
 
@@ -20,6 +20,9 @@ export interface Store {
   // `from`: the status the caller last saw. If the order has moved on since (another tablet), the
   // change is refused with 409 instead of silently undoing the other tablet's tap.
   setStatus(id: string, to: OrderStatus, from?: OrderStatus): Promise<Order>;
+
+  // An order's own history, oldest first: placed, every change of state, a refund ([] before 0006 is run).
+  listOrderEvents(id: string): Promise<OrderEvent[]>;
 
   // Owner dashboard
   listRange(fromDay: string, toDay: string): Promise<Order[]>; // orders placed on these IST days, oldest first

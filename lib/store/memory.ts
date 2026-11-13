@@ -12,6 +12,7 @@ import {
   UPI_OPEN_MIN,
   type AdminEvent,
   type Order,
+  type OrderEvent,
   type OrderStatus,
   type PlaceOrderInput,
 } from '../orders';
@@ -44,6 +45,10 @@ export class MemoryStore {
   private items = new Map<string, ItemRow>();
   private options = new Map<string, number>();
   private events: AdminEvent[] = [];
+  private history = new Map<string, OrderEvent[]>(); // per order, as the database's trigger writes it
+  private log(id: string, e: Omit<OrderEvent, 'at'>) {
+    this.history.set(id, [...(this.history.get(id) ?? []), { ...e, at: new Date().toISOString() }]);
+  }
   private phones = new Map<string, string>(); // order id -> phone; kept out of the order itself
   private codes = new Map<string, DiscountCode & { createdAt: number }>();
   private settings: KioskSettings = { ...DEFAULT_SETTINGS };
@@ -78,6 +83,7 @@ export class MemoryStore {
     };
     this.orders.set(order.id, order);
     this.byKey.set(input.key, order.id);
+    this.log(order.id, { kind: 'placed', from: null, to: order.status, note: null });
     if (input.customerPhone) this.phones.set(order.id, input.customerPhone);
     return order;
   }
@@ -144,7 +150,12 @@ export class MemoryStore {
       readyAt: to === 'ready' ? now : to === 'cooking' ? null : o.readyAt,
     };
     this.orders.set(id, next);
+    this.log(id, { kind: 'status', from: o.status, to, note: null });
     return next;
+  }
+
+  async listOrderEvents(id: string) {
+    return this.history.get(id) ?? [];
   }
 
   async listRange(fromDay: string, toDay: string) {
@@ -167,6 +178,7 @@ export class MemoryStore {
       updatedAt: new Date().toISOString(),
     };
     this.orders.set(id, next);
+    this.log(id, { kind: 'refund', from: null, to: null, note: `₹${o.total} · ${reason}` });
     return next;
   }
 
@@ -259,6 +271,7 @@ export class MemoryStore {
     this.options.clear();
     this.events = [];
     this.phones.clear();
+    this.history.clear();
     this.codes.clear();
     this.settings = { ...DEFAULT_SETTINGS };
   }

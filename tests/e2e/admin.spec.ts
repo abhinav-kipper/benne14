@@ -210,6 +210,18 @@ test('confirming a payment and recording a refund move today’s takings', async
   await page.getByRole('button', { name: 'Food issue' }).click();
   await page.getByTestId('sheet-record-refund').click();
   await expect(page.getByTestId('order-sheet')).toContainText('Refunded');
+  // the order's own history: every change of state with its time, as recorded when it happened
+  const timeline = page.getByTestId('timeline');
+  await expect(timeline).toContainText('Ordered at the kiosk');
+  await expect(timeline).toContainText('Payment confirmed');
+  await expect(timeline).toContainText(`Refunded ₹${o.total} · Food issue`);
+  expect((await request.get(`/api/admin/orders/${o.id}/events`)).status()).toBe(401); // history needs the PIN
+  const log = await (await request.get(`/api/admin/orders/${o.id}/events`, { headers: H })).json();
+  expect(log.map((e: { kind: string }) => e.kind)).toEqual(['placed', 'status', 'refund']);
+  // the kitchen's "Today" total follows the same rule as the dashboard: a refunded order is not takings
+  expect((await request.post(`/api/orders/${o.id}/status`, { data: { to: 'cancelled' }, headers: H })).status()).toBe(
+    409,
+  ); // and a paid order can't be cancelled out of the books
   const end = await today(request);
   expect(end.takings).toBe(start.takings);
   expect(end.refunds.amount).toBe(start.refunds.amount + o.total);
