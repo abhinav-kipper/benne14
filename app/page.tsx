@@ -30,7 +30,7 @@ export default function Home() {
           }}
         >
           <b className="disp" style={{ fontSize: 34 }}>
-            {s.t} →
+            {s.t}
           </b>
           <div style={{ color: 'var(--cream-2)', marginTop: 4 }}>{s.d}</div>
         </Link>

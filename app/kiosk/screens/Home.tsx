@@ -1,6 +1,7 @@
 'use client';
 // Start screen: one tap anywhere begins an order.
 import { photoOf } from '@/lib/menu';
+import { Chevron } from './shared';
 
 export function Home({ onStart }: { onStart: () => void }) {
   const cols = [
@@ -34,13 +35,11 @@ export function Home({ onStart }: { onStart: () => void }) {
         <div className="tag">Hot and crisp, straight from the tawa to your plate.</div>
       </div>
       <button className="start" data-testid="start">
-        <span>
-          <b>Tap to order</b>
-          <small>Dosas, idli, vada, filter coffee</small>
+        <b>Tap to order</b>
+        <span className="arr">
+          <Chevron />
         </span>
-        <span className="arr">→</span>
       </button>
-      <div className="foot">Dine in or takeaway, you choose at the end</div>
     </div>
   );
 }

@@ -5,10 +5,11 @@ import { useState } from 'react';
 import { useCatalog } from '@/components/Catalog';
 import { ApiError } from '@/lib/client';
 import { cleanPhone, describeCode, type DiscountRule, type KioskSettings } from '@/lib/discounts';
-import { CART_UPSELL, itemById } from '@/lib/menu';
+import { itemById } from '@/lib/menu';
 import type { OrderType } from '@/lib/orders';
 import { itemTotal, type priceOrder } from '@/lib/pricing';
-import { BagIcon, DineIcon, Photo, type Line } from './shared';
+import { suggestFor } from '@/lib/suggest';
+import { BagIcon, Chevron, DineIcon, Photo, type Line } from './shared';
 
 export function Cart(p: {
   lines: Line[];
@@ -17,6 +18,7 @@ export function Cart(p: {
   name: string;
   setName: (n: string) => void;
   asks: KioskSettings; // which optional fields the owner has switched on
+  popular: string[]; // the shop's best sellers, best first
   phone: string;
   setPhone: (p: string) => void;
   code: DiscountRule | null;
@@ -31,9 +33,12 @@ export function Cart(p: {
 }) {
   const catalog = useCatalog();
   const hasDosa = p.lines.some((l) => itemById(l.itemId, catalog)?.cat === 'dosa');
-  const upsell = CART_UPSELL.filter(
-    (id) => !p.lines.some((l) => l.itemId === id) && !itemById(id, catalog)?.soldOut,
-  ).slice(0, 3);
+  // What this order is missing (a drink, a side…), best sellers first; never what is already in it.
+  const upsell = suggestFor(
+    p.lines.map((l) => l.itemId),
+    catalog,
+    p.popular,
+  );
   const soldOut = p.lines.filter((l) => itemById(l.itemId, catalog)?.soldOut);
   const [typed, setTyped] = useState('');
   const [codeErr, setCodeErr] = useState<string | null>(null);
@@ -114,15 +119,15 @@ export function Cart(p: {
               <span className="alt">Goes well with your {hasDosa ? 'dosa' : 'order'}</span>
             </div>
             <div className="strip">
-              {upsell.map((id) => {
-                const it = itemById(id, catalog)!;
+              {upsell.map((it) => {
                 return (
-                  <button className="mini" key={id} onClick={() => p.onAdd(id)}>
+                  <button className="mini" key={it.id} onClick={() => p.onAdd(it.id)} data-testid={`suggest-${it.id}`}>
                     <div className="ph">
                       <Photo item={it} />
                     </div>
                     <div>
-                      <b>{it.name.replace('Udupi ', '')}</b>
+                      {/* the short name: the card is narrow */}
+                      <b>{it.name.replace(/^(Udupi|Bengaluru) /, '')}</b>
                       <span className="price">₹{it.price}</span>
                     </div>
                     <span className="add">+</span>
@@ -272,9 +277,13 @@ export function Cart(p: {
                   ? 'Continue to pay'
                   : 'Choose dine in or takeaway'}
           </span>
-          <span className="amt">₹{p.priced.total} →</span>
+          <span className="amt">
+            ₹{p.priced.total}
+            <i className="go">
+              <Chevron />
+            </i>
+          </span>
         </button>
-        <small>UPI · Card · Cash at counter</small>
       </div>
     </div>
   );
