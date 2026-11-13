@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { itemById, noteTone, optionTone, photoOf, placeholderOf, type Tone } from '@/lib/menu';
-import { minutesSince, type Order, type OrderStatus } from '@/lib/orders';
+import { counts, minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { PinGate } from '@/components/PinGate';
 import { api, ApiError, chime, useAutoReload, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
 
@@ -584,7 +584,7 @@ const time = (iso: string) =>
 function History({ onClose, onRecall }: { onClose: () => void; onRecall: (o: Order) => void }) {
   const orders = useTodayOrders(true, 5000);
   const list = orders ?? [];
-  const paid = list.filter((o) => !['pending_payment', 'awaiting_cash', 'cancelled'].includes(o.status));
+  const paid = list.filter(counts); // the same rule as the owner's dashboard: paid, not refunded
   const takings = paid.reduce((a, o) => a + o.total, 0);
   return (
     <div className="hist" data-testid="history">

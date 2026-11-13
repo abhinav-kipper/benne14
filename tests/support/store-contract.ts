@@ -43,6 +43,24 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(await s.getOrder('00000000-0000-0000-0000-000000000000')).toBeNull();
     });
 
+    it('gives 30 orders placed at the same moment the numbers 1 to 30, none skipped or repeated', async () => {
+      const placed = await Promise.all(Array.from({ length: 30 }, () => s.placeOrder(input())));
+      expect(placed.map((o) => +o.token).sort((a, b) => a - b)).toEqual(Array.from({ length: 30 }, (_, i) => i + 1));
+      expect(new Set(placed.map((o) => o.id)).size).toBe(30);
+      expect((await s.placeOrder(input())).token).toBe('31');
+    });
+
+    it('finds the order behind a kiosk checkout key, with the fingerprint it was placed under', async () => {
+      const key = `kiosk-${Date.now()}-${n++}`;
+      expect(await s.findByCheckout(key)).toBeNull();
+      const a = await s.placeOrder({ ...input(), key: `${key}:aaaa1111` });
+      expect(await s.findByCheckout(key)).toMatchObject({ order: { id: a.id }, fingerprint: 'aaaa1111' });
+      expect(await s.findByCheckout(`${key}x`)).toBeNull(); // a longer key is a different key
+      expect(await s.findByCheckout(key.slice(0, -1))).toBeNull(); // and so is a shorter one
+      const old = await s.placeOrder({ ...input(), key: `${key}-old` }); // stored before fingerprints existed
+      expect(await s.findByCheckout(`${key}-old`)).toMatchObject({ order: { id: old.id }, fingerprint: null });
+    });
+
     it('moves an order through the kitchen and refuses impossible or stale moves', async () => {
       const o = await s.placeOrder(input());
       await expect(s.setStatus(o.id, 'ready')).rejects.toMatchObject({ status: 409 });
@@ -65,7 +83,7 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       await s.setStatus(cooking.id, 'new');
       await s.setStatus(cooking.id, 'cooking');
       for (const to of ['new', 'cooking', 'ready', 'handed_over'] as const) await s.setStatus(gone.id, to);
-      await s.setStatus(cancelled.id, 'cancelled');
+      await s.setStatus(cancelled.id, 'cancelled'); // never paid
       const live = (await s.listLive()).map((o) => o.id);
       expect(live).toEqual([unpaid.id, cooking.id, gone.id]); // oldest first; cancelled is gone, just-collected stays a while
       expect((await s.listToday()).map((o) => o.id)).toEqual([cancelled.id, gone.id, cooking.id, unpaid.id]); // newest first

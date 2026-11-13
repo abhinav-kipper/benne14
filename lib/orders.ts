@@ -41,6 +41,9 @@ export interface Order {
 // Paid and not cancelled: the orders that count as takings (unless refunded).
 export const PAID: OrderStatus[] = ['new', 'cooking', 'ready', 'handed_over'];
 export const isPaid = (o: Pick<Order, 'status'>) => PAID.includes(o.status);
+// THE rule for takings, used by every screen and report: paid (or confirmed at the counter) and not
+// refunded. Cancelled orders and unpaid UPI QRs never count; refunds are reported separately.
+export const counts = (o: Pick<Order, 'status' | 'refundedAt'>) => isPaid(o) && !o.refundedAt;
 
 // Change history shown on the dashboard.
 export interface AdminEvent {
@@ -53,7 +56,9 @@ export interface AdminEvent {
 }
 
 export interface PlaceOrderInput {
-  key: string; // idempotency key from the kiosk checkout
+  // Idempotency key: the kiosk's checkout key plus a fingerprint of the request (checkoutKey below),
+  // so the same key with a different cart is never mistaken for a retry.
+  key: string;
   type: OrderType;
   customerName: string | null;
   customerPhone?: string | null; // ten digits; given with the offers line shown, so it carries consent
@@ -81,7 +86,9 @@ export interface PlaceOrderInput {
 export const NEXT: Record<OrderStatus, OrderStatus[]> = {
   pending_payment: ['new', 'awaiting_cash', 'cancelled'], // awaiting_cash: customer says "I've paid", staff checks
   awaiting_cash: ['new', 'cancelled'],
-  new: ['cooking', 'cancelled'],
+  // Once paid an order can't be cancelled: the money was taken, so it can only be refunded (which is
+  // recorded with a reason). Cancelling here would make it vanish from the takings without a trace.
+  new: ['cooking'],
   cooking: ['ready', 'new'],
   ready: ['handed_over', 'cooking'],
   handed_over: ['ready'],
@@ -140,3 +147,9 @@ export function cleanName(v: unknown): string | null {
       .trim() || null
   );
 }
+
+// Checkout keys. The kiosk sends one key per customer and reuses it for retries. The stored key is
+// `<key>:<fingerprint of the request>`: a retry of the same request finds the same order, and the same
+// key with a different cart or payment type is recognised as a changed order, not a retry.
+export const isCheckoutKey = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(v);
+export const storedKey = (key: string, fingerprint: string) => `${key}:${fingerprint}`;

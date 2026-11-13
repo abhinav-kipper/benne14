@@ -34,7 +34,8 @@ export const usable = (c: DiscountCode, today: string) => c.active && (!c.expire
 // the order is below the code's minimum, when it is. At least ₹1 always remains to pay.
 export function discountFor(itemTotal: number, r: DiscountRule): { amount: number; short: number } {
   if (r.minOrder && itemTotal < r.minOrder) return { amount: 0, short: Math.ceil(r.minOrder - itemTotal) };
-  let amount = r.kind === 'percent' ? Math.round((itemTotal * r.value) / 100) : r.value;
+  // integers only: a percentage is rounded half-up to the rupee
+  let amount = r.kind === 'percent' ? Math.floor((itemTotal * r.value + 50) / 100) : r.value;
   if (r.kind === 'percent' && r.maxDiscount) amount = Math.min(amount, r.maxDiscount);
   return { amount: Math.max(0, Math.min(amount, Math.floor(itemTotal) - 1)), short: 0 };
 }

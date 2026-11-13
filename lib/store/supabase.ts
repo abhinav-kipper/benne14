@@ -132,6 +132,21 @@ export class SupabaseStore {
     return toOrder(res.data as Row);
   }
 
+  async findByCheckout(key: string) {
+    // key is letters, digits, _ and - only (isCheckoutKey), so it is safe inside the filter
+    const { data, error } = await this.db
+      .from('orders')
+      .select('*')
+      .or(`idempotency_key.eq.${key},idempotency_key.like.${key}:*`)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) throw new StoreError(error.message, 500);
+    const row = (data as (Row & { idempotency_key: string })[])[0];
+    if (!row) return null;
+    const stored = row.idempotency_key;
+    return { order: toOrder(row), fingerprint: stored === key ? null : stored.slice(key.length + 1) };
+  }
+
   async getOrder(id: string) {
     const { data, error } = await this.db.from('orders').select('*').eq('id', id).maybeSingle();
     if (error) throw new StoreError(error.message, 500);

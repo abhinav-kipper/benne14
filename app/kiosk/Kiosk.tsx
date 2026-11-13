@@ -197,6 +197,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
                   lines: lines.map(({ uid: _u, ...l }) => l),
                   code: priced.discountCode, // only a code that is actually taking money off
                   phone: asks.phone ? cleanPhone(phone) : null,
+                  expectTotal: priced.total,
                 });
               } catch (e) {
                 if (e instanceof ApiError && e.status === 409) loadMenu(); // something sold out meanwhile: the cart will show which

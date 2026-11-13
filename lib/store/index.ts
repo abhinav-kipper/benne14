@@ -10,6 +10,9 @@ import { SupabaseStore } from './supabase';
 export interface Store {
   readonly kind: 'memory' | 'supabase';
   placeOrder(input: PlaceOrderInput): Promise<Order>; // idempotent on input.key
+  // The latest order placed under this kiosk checkout key, with the request fingerprint it was stored
+  // under (null for orders from before fingerprints). Lets the API tell a retry from a changed order.
+  findByCheckout(key: string): Promise<{ order: Order; fingerprint: string | null } | null>;
   getOrder(id: string): Promise<Order | null>;
   listLive(): Promise<Order[]>; // unfinished orders from the last LIVE_HOURS (any date), plus just handed over
   listToday(): Promise<Order[]>; // every order placed today, newest first (kitchen history, dashboard)

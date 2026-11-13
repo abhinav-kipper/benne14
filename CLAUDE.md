@@ -1,6 +1,6 @@
 # Claude Code working notes — Benne 14
 
-Self-order kiosk, kitchen display, TV order board and owner admin for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram). Built for the owner (the user's brother). Live status: `docs/state.md` (read it every session). How it works: `docs/ARCHITECTURE.md`. Payments: `docs/payments.md`. Open issues and what's fixed: `docs/audit.md` (system) and `docs/ui-audit.md` (UI and customer flow); tick items as they merge.
+Self-order kiosk, kitchen display, TV order board and owner admin for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram). Built for the owner (the user's brother). Live status: `docs/state.md` (read it every session). How it works: `docs/ARCHITECTURE.md`. Payments: `docs/payments.md`. Open issues and what's fixed: `docs/audit.md` (system), `docs/ui-audit.md` (UI and customer flow) and `docs/accuracy-audit.md` (money, order numbers, reports); tick items as they merge.
 
 ## Stack
 
@@ -34,7 +34,8 @@ Commands: `npm run dev` · `npm run check` (typecheck, lint, format check, unit 
 ## Rules
 
 - The server prices orders from `mergeCatalog(store.getOverrides())`; the client sends ids and choices only. Never price on the server without passing the merged catalog.
-- Every order write is idempotent (checkout key). Tokens come from the DB's per-day counter.
+- Every order write is idempotent (checkout key + request fingerprint). Tokens come from the DB's per-day counter.
+- Money is whole rupees in integer maths (`lib/pricing.ts`, `lib/discounts.ts`); never floating-point arithmetic on amounts. What counts as takings is `counts()` in `lib/orders.ts`, nowhere else. A paid order is refunded, never cancelled.
 - Order lines are a JSON snapshot (names, prices) on the order, so menu changes never alter past bills.
 - Kitchen/board must recover by themselves: polling through `usePoll`, visible offline state, auto-reload after a deploy.
 - The menu reaches components through `useCatalog()` / an explicit `catalog` argument, never a module-level variable.

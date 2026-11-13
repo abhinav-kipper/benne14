@@ -1,7 +1,9 @@
 // Owner dashboard numbers, computed from order snapshots (so later price changes never change past
 // reports). Pure functions: the API passes in the orders for a range of IST days.
 import type { Customer } from './discounts';
-import { addDays, daysBetween, isPaid, istHour, type Order, type PayMethod } from './orders';
+import { addDays, counts, daysBetween, isPaid, istHour, type Order, type PayMethod } from './orders';
+
+export { counts }; // the one rule for what counts as takings lives in lib/orders.ts
 import { SHOP } from './shop';
 
 export interface DishRow {
@@ -26,10 +28,6 @@ export interface Summary {
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-
-// Orders that count: paid (or confirmed at the counter) and not refunded. Cancelled and unpaid UPI
-// QRs never count; refunds are reported separately.
-export const counts = (o: Order) => isPaid(o) && !o.refundedAt;
 
 export function summarize(all: Order[], fromDay: string, toDay: string): Summary {
   const kept = all.filter(counts);
@@ -102,7 +100,8 @@ export function previousPeriod(fromDay: string, toDay: string) {
 const cell = (v: unknown) => {
   const s = v == null ? '' : String(v);
   // Quote when needed, and defuse spreadsheet formulas (a name like "=HYPERLINK(…)" must stay text).
-  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  // A plain negative number (the discount line) is a number, not a formula: it must stay summable.
+  const safe = /^[=+\-@\t\r]/.test(s) && !/^-\d+(\.\d+)?$/.test(s) ? `'${s}` : s;
   return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 };
 const csv = (rows: unknown[][]) => rows.map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';

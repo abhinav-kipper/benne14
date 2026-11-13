@@ -82,6 +82,17 @@ export class MemoryStore {
     return order;
   }
 
+  async findByCheckout(key: string) {
+    let hit: { order: Order; fingerprint: string | null } | null = null;
+    for (const [stored, id] of this.byKey) {
+      if (stored !== key && !stored.startsWith(`${key}:`)) continue;
+      const order = this.orders.get(id)!;
+      if (!hit || order.createdAt >= hit.order.createdAt)
+        hit = { order, fingerprint: stored === key ? null : stored.slice(key.length + 1) };
+    }
+    return hit;
+  }
+
   async getOrder(id: string) {
     return this.orders.get(id) ?? null;
   }
