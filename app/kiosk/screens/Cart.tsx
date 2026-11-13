@@ -17,7 +17,6 @@ export function Cart(p: {
   onEdit: (uid: string) => void;
   onAdd: (id: string) => void;
   onBack: () => void;
-  onStartOver: () => void;
   onPay: () => void;
 }) {
   const catalog = useCatalog();
@@ -33,9 +32,6 @@ export function Cart(p: {
           <span>←</span>Menu
         </button>
         <h1 className="disp">Your order</h1>
-        <button className="startover" onClick={p.onStartOver} data-testid="start-over">
-          Start over
-        </button>
       </div>
       <div className="body">
         {p.lines.map((l, i) => {

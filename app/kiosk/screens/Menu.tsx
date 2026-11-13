@@ -9,7 +9,6 @@ export function MenuScreen(p: {
   qtyOf: (id: string) => number;
   onOpen: (id: string) => void;
   onQuick: (id: string) => void;
-  onStartOver: () => void;
   lines: Line[];
   setQty: (uid: string, q: number) => void;
   count: number;
@@ -24,8 +23,26 @@ export function MenuScreen(p: {
   const main = useRef<HTMLElement>(null);
   const sp = items.find((i) => i.special)!;
 
-  // + adds the dish as it comes with one tap and becomes the − 1 + stepper; tapping the dish itself opens the
-  // sheet for extras and notes. The stepper adjusts the latest line for that dish.
+  // + adds the dish as it comes with one tap and becomes the − 1 + stepper. "Customise" under it (and a tap
+  // on the dish) opens the sheet for extras and notes, so nobody has to guess that they exist.
+  const actions = (i: MenuItem) => (
+    <div className="act">
+      {stepper(i)}
+      {!i.soldOut && (i.groups.length > 0 || i.notes) && (
+        <button
+          className="custom"
+          onClick={(e) => {
+            e.stopPropagation();
+            p.onOpen(i.id);
+          }}
+          data-testid={`customise-${i.id}`}
+        >
+          Customise
+        </button>
+      )}
+    </div>
+  );
+  // The stepper adjusts the latest line for that dish.
   const stepper = (i: MenuItem) => {
     if (i.soldOut) return <span className="soldout">Sold out</span>;
     const q = p.qtyOf(i.id);
@@ -93,9 +110,6 @@ export function MenuScreen(p: {
             </button>
           ))}
         </div>
-        <button className="startover" onClick={p.onStartOver} data-testid="start-over">
-          Start over
-        </button>
       </aside>
       <main ref={main} onScroll={onScroll}>
         <section
@@ -115,7 +129,7 @@ export function MenuScreen(p: {
                 <div>
                   <span className="price">₹{sp.price}</span>
                 </div>
-                {stepper(sp)}
+                {actions(sp)}
               </div>
             </div>
           </div>
@@ -149,7 +163,7 @@ export function MenuScreen(p: {
                       <p className="hdesc">{i.desc}</p>
                       <span className="price">₹{i.price}</span>
                     </div>
-                    {stepper(i)}
+                    {actions(i)}
                   </div>
                 ))}
             </div>

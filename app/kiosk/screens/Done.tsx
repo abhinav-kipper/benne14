@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { useOrder } from '@/lib/client';
 import type { Order } from '@/lib/orders';
 import { orderedSentence } from '@/lib/wording';
-import { DONE_RESET_S } from './shared';
+import { DONE_GRACE_S, DONE_MORE_S, DONE_STAY_S } from './shared';
 
 export function Done({ orderId, first, onDone }: { orderId: string; first: Order | null; onDone: () => void }) {
   const live = useOrder(orderId, 2000);
   const o = live ?? first;
-  const [left, setLeft] = useState(DONE_RESET_S);
+  const [left, setLeft] = useState(DONE_STAY_S + DONE_GRACE_S);
   useEffect(() => {
     const t = setInterval(() => setLeft((s) => s - 1), 1000);
     return () => clearInterval(t);
@@ -105,17 +105,28 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
           <p>Scan to follow your order live and get the GST bill. No paper, no waiting.</p>
         </div>
       </div>
-      <div className="reset">
-        <div>
-          <span>Starting a fresh order in {Math.max(0, left)}s</span>
-          <div className="bar">
-            <i style={{ width: `${(Math.max(0, left) / DONE_RESET_S) * 100}%` }} />
-          </div>
+      {left > DONE_GRACE_S ? (
+        <div className="reset">
+          <span>Take your time. This screen clears by itself for the next customer.</span>
+          <button onClick={onDone} data-testid="new-order">
+            New order
+          </button>
         </div>
-        <button onClick={onDone} data-testid="new-order">
-          New order
-        </button>
-      </div>
+      ) : (
+        // Asked in place, so the order number and the bill code stay in view while it counts down.
+        <div className="reset ask" data-testid="done-ask">
+          <div>
+            <b className="disp">Still there?</b>
+            <span>Clearing for the next customer in {Math.max(0, left)}s</span>
+          </div>
+          <button className="more" onClick={() => setLeft(DONE_GRACE_S + DONE_MORE_S)} data-testid="more-time">
+            I need more time
+          </button>
+          <button onClick={onDone} data-testid="new-order">
+            Done
+          </button>
+        </div>
+      )}
     </div>
   );
 }

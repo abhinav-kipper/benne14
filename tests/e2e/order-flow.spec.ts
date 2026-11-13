@@ -194,10 +194,16 @@ test('kiosk returns to the start screen by itself after the order number', async
   await expect(page.getByTestId('thanks')).toContainText(
     'Pay ₹93 at the counter and we’ll start your Udupi Medu Vada.',
   ); // matches what was ordered
-  await page.clock.runFor(100_000);
-  await expect(page.getByTestId('token')).toBeVisible(); // still there after 100 s
-  await page.clock.runFor(21_000);
-  await expect(page.getByTestId('start')).toBeVisible(); // back to the start screen after 2 minutes
+  await page.clock.runFor(95_000);
+  await expect(page.getByTestId('done-ask')).toHaveCount(0); // time to read the number and scan the bill
+  await page.clock.runFor(7_000);
+  await expect(page.getByTestId('done-ask')).toContainText('Still there?');
+  await expect(page.getByTestId('token')).toBeVisible(); // the number stays in view while it asks
+  await page.getByTestId('more-time').click();
+  await page.clock.runFor(55_000);
+  await expect(page.getByTestId('done-ask')).toHaveCount(0); // a minute more
+  await page.clock.runFor(27_000);
+  await expect(page.getByTestId('start')).toBeVisible(); // nobody answered: ready for the next customer
 });
 
 test('only choices that make sense: no fried-food notes on idli, no tag for a default', async ({ page }) => {
@@ -261,22 +267,38 @@ test('one tap on + adds a dish as it comes; the price with GST is explained', as
   await expect(page.locator('.k-cart .more')).toContainText('Goes well with your order'); // no dosa in this order
 });
 
-test('start over asks first, then clears the order', async ({ page }) => {
+test('every dish says it can be customised; customising one already added changes it', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.goto('/kiosk');
   await page.getByTestId('start').click();
-  await page.getByTestId('start-over').click(); // nothing to lose yet: straight back to the start
+  await expect(page.getByTestId('customise-masala-dosa')).toHaveText('Customise');
+  const vada = page.getByTestId('item-medu-vada');
+  await vada.getByRole('button', { name: 'Add Udupi Medu Vada' }).click();
+  await page.getByTestId('customise-medu-vada').click();
+  await expect(page.getByTestId('add-to-order')).toContainText('Update order'); // the one in the order, not a second
+  await page.getByTestId('add-to-order').click();
+  await expect(vada.locator('.step span')).toHaveText('1');
+  await expect(page.getByTestId('start-over')).toHaveCount(0); // the timers clear the kiosk; no button to learn
+});
+
+test('an abandoned order is cleared: "Still there?" after a minute, the start screen 15 s later', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.clock.install();
+  await page.goto('/kiosk');
   await page.getByTestId('start').click();
   await page.getByTestId('item-medu-vada').getByRole('button', { name: 'Add Udupi Medu Vada' }).click();
-  await page.getByTestId('cartbar').click();
-  await page.getByTestId('start-over').click();
-  await expect(page.getByTestId('start-over-ask')).toBeVisible();
-  await page.getByRole('button', { name: 'Keep my order' }).click();
-  await expect(page.getByTestId('cart-line')).toHaveCount(1);
-  await page.getByTestId('start-over').click();
-  await page.getByTestId('start-over-yes').click();
+  await page.clock.runFor(55_000);
+  await expect(page.locator('.k-idle')).toHaveCount(0);
+  await page.clock.runFor(7_000);
+  await expect(page.locator('.k-idle')).toContainText('Still there?');
+  await page.getByRole('button', { name: /Yes, I.m here/ }).click();
+  await expect(page.getByTestId('cartbar')).toBeVisible(); // the order is kept
+  await page.clock.runFor(62_000);
+  await expect(page.locator('.k-idle')).toBeVisible();
+  await page.clock.runFor(16_000);
+  await expect(page.getByTestId('start')).toBeVisible();
   await page.getByTestId('start').click();
-  await expect(page.getByTestId('cartbar')).toHaveCount(0);
+  await expect(page.getByTestId('cartbar')).toHaveCount(0); // nothing left for the next customer
 });
 
 test('the cart asks dine in or takeaway before paying', async ({ page }) => {

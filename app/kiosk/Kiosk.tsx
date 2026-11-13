@@ -9,7 +9,7 @@ import { priceOrder, type CartLine } from '@/lib/pricing';
 import { Cart } from './screens/Cart';
 import { Done } from './screens/Done';
 import { Home } from './screens/Home';
-import { Idle, StartOver } from './screens/Idle';
+import { Idle } from './screens/Idle';
 import { ItemSheet } from './screens/ItemSheet';
 import { MenuScreen } from './screens/Menu';
 import { Pay } from './screens/Pay';
@@ -94,12 +94,9 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
       if (catalog.groups[g].kind === 'one') choices[g] = [catalog.groups[g].defaultId!];
     addLine({ itemId, qty: 1, choices, notes: [] });
   };
-  // "Start over" asks first when there is something to lose.
-  const [confirmReset, setConfirmReset] = useState(false);
-  const startOver = () => (lines.length ? setConfirmReset(true) : reset());
-  useEffect(() => {
-    if (screen === 'home') setConfirmReset(false); // e.g. the idle timer cleared the order meanwhile
-  }, [screen]);
+  // Opening a dish that is already in the order changes that one (its latest line) instead of adding another.
+  const openDish = (itemId: string) =>
+    setSheet({ itemId, editing: [...lines].reverse().find((l) => l.itemId === itemId)?.uid });
   const setQty = (uid: string, qty: number) =>
     setLines((cur) =>
       qty <= 0
@@ -116,9 +113,8 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
           <MenuScreen
             testMode={testMode}
             qtyOf={qtyOf}
-            onOpen={(id) => setSheet({ itemId: id })}
+            onOpen={openDish}
             onQuick={quickAdd}
-            onStartOver={startOver}
             lines={lines}
             setQty={setQty}
             count={count}
@@ -141,7 +137,6 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             }}
             onAdd={quickAdd}
             onBack={() => setScreen('menu')}
-            onStartOver={startOver}
             onPay={() => setScreen('pay')}
           />
         )}
@@ -209,15 +204,6 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
           <div className="k-test" data-testid="test-ribbon">
             Test mode · cash = paid
           </div>
-        )}
-        {confirmReset && !idle && (
-          <StartOver
-            onKeep={() => setConfirmReset(false)}
-            onReset={() => {
-              setConfirmReset(false);
-              reset();
-            }}
-          />
         )}
         {idle && (
           <Idle

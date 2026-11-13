@@ -65,7 +65,12 @@ number is unmissable; sold-out and offline states are handled; the kitchen rail 
 
 2026-11-13 · round 1, owner's choices:
 - U1: keep prices; say "Prices + 5% GST" where the menu starts and "incl. GST" on the cart bar.
-- U2: "Start over" on menu and cart, with a confirm when the cart has dishes. Idle time unchanged.
+- U2: (changed the same day, see below) ~~"Start over" on menu and cart~~.
 - U3: leave Edit as is. U4: one-tap add (+ adds the dish as it comes; tapping the dish opens the sheet).
 - U5: calm the order-number screen, keep everything: neutral status pill, the ticket stub carries a fact (amount) not an instruction.
 - U7: "Payment stuck? Ask at the counter." U15: one "GST 5%" line in the cart. U11 + label: upsell line fits the order; "Dine in or takeaway?" stays as the label.
+
+2026-11-13 · round 1, owner's second look:
+- U4 follow-up: with one-tap add, nothing said extras and notes exist. Every dish that has them now carries a "Customise" link under its + (the special too). Customising a dish already in the order changes that one instead of adding a second.
+- U2: no "Start over" buttons. The kiosk clears itself: "Still there?" after 60 s without a touch (was 75 s), start screen 15 s later.
+- Order-number screen: stays 100 s so the bill can be scanned, then asks "Still there?" in place (the number and the bill code stay in view) and clears after 20 s. "I need more time" gives another minute; "New order" is always there. The running countdown bar is gone.
