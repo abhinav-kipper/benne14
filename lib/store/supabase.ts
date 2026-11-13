@@ -72,8 +72,12 @@ export class SupabaseStore {
   readonly kind = 'supabase' as const;
   private db: SupabaseClient;
 
-  constructor(url: string, serviceKey: string) {
-    this.db = createClient(url, serviceKey, { auth: { persistSession: false } });
+  // `fetchImpl` is for the integration tests, which point the client at a bare PostgREST.
+  constructor(url: string, serviceKey: string, fetchImpl?: typeof fetch) {
+    this.db = createClient(url, serviceKey, {
+      auth: { persistSession: false },
+      ...(fetchImpl ? { global: { fetch: fetchImpl } } : {}),
+    });
   }
 
   async placeOrder(input: PlaceOrderInput): Promise<Order> {
