@@ -1,6 +1,6 @@
 # Payments — where we are and what's next
 
-Last updated 2026-11-12. Read this before any payments work.
+Last updated 2026-11-14. Read this before any payments work.
 
 ## Live today (no third party involved)
 
@@ -25,6 +25,32 @@ Last updated 2026-11-12. Read this before any payments work.
 ## Next: automatic confirmation (no staff tap)
 
 Always needs the provider to tell our server "paid". Do **not** build a notification-scraping hack (reading the Paytm app's "₹X received" on a phone): fragile, mismatches, likely against Paytm's app terms.
+
+### Route E — Easebuzz (chosen 2026-11-14: the shop's own account, live keys exist)
+
+The shop already has an Easebuzz merchant account (the current third-party kiosk uses it and shows the
+QR inside its own app). Docs: <https://docs.easebuzz.in/> (payment gateway → Seamless Integration, UPI,
+Transaction API V2.1, Transaction Webhook). Read on 2026-11-14.
+
+- **Flow for a UPI QR on our own screen ("UPI deep linking"):**
+  1. `POST {pay}/payment/initiateLink` (form-encoded): `key, txnid (≤40 chars, ours), amount ("219.0"),
+     productinfo (≤45), firstname, email, phone, surl, furl, request_flow=SEAMLESS, hash` → `{status:1, data:<access_key>}`.
+     Hash = sha512 of `key|txnid|amount|productinfo|firstname|email|udf1|…|udf10|salt`.
+  2. `POST {pay}/initiate_seamless_payment/` with `access_key, payment_mode=UPI, upi_qr=true, request_mode=SUVA`
+     → JSON `{status:true, qr_link:"upi://pay?…"}`. We draw the QR from `qr_link`.
+  3. Paid or failed: **Transaction Webhook** (form-encoded POST to a URL set in the Easebuzz dashboard:
+     `txnid, status (success|failure|userCancelled|…), amount, easepayid, bank_ref_num, mode, hash`; answer 200
+     within 10 s; retried 5 times, 30 min apart) **and** `POST {dashboard}/transaction/v2.1/retrieve`
+     (`key, txnid, hash = sha512(key|txnid|salt)`) for polling. Easebuzz says both are mandatory for the QR flow.
+  4. Always verify the response hash (reverse sequence) and re-check with the status API before marking paid.
+- Hosts: sandbox `testpay.easebuzz.in` + `testdashboard.easebuzz.in`; live `pay.easebuzz.in` + `dashboard.easebuzz.in`.
+- **Sandbox probe (2026-11-14, test kit "benne 14"):** `initiateLink` works; the status API works (a fresh
+  transaction reads `bounced`); **`initiate_seamless_payment` is refused: "Cannot access seamless payment
+  mode for this merchant"**. Seamless mode must be enabled by Easebuzz on the **test** account (and
+  confirmed on the live one). Without it only Easebuzz's own hosted page is available.
+- Open: UPI fee and settlement time; whether refunds should go through the Refund API V2.
+- Credentials (env only): `EASEBUZZ_KEY`, `EASEBUZZ_SALT`, `EASEBUZZ_ENV=test|live`. The key and salt for
+  both environments were shown in chat on 2026-11-14: have Easebuzz regenerate the **live** pair before use.
 
 ### Route A — Paytm card machine, cloud "Connection via Payment Request" (most promising)
 - Works with the owner's existing Paytm Android EDC on the **same MID**; Paytm says EDC/DQR integration is free. Probably does **not** need the stuck online-merchant account.
