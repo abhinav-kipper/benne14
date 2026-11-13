@@ -6,6 +6,7 @@ import { PinGate, PIN_KEY } from '@/components/PinGate';
 import { ApiError, useLiveOrders } from '@/lib/client';
 import { History } from './screens/History';
 import { Menu } from './screens/Menu';
+import { Offers } from './screens/Offers';
 import { Orders } from './screens/Orders';
 import { Reports } from './screens/Reports';
 import type { Tab } from './screens/shared';
@@ -52,10 +53,11 @@ export default function Admin() {
       {tab === 'today' && <Today {...ctx} live={live.orders ?? []} refreshLive={live.refresh} go={setTab} />}
       {tab === 'orders' && <Orders {...ctx} refreshLive={live.refresh} />}
       {tab === 'menu' && <Menu {...ctx} openHistory={() => setTab('history')} />}
+      {tab === 'offers' && <Offers {...ctx} />}
       {tab === 'reports' && <Reports {...ctx} />}
       {tab === 'history' && <History {...ctx} back={() => setTab('menu')} />}
       <nav className="tabs">
-        {(['today', 'orders', 'menu', 'reports'] as const).map((t) => (
+        {(['today', 'orders', 'menu', 'offers', 'reports'] as const).map((t) => (
           <button
             key={t}
             className={tab === t || (t === 'menu' && tab === 'history') ? 'on' : ''}
@@ -72,7 +74,7 @@ export default function Admin() {
   );
 }
 
-const ICONS: Record<'today' | 'orders' | 'menu' | 'reports', React.ReactNode> = {
+const ICONS: Record<'today' | 'orders' | 'menu' | 'offers' | 'reports', React.ReactNode> = {
   today: (
     <svg
       viewBox="0 0 24 24"
@@ -99,6 +101,20 @@ const ICONS: Record<'today' | 'orders' | 'menu' | 'reports', React.ReactNode> = 
       <circle cx="12" cy="13" r="7" />
       <circle cx="12" cy="13" r="3.5" />
       <path d="M12 3v3" />
+    </svg>
+  ),
+  // a price tag
+  offers: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12V4h8l10 10-8 8z" />
+      <circle cx="8" cy="9" r="1.4" fill="currentColor" />
     </svg>
   ),
   reports: (

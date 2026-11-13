@@ -11,6 +11,8 @@ section A are open.
 
 ## Up next
 
+- **Owner to do now: run `supabase/migrations/0005_discount_codes_and_phone.sql`** in Supabase. Until then the kiosk shows neither the code box nor the phone box, and the Offers tab can't save.
+
 0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Round 1 (flow) is merged; round 2 (feel) is on `feat/ui-round-2`. Left: round 3 needs the owner (photos, veg marks, invoice numbers, keyboard check on the tablet), round 4 is the staff screens. The launch blockers below are on hold until then, not dropped.
 
 1. **Launch blockers: `docs/audit.md` section A** (not yet discussed with the owner): device key + rate
@@ -29,7 +31,7 @@ section A are open.
 
 ## How things are (decisions worth knowing)
 
-- English only. Full menu prices, no discount. Order numbers are plain daily numbers (old "A-042" rows show as "42").
+- English only. Full menu prices; a discount only through a code the owner made. Order numbers are plain daily numbers (old "A-042" rows show as "42").
 - GST 5% on top, rounded to the nearest rupee and split CGST/SGST: bills have no round-off line.
 - Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen asks "Still there?" after 90 s and returns to start 30 s later; an untouched order is cleared after 60 s + a 15 s prompt (no Start over button).
 - UPI goes straight to the shop's Paytm UPI ID; the customer taps "I've paid" and staff confirm on the soundbox. Card and cash wait on the kitchen's "Collect payment" shelf.
@@ -57,6 +59,8 @@ section A are open.
 - Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
 
 ## Done
+
+- 2026-11-14 — Discount codes and phone numbers: owner makes % or ₹ codes in a new Offers tab (minimum order, cap, last day, on/off); the kiosk cart takes a code (off before GST) and an optional phone number for offers; two owner switches hide either box; customer list with CSV. Phone numbers never ride along with an order to the TV or the bill.
 
 
 - 2026-11-13 — UI round 1 (`docs/ui-audit.md`): prices say "+ 5% GST", one GST line in the cart, calmer order-number screen, honest pay-screen wording, and timers instead of a Start over button ("Still there?" after 60 s mid-order and 90 s after an order).

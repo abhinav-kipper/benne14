@@ -155,8 +155,14 @@ export function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: 
               </div>
             );
           })}
+          {o.savings > 0 && (
+            <div className="row">
+              <span>Discount{o.discountCode ? ` (${o.discountCode})` : ''}</span>
+              <span>−{inr2(o.savings)}</span>
+            </div>
+          )}
           <div className="row">
-            <span>Subtotal</span>
+            <span>{o.savings > 0 ? 'After discount' : 'Subtotal'}</span>
             <span>{inr2(o.subtotal)}</span>
           </div>
           <div className="row">

@@ -37,6 +37,8 @@ describe.skipIf(!URL_)('Supabase store on a real database', () => {
       'menu_overrides?item_id=not.is.null',
       'option_overrides?group_id=not.is.null',
       'admin_events?id=not.is.null',
+      'discount_codes?code=not.is.null',
+      'kiosk_settings?id=not.is.null', // no row = the defaults (both on)
     ]) {
       const r = await rest(t, 'service_role', { method: 'DELETE' });
       if (!r.ok) throw new Error(`wipe ${t}: ${r.status} ${await r.text()}`);
@@ -71,5 +73,9 @@ describe.skipIf(!URL_)('Supabase store on a real database', () => {
       body: JSON.stringify({ p_item_id: 'masala-dosa', p_item: { price: 1 }, p_options: [], p_events: [] }),
     });
     expect(edit.ok).toBe(false);
+    for (const t of ['customers?select=*', 'discount_codes?select=*', 'kiosk_settings?select=*']) {
+      const r = await rest(t, 'anon');
+      expect(r.ok ? await r.json() : [], t).toEqual([]); // phone numbers and codes are not public
+    }
   });
 });

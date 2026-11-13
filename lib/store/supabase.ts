@@ -1,5 +1,6 @@
 // Supabase-backed store. Server only: uses the service role key; tables have RLS with no public policies.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import { optionKey, type Overrides } from '../menu';
 import type { MenuEdit } from './index';
 import {
@@ -34,6 +35,7 @@ interface Row {
   round_off: string | number;
   total: string | number;
   savings: string | number;
+  discount_code?: string | null;
   created_at: string;
   updated_at: string;
   paid_at: string | null;
@@ -42,6 +44,36 @@ interface Row {
   refund_reason?: string | null;
   refund_amount?: string | number | null;
 }
+
+// A table or function from a migration that hasn't been run yet.
+const missing = (e: { code?: string } | null) =>
+  e?.code === '42P01' || e?.code === 'PGRST205' || e?.code === 'PGRST202' || e?.code === '42883';
+
+interface CodeRow {
+  code: string;
+  kind: DiscountCode['kind'];
+  value: number;
+  min_order: number | null;
+  max_discount: number | null;
+  expires_on: string | null;
+  active: boolean;
+}
+const toCode = (r: CodeRow): DiscountCode => ({
+  code: r.code,
+  kind: r.kind,
+  value: r.value,
+  minOrder: r.min_order,
+  maxDiscount: r.max_discount,
+  expiresOn: r.expires_on,
+  active: r.active,
+});
+const eventRow = (v: Omit<AdminEvent, 'at'>) => ({
+  kind: v.kind,
+  subject: v.subject,
+  before: v.before ?? null,
+  after: v.after ?? null,
+  note: v.note ?? null,
+});
 
 const toOrder = (r: Row): Order => ({
   id: r.id,
@@ -59,6 +91,7 @@ const toOrder = (r: Row): Order => ({
   roundOff: +r.round_off,
   total: +r.total,
   savings: +r.savings,
+  discountCode: r.discount_code ?? null,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   paidAt: r.paid_at,
@@ -81,15 +114,22 @@ export class SupabaseStore {
   }
 
   async placeOrder(input: PlaceOrderInput): Promise<Order> {
-    const { data, error } = await this.db.rpc('place_order', {
+    const args = {
       p_key: input.key,
       p_type: input.type,
       p_name: input.customerName ?? '',
       p_pay: input.payMethod,
       p_priced: input.priced,
-    });
-    if (error) throw new StoreError(error.message, 500);
-    return toOrder(data as Row);
+    };
+    // Migration 0005 adds p_phone (and stores the code's name). Without it the order still goes
+    // through with the right total; only the phone number and the code's name are not kept.
+    let res = await this.db.rpc('place_order', { ...args, p_phone: input.customerPhone ?? '' });
+    if (res.error && missing(res.error)) {
+      console.error('place_order has no p_phone: run supabase/migrations/0005_discount_codes_and_phone.sql');
+      res = await this.db.rpc('place_order', args);
+    }
+    if (res.error) throw new StoreError(res.error.message, 500);
+    return toOrder(res.data as Row);
   }
 
   async getOrder(id: string) {
@@ -211,7 +251,6 @@ export class SupabaseStore {
     ]);
     // Before migration 0003 is run the tables don't exist yet: keep the kiosk selling from the menu
     // in code rather than failing every order. Any other error is real and goes up.
-    const missing = (e: { code?: string } | null) => e?.code === '42P01' || e?.code === 'PGRST205';
     if (missing(items.error) || missing(options.error)) {
       console.error('menu_overrides/option_overrides missing: run supabase/migrations/0003_owner_dashboard.sql');
       return { items: {}, options: {} };
@@ -298,6 +337,103 @@ export class SupabaseStore {
       .limit(limit);
     if (error) throw new StoreError(error.message, 500);
     return data as AdminEvent[];
+  }
+
+  async listCodes() {
+    const { data, error } = await this.db
+      .from('discount_codes')
+      .select('code,kind,value,min_order,max_discount,expires_on,active')
+      .order('created_at', { ascending: false });
+    if (missing(error)) return [];
+    if (error) throw new StoreError(error.message, 500);
+    return (data as CodeRow[]).map(toCode);
+  }
+
+  async getCode(code: string) {
+    const { data, error } = await this.db
+      .from('discount_codes')
+      .select('code,kind,value,min_order,max_discount,expires_on,active')
+      .eq('code', code)
+      .maybeSingle();
+    if (missing(error)) return null;
+    if (error) throw new StoreError(error.message, 500);
+    return data ? toCode(data as CodeRow) : null;
+  }
+
+  async saveCode(c: DiscountCode, event: Omit<AdminEvent, 'at'>) {
+    const { error } = await this.db.from('discount_codes').upsert(
+      {
+        code: c.code,
+        kind: c.kind,
+        value: c.value,
+        min_order: c.minOrder,
+        max_discount: c.maxDiscount,
+        expires_on: c.expiresOn,
+        active: c.active,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'code' },
+    );
+    if (missing(error))
+      throw new StoreError('Run supabase/migrations/0005_discount_codes_and_phone.sql in Supabase first', 503);
+    if (error) throw new StoreError(error.message, 500);
+    await this.addEvent(event);
+  }
+
+  async getSettings(): Promise<KioskSettings> {
+    const { data, error } = await this.db.from('kiosk_settings').select('codes,phone').eq('id', 1).maybeSingle();
+    // Before migration 0005 nothing can be stored, so the kiosk shows neither field.
+    if (missing(error)) return { codes: false, phone: false };
+    if (error) throw new StoreError(error.message, 500);
+    return (data as KioskSettings | null) ?? { codes: true, phone: true };
+  }
+
+  async saveSettings(patch: Partial<KioskSettings>, events: Omit<AdminEvent, 'at'>[]) {
+    const next = { ...(await this.getSettings()), ...patch };
+    const { error } = await this.db
+      .from('kiosk_settings')
+      .upsert({ id: 1, ...next, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (missing(error))
+      throw new StoreError('Run supabase/migrations/0005_discount_codes_and_phone.sql in Supabase first', 503);
+    if (error) throw new StoreError(error.message, 500);
+    if (events.length) {
+      const ev = await this.db.from('admin_events').insert(events.map(eventRow));
+      if (ev.error) throw new StoreError(ev.error.message, 500);
+    }
+    return next;
+  }
+
+  async listCustomers(): Promise<Customer[]> {
+    const out: Customer[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await this.db
+        .from('customers')
+        .select('phone,name,orders,spent,first_order_at,last_order_at')
+        .order('last_order_at', { ascending: false })
+        .order('phone')
+        .range(from, from + 999);
+      if (missing(error)) return [];
+      if (error) throw new StoreError(error.message, 500);
+      const rows = data as {
+        phone: string;
+        name: string | null;
+        orders: number;
+        spent: string | number;
+        first_order_at: string;
+        last_order_at: string;
+      }[];
+      out.push(
+        ...rows.map((r) => ({
+          phone: r.phone,
+          name: r.name,
+          orders: +r.orders,
+          spent: +r.spent,
+          firstOrderAt: r.first_order_at,
+          lastOrderAt: r.last_order_at,
+        })),
+      );
+      if (rows.length < 1000) return out;
+    }
   }
 
   async appliedMigrations() {

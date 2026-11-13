@@ -104,7 +104,7 @@
   background: var(--s1);
   border-top: 1px solid var(--line);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   padding-bottom: 14px;
 }
 .adm .tabs a {
@@ -1373,4 +1373,61 @@
 }
 .adm .pin {
   background: var(--bg);
+}
+
+/* OFFERS: kiosk switches, discount codes, customers */
+.adm .orow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.adm .orow b {
+  display: block;
+  font-size: 15px;
+}
+.adm .orow small {
+  display: block;
+  font-size: 13px;
+  color: var(--cream-2);
+  line-height: 1.4;
+}
+.adm .orow .open {
+  text-align: left;
+  min-height: 48px;
+}
+.adm .orow .code {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+}
+.adm .orow.dim .code,
+.adm .orow.dim small {
+  color: var(--cream-3);
+}
+.adm .orow .r {
+  text-align: right;
+}
+.adm .orow .r b {
+  font-variant-numeric: tabular-nums;
+}
+.adm .mcat .was {
+  font-size: 13px;
+  color: var(--cream-2);
+  line-height: 1.45;
+  padding: 2px 0 6px;
+}
+.adm .mcat .none {
+  padding: 14px 0;
+}
+.adm .newcode {
+  width: 100%;
+  margin-top: 14px;
+}
+.adm .range.inset {
+  margin: 0;
 }

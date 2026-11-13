@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CatalogProvider, useMenu } from '@/components/Catalog';
 import { api, ApiError, newKey, useAutoReload } from '@/lib/client';
+import { cleanPhone, type DiscountRule, type KioskSettings } from '@/lib/discounts';
 import { PAIRING } from '@/lib/menu';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
 import { priceOrder, type CartLine } from '@/lib/pricing';
@@ -27,17 +28,26 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   const [lines, setLines] = useState<Line[]>([]);
   const [sheet, setSheet] = useState<{ itemId: string; editing?: string } | null>(null);
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState<DiscountRule | null>(null); // a discount code the server said works
+  // What the cart asks for, as the owner switched it. Off until the server says otherwise.
+  const [asks, setAsks] = useState<KioskSettings>({ codes: false, phone: false });
   const [orderId, setOrderId] = useState<string | null>(null);
   const [placed, setPlaced] = useState<Order | null>(null);
   const [idle, setIdle] = useState(false);
   const checkoutKey = useRef(newKey());
-  const menuScroll = useRef(0);
+  const menuScroll = useRef<{ top: number; cat: string | null }>({ top: 0, cat: null });
 
   // The owner's changes (prices, names, sold out) are picked up each time the kiosk shows the start
   // screen, i.e. for every new customer. If it can't load, the kiosk keeps the last menu it had.
   const { catalog, reload: loadMenu } = useMenu();
   useEffect(() => {
-    if (screen === 'home') loadMenu();
+    if (screen !== 'home') return;
+    loadMenu();
+    api
+      .kiosk()
+      .then(setAsks)
+      .catch(() => {}); // keep the last answer if the request fails
   }, [screen, loadMenu]);
   useAutoReload(screen === 'home'); // pick up a new version between customers, never mid-order
 
@@ -47,11 +57,13 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     setLines([]);
     setSheet(null);
     setName('');
+    setPhone('');
+    setCode(null);
     setOrderId(null);
     setPlaced(null);
     setIdle(false);
     checkoutKey.current = newKey();
-    menuScroll.current = 0;
+    menuScroll.current = { top: 0, cat: null };
   }, []);
 
   // Idle watch: any touch resets the timer; on non-home screens ask "Still there?" before clearing.
@@ -77,7 +89,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     };
   }, [screen, idle]);
 
-  const priced = useMemo(() => (lines.length ? priceOrder(lines, catalog) : null), [lines, catalog]);
+  const priced = useMemo(() => (lines.length ? priceOrder(lines, catalog, code) : null), [lines, catalog, code]);
   const count = priced?.itemCount ?? 0;
 
   const addLine = (l: CartLine) =>
@@ -128,6 +140,19 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             setType={setType}
             name={name}
             setName={setName}
+            asks={asks}
+            phone={phone}
+            setPhone={setPhone}
+            code={code}
+            onCode={async (typed) => {
+              // The server decides; the cart only shows what it will charge.
+              const r = await api.checkCode(
+                typed,
+                lines.map(({ uid: _u, ...l }) => l),
+              );
+              setCode(r.rule);
+            }}
+            onCodeRemove={() => setCode(null)}
             priced={priced}
             setQty={setQty}
             onEdit={(uid) => {
@@ -156,6 +181,8 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
                   name: name.trim() || null,
                   payMethod: m,
                   lines: lines.map(({ uid: _u, ...l }) => l),
+                  code: priced.discountCode, // only a code that is actually taking money off
+                  phone: asks.phone ? cleanPhone(phone) : null,
                 });
               } catch (e) {
                 if (e instanceof ApiError && e.status === 409) loadMenu(); // something sold out meanwhile: the cart will show which

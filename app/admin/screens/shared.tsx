@@ -6,7 +6,7 @@ import { photoOf, placeholderOf } from '@/lib/menu';
 import type { OrderStatus } from '@/lib/orders';
 import type { Summary } from '@/lib/reports';
 
-export type Tab = 'today' | 'orders' | 'menu' | 'reports' | 'history';
+export type Tab = 'today' | 'orders' | 'menu' | 'offers' | 'reports' | 'history';
 export const inr = (n: number) => '₹' + Math.round(n).toLocaleString('en-IN');
 export const inr2 = (n: number) =>
   '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

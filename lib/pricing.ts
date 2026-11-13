@@ -1,6 +1,8 @@
 // Order pricing. Runs on the server for every order; the kiosk uses the same code only to display totals.
+// A discount code comes off the item total before GST, so GST is charged on what is left.
 // All maths in paise (integers). GST is rounded to the nearest rupee (allowed under section 170 of the
 // CGST Act) and split equally into CGST and SGST, so the bill adds up exactly with no round-off line.
+import { discountFor, type DiscountRule } from './discounts';
 import { BASE_CATALOG, notesFor, type Catalog } from './menu';
 
 export const GST_RATE = 0.05; // 2.5% CGST + 2.5% SGST, charged on top of menu prices (v1 assumption)
@@ -33,13 +35,18 @@ export interface PricedLine {
 export interface PricedOrder {
   lines: PricedLine[];
   itemCount: number;
-  subtotal: number; // rupees, 2dp
+  subtotal: number; // taxable value: item total minus any discount, rupees, 2dp
   cgst: number;
   sgst: number;
   roundOff: number; // always 0 now: GST itself is rounded to the rupee (kept for stored orders)
   total: number; // whole rupees
-  savings: number; // always 0: no discounts for now (kept for stored orders)
+  savings: number; // the discount taken off the item total, whole rupees (0 without a code)
+  discountCode: string | null; // the code that gave it; null when none applied
+  discountShort: number; // a code was asked for but the order is this many rupees under its minimum
 }
+
+// The item total as the customer reads it: before the discount and before GST.
+export const itemTotal = (o: { subtotal: number; savings: number }) => o.subtotal + o.savings;
 
 export class OrderError extends Error {}
 
@@ -100,10 +107,12 @@ export function priceLine(line: CartLine, cat: Catalog = BASE_CATALOG): PricedLi
   };
 }
 
-export function priceOrder(cart: CartLine[], cat: Catalog = BASE_CATALOG): PricedOrder {
+export function priceOrder(cart: CartLine[], cat: Catalog = BASE_CATALOG, code?: DiscountRule | null): PricedOrder {
   if (!cart.length) throw new OrderError('Cart is empty');
   const lines = cart.map((l) => priceLine(l, cat));
-  const sub = paise(lines.reduce((a, l) => a + l.lineTotal, 0));
+  const gross = lines.reduce((a, l) => a + l.lineTotal, 0);
+  const d = code ? discountFor(gross, code) : { amount: 0, short: 0 };
+  const sub = paise(gross - d.amount);
   const gst = Math.round((sub * GST_RATE) / 100) * 100; // whole rupees
   return {
     lines,
@@ -113,7 +122,9 @@ export function priceOrder(cart: CartLine[], cat: Catalog = BASE_CATALOG): Price
     sgst: rupees(gst / 2),
     roundOff: 0,
     total: rupees(sub + gst),
-    savings: 0,
+    savings: d.amount,
+    discountCode: code && d.amount > 0 ? code.code : null,
+    discountShort: d.short,
   };
 }
 

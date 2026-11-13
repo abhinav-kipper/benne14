@@ -1,6 +1,7 @@
 'use client';
 // Browser-side API calls and live-order hooks for the kiosk, kitchen, board and phone bill.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Customer, DiscountCode, DiscountRule, KioskSettings } from './discounts';
 import type { CartLine } from './pricing';
 import type { Overrides } from './menu';
 import type { AdminEvent, Order, OrderStatus, OrderType, PayMethod } from './orders';
@@ -28,8 +29,22 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  placeOrder: (b: { key: string; type: OrderType; name: string | null; payMethod: PayMethod; lines: CartLine[] }) =>
-    call<Order>('/api/orders', { method: 'POST', body: JSON.stringify(b) }),
+  placeOrder: (b: {
+    key: string;
+    type: OrderType;
+    name: string | null;
+    payMethod: PayMethod;
+    lines: CartLine[];
+    code?: string | null;
+    phone?: string | null;
+  }) => call<Order>('/api/orders', { method: 'POST', body: JSON.stringify(b) }),
+  // What the cart asks for (the owner's switches), and whether a code works for this cart.
+  kiosk: () => call<KioskSettings>('/api/kiosk'),
+  checkCode: (code: string, lines: CartLine[]) =>
+    call<{ rule: DiscountRule; amount: number; short: number }>('/api/discounts/check', {
+      method: 'POST',
+      body: JSON.stringify({ code, lines }),
+    }),
   order: (id: string) => call<Order>(`/api/orders/${id}`),
   live: () => call<Order[]>('/api/orders'),
   today: () => call<Order[]>('/api/orders?view=today'),
@@ -284,9 +299,28 @@ export const admin = {
       body: JSON.stringify({ reason }),
       headers: pinHeader(pin),
     }),
+  offers: (pin: string) =>
+    call<{ settings: KioskSettings; codes: DiscountCode[]; today: string }>('/api/admin/offers', {
+      headers: pinHeader(pin),
+    }),
+  saveSettings: (pin: string, settings: Partial<KioskSettings>) =>
+    call<{ settings: KioskSettings }>('/api/admin/offers', {
+      method: 'POST',
+      body: JSON.stringify({ settings }),
+      headers: pinHeader(pin),
+    }),
+  saveCode: (pin: string, code: Partial<DiscountCode> & { code: string }) =>
+    call<{ code: DiscountCode }>('/api/admin/offers', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+      headers: pinHeader(pin),
+    }),
+  customers: (pin: string) => call<Customer[]>('/api/admin/customers', { headers: pinHeader(pin) }),
   // CSV comes back as a file; the browser saves it (a plain link can't send the PIN header).
-  async download(pin: string, kind: 'bills' | 'gst' | 'dishes', from: string, to: string) {
-    const r = await fetch(`/api/admin/export?kind=${kind}&from=${from}&to=${to}`, {
+  async download(pin: string, kind: 'bills' | 'gst' | 'dishes' | 'customers', from = '', to = '') {
+    const url0 =
+      kind === 'customers' ? '/api/admin/customers?format=csv' : `/api/admin/export?kind=${kind}&from=${from}&to=${to}`;
+    const r = await fetch(url0, {
       headers: pinHeader(pin),
       cache: 'no-store',
     });
@@ -298,7 +332,7 @@ export const admin = {
     const url = URL.createObjectURL(await r.blob());
     const a = Object.assign(document.createElement('a'), {
       href: url,
-      download: `benne14-${kind}-${from}-to-${to}.csv`,
+      download: kind === 'customers' ? 'benne14-customers.csv' : `benne14-${kind}-${from}-to-${to}.csv`,
     });
     document.body.appendChild(a);
     a.click();

@@ -24,7 +24,10 @@ export interface Order {
   sgst: number;
   roundOff: number;
   total: number;
-  savings: number;
+  savings: number; // discount taken off the item total (0 without a code)
+  discountCode?: string | null;
+  // The customer's phone number is deliberately not part of an order as screens see it: orders are
+  // read by the TV and the phone bill. The dashboard's customer list reads it through the store.
   createdAt: string;
   updatedAt: string;
   paidAt: string | null;
@@ -42,7 +45,7 @@ export const isPaid = (o: Pick<Order, 'status'>) => PAID.includes(o.status);
 // Change history shown on the dashboard.
 export interface AdminEvent {
   at: string;
-  kind: 'price' | 'name' | 'desc' | 'sold_out' | 'back_on' | 'option_price' | 'refund';
+  kind: 'price' | 'name' | 'desc' | 'sold_out' | 'back_on' | 'option_price' | 'refund' | 'discount' | 'setting';
   subject: string;
   before?: string | null;
   after?: string | null;
@@ -53,6 +56,7 @@ export interface PlaceOrderInput {
   key: string; // idempotency key from the kiosk checkout
   type: OrderType;
   customerName: string | null;
+  customerPhone?: string | null; // ten digits; given with the offers line shown, so it carries consent
   payMethod: PayMethod;
   priced: Omit<
     Order,
@@ -70,7 +74,7 @@ export interface PlaceOrderInput {
     | 'refundedAt'
     | 'refundReason'
     | 'refundAmount'
-  >;
+  > & { discountShort?: number };
 }
 
 // Which status changes staff may make from which status.

@@ -15,6 +15,7 @@ import {
   type OrderStatus,
   type PlaceOrderInput,
 } from '../orders';
+import { DEFAULT_SETTINGS, type Customer, type DiscountCode, type KioskSettings } from '../discounts';
 import { optionKey, type Overrides } from '../menu';
 import type { MenuEdit } from './index';
 import { MIGRATIONS } from '../migrations';
@@ -43,6 +44,9 @@ export class MemoryStore {
   private items = new Map<string, ItemRow>();
   private options = new Map<string, number>();
   private events: AdminEvent[] = [];
+  private phones = new Map<string, string>(); // order id -> phone; kept out of the order itself
+  private codes = new Map<string, DiscountCode & { createdAt: number }>();
+  private settings: KioskSettings = { ...DEFAULT_SETTINGS };
 
   static shared(): MemoryStore {
     const g = globalThis as unknown as { __benneMemoryStore?: MemoryStore };
@@ -56,8 +60,10 @@ export class MemoryStore {
     const n = (this.counters.get(day) ?? 0) + 1;
     this.counters.set(day, n);
     const now = new Date().toISOString();
+    const { discountShort: _short, ...priced } = input.priced;
     const order: Order = {
-      ...input.priced,
+      ...priced,
+      discountCode: priced.discountCode ?? null,
       id: randomUUID(),
       token: formatToken(n),
       tokenDay: day,
@@ -72,6 +78,7 @@ export class MemoryStore {
     };
     this.orders.set(order.id, order);
     this.byKey.set(input.key, order.id);
+    if (input.customerPhone) this.phones.set(order.id, input.customerPhone);
     return order;
   }
 
@@ -179,6 +186,56 @@ export class MemoryStore {
     return this.events.slice(0, limit);
   }
 
+  async listCodes() {
+    return [...this.codes.values()].sort((a, b) => b.createdAt - a.createdAt).map(({ createdAt: _c, ...c }) => c);
+  }
+
+  async getCode(code: string) {
+    const c = this.codes.get(code);
+    if (!c) return null;
+    const { createdAt: _c, ...rest } = c;
+    return rest;
+  }
+
+  async saveCode(c: DiscountCode, event: Omit<AdminEvent, 'at'>) {
+    this.codes.set(c.code, { ...c, createdAt: this.codes.get(c.code)?.createdAt ?? Date.now() + this.codes.size });
+    await this.addEvent(event);
+  }
+
+  async getSettings() {
+    return { ...this.settings };
+  }
+
+  async saveSettings(patch: Partial<KioskSettings>, events: Omit<AdminEvent, 'at'>[]) {
+    this.settings = { ...this.settings, ...patch };
+    for (const e of events) await this.addEvent(e);
+    return { ...this.settings };
+  }
+
+  async listCustomers(): Promise<Customer[]> {
+    const by = new Map<string, Customer>();
+    const paid = [...this.orders.values()]
+      .filter((o) => isPaid(o) && this.phones.has(o.id))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    for (const o of paid) {
+      const phone = this.phones.get(o.id)!;
+      const c = by.get(phone) ?? {
+        phone,
+        name: null,
+        orders: 0,
+        spent: 0,
+        firstOrderAt: o.createdAt,
+        lastOrderAt: o.createdAt,
+      };
+      c.orders += 1;
+      c.spent += o.refundedAt ? 0 : o.total;
+      c.name = o.customerName ?? c.name;
+      c.lastOrderAt = o.createdAt;
+      by.set(phone, c);
+    }
+    return [...by.values()].sort((a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt));
+  }
+
   async appliedMigrations() {
     return MIGRATIONS;
   } // nothing to migrate in memory
@@ -190,5 +247,8 @@ export class MemoryStore {
     this.items.clear();
     this.options.clear();
     this.events = [];
+    this.phones.clear();
+    this.codes.clear();
+    this.settings = { ...DEFAULT_SETTINGS };
   }
 }

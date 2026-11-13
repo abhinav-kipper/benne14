@@ -1,6 +1,7 @@
+import { cleanCode, cleanPhone, usable, type DiscountRule } from '@/lib/discounts';
 import { priceOrder, type CartLine } from '@/lib/pricing';
 import { itemById, mergeCatalog } from '@/lib/menu';
-import { cleanName, type OrderType, type PayMethod } from '@/lib/orders';
+import { cleanName, istDay, type OrderType, type PayMethod } from '@/lib/orders';
 import { getStore } from '@/lib/store';
 import { fail, json, readJson } from '@/lib/server';
 import { isTestMode } from '@/lib/testmode';
@@ -16,6 +17,8 @@ export async function POST(req: Request) {
       name?: unknown;
       payMethod?: unknown;
       lines?: unknown;
+      code?: unknown;
+      phone?: unknown;
     };
     if (typeof b.key !== 'string' || b.key.length < 8 || b.key.length > 80)
       return json({ error: 'Missing checkout key' }, 400);
@@ -24,6 +27,12 @@ export async function POST(req: Request) {
       return json({ error: 'Pick a payment method' }, 400);
     if (!Array.isArray(b.lines) || b.lines.length > 40) return json({ error: 'Bad cart' }, 400);
     const name = cleanName(b.name);
+    // Optional fields: missing or '' is fine, a wrong value is said out loud rather than dropped.
+    const given = (v: unknown) => v != null && v !== '';
+    const phone = given(b.phone) ? cleanPhone(b.phone) : null;
+    if (given(b.phone) && !phone) return json({ error: 'Check the phone number: it needs 10 digits.' }, 400);
+    const code = given(b.code) ? cleanCode(b.code) : null;
+    if (given(b.code) && !code) return json({ error: 'That code isn’t valid.' }, 400);
     if (
       !isTestMode() &&
       (b.lines as CartLine[]).some((l) => itemById((l as Partial<CartLine> | null)?.itemId ?? '')?.testOnly)
@@ -36,11 +45,27 @@ export async function POST(req: Request) {
       .map((l) => itemById((l as Partial<CartLine> | null)?.itemId ?? '', catalog))
       .find((i) => i?.soldOut);
     if (out) return json({ error: `Sorry, ${out.name} just sold out. Please remove it from your order.` }, 409);
-    const priced = priceOrder(b.lines as CartLine[], catalog);
+    // The owner's switches decide what is taken: a code or a number sent while its switch is off is not used.
+    const settings = phone || code ? await store.getSettings() : null;
+    let rule: DiscountRule | null = null;
+    if (code) {
+      const found = settings!.codes ? await store.getCode(code) : null;
+      if (!found || !usable(found, istDay()))
+        return json({ error: `Code ${code} is no longer valid. Remove it to continue.` }, 409);
+      rule = found;
+    }
+    const priced = priceOrder(b.lines as CartLine[], catalog, rule);
+    // The customer was shown a discount: never charge the full price without saying so.
+    if (rule && !priced.discountCode)
+      return json(
+        { error: `Code ${rule.code} needs an order of ₹${rule.minOrder} or more. Add a dish or remove the code.` },
+        409,
+      );
     let order = await store.placeOrder({
       key: b.key,
       type: b.type as OrderType,
       customerName: name,
+      customerPhone: settings?.phone ? phone : null,
       payMethod: b.payMethod as PayMethod,
       priced,
     });

@@ -232,7 +232,7 @@ test('reports: today vs yesterday on the dashboard, CSV downloads for the CA', a
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByTestId('dl-bills').click()]);
   expect(dl.suggestedFilename()).toMatch(/^benne14-bills-\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}\.csv$/);
   const text = await (await dl.createReadStream()).toArray().then((c) => Buffer.concat(c).toString('utf8'));
-  expect(text.split('\r\n')[0]).toContain('Date,Time,Order,Type,Payment,Items,Subtotal,CGST,SGST,Total');
+  expect(text.split('\r\n')[0]).toContain('Date,Time,Order,Type,Payment,Items,Discount,Code,Taxable value,CGST,SGST,Total');
   expect(text).toContain('Food issue');
 });
 
@@ -242,4 +242,217 @@ test('the kiosk keeps working with the last menu if the menu can’t load', asyn
   await page.goto('/kiosk');
   await page.getByTestId('start').click();
   await expect(page.getByTestId('item-masala-dosa')).toContainText('₹209');
+});
+
+// ---------- Offers: discount codes, phone numbers, the kiosk switches ----------
+const offers = (r: APIRequestContext, data: object, headers: Record<string, string> = H) =>
+  r.post('/api/admin/offers', { data, headers });
+const PHONE = '9876543210';
+
+test('offers API: needs the PIN and refuses bad codes, numbers and switches', async ({ request }) => {
+  for (const path of ['/api/admin/offers', '/api/admin/customers', '/api/admin/customers?format=csv'])
+    expect((await request.get(path)).status(), path).toBe(401);
+  expect((await offers(request, { settings: { phone: false } }, {})).status()).toBe(401);
+  const ok = { code: 'TEN', kind: 'percent', value: 10 };
+  for (const bad of [
+    {},
+    { settings: 'off' },
+    { settings: { phone: 'no' } },
+    { code: { ...ok, code: 'AB' } },
+    { code: { ...ok, code: 'SAVE ₹50' } },
+    { code: { ...ok, kind: 'bogof' } },
+    { code: { ...ok, value: 0 } },
+    { code: { ...ok, value: 95 } },
+    { code: { ...ok, value: 2.5 } },
+    { code: { ...ok, minOrder: -1 } },
+    { code: { ...ok, expiresOn: '2026-02-30' } },
+    { code: { ...ok, active: 'yes' } },
+    { code: { ...ok, kind: 'flat', value: 50 } }, // a flat code needs a minimum order above it
+    { code: { ...ok, kind: 'flat', value: 50, minOrder: 50 } },
+  ])
+    expect((await offers(request, bad)).status(), JSON.stringify(bad)).toBe(400);
+  // the kiosk's side
+  const place = (extra: object) =>
+    request.post('/api/orders', {
+      data: {
+        key: `off-${Date.now()}-${k++}`,
+        type: 'takeaway',
+        name: null,
+        payMethod: 'cash',
+        lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+        ...extra,
+      },
+    });
+  for (const phone of ['12345', '1234567890', 'call me', 98765]) expect((await place({ phone })).status()).toBe(400);
+  expect((await place({ code: '<b>' })).status()).toBe(400);
+  expect((await place({ code: 'NOSUCHCODE' })).status()).toBe(409); // never charged in full without saying so
+  const check = await request.post('/api/discounts/check', {
+    data: { code: 'NOSUCHCODE', lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }] },
+    headers: { 'x-forwarded-for': '10.9.9.1' },
+  });
+  expect(check.status()).toBe(404);
+});
+
+test('guessing discount codes is cut off after ten wrong tries', async ({ request }) => {
+  const guess = (code: string) =>
+    request.post('/api/discounts/check', {
+      data: { code, lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }] },
+      headers: { 'x-forwarded-for': '10.9.9.2' },
+    });
+  for (let i = 0; i < 10; i++) expect((await guess(`GUESS${i}`)).status()).toBe(404);
+  expect((await guess('GUESS10')).status()).toBe(429);
+});
+
+test('owner makes a code; a customer uses it and leaves a number; the bill and the dashboard show both', async ({
+  page,
+  request,
+}) => {
+  // owner: new code, 10% off
+  await owner(page);
+  await page.getByTestId('tab-offers').click();
+  await expect(page.getByTestId('set-codes')).toHaveAttribute('aria-checked', 'true');
+  await page.getByTestId('new-code').click();
+  await page.getByTestId('dc-code').fill('welcome10');
+  await page.getByTestId('dc-value').fill('10');
+  await page.getByTestId('dc-save').click();
+  await expect(page.getByTestId('code-WELCOME10')).toContainText('10% off');
+
+  // customer: the cart now offers a code box and a phone box
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-plain-dosa').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  const total = async () => Number((await page.getByTestId('cart-total').innerText()).replace(/\D/g, ''));
+  const full = await total();
+  await page.getByTestId('code-input').fill('wrongcode');
+  await page.getByTestId('code-apply').click();
+  await expect(page.getByTestId('code-error')).toContainText('isn’t valid');
+  await expect(page.getByTestId('discount-row')).toHaveCount(0);
+  await page.getByTestId('code-input').fill('welcome10');
+  await page.getByTestId('code-apply').click();
+  await expect(page.getByTestId('discount-row')).toContainText('Code WELCOME10');
+  const less = await total();
+  expect(less).toBeLessThan(full);
+  expect(less).toBeGreaterThan(full * 0.88); // 10% off before GST
+  await page.getByTestId('code-remove').click();
+  expect(await total()).toBe(full);
+  await page.getByTestId('code-input').fill('WELCOME10');
+  await page.getByTestId('code-apply').click();
+  await expect(page.getByTestId('discount-row')).toBeVisible();
+
+  // a half-typed number blocks paying; a whole one (or none) doesn't
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('phone-input').fill('98765');
+  await expect(page.getByTestId('phone-error')).toBeVisible();
+  await expect(page.getByTestId('continue-to-pay')).toBeDisabled();
+  await page.getByTestId('phone-input').fill(PHONE);
+  await page.getByTestId('continue-to-pay').click();
+  await page.getByTestId('pay-cash').click();
+  await expect(page.getByTestId('token')).toBeVisible();
+
+  // the order: discounted, code recorded, and the number nowhere a screen can read it
+  const list = await (await request.get('/api/orders?view=today')).json();
+  const o = list[0];
+  expect(o).toMatchObject({ discountCode: 'WELCOME10', total: less });
+  expect(o.savings).toBeGreaterThan(0);
+  expect(JSON.stringify(list)).not.toContain(PHONE);
+  expect(JSON.stringify(await (await request.get(`/api/orders/${o.id}`)).json())).not.toContain(PHONE);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/r/${o.id}`);
+  await expect(page.getByTestId('bill-discount')).toContainText('Discount (WELCOME10)');
+
+  // dashboard: a customer only once the order is paid
+  expect(await (await request.get('/api/admin/customers', { headers: H })).json()).toEqual([]);
+  await request.post(`/api/orders/${o.id}/status`, { data: { to: 'new' }, headers: H });
+  await page.goto('/admin');
+  await page.getByTestId('tab-offers').click();
+  await expect(page.getByTestId('customer')).toContainText('98765 43210');
+  const csv = await (await request.get('/api/admin/customers?format=csv', { headers: H })).text();
+  expect(csv).toContain(`91${PHONE}`);
+  expect((await today(request)).discounts).toEqual({ count: 1, amount: o.savings });
+  const bills = await (
+    await request.get(`/api/admin/export?kind=bills&from=${o.tokenDay}&to=${o.tokenDay}`, { headers: H })
+  ).text();
+  expect(bills).toContain('WELCOME10');
+  expect(bills).not.toContain(PHONE);
+});
+
+test('a code with a minimum order says what is missing instead of failing silently', async ({ page, request }) => {
+  expect((await offers(request, { code: { code: 'BIG100', kind: 'flat', value: 100, minOrder: 5000 } })).status()).toBe(
+    200,
+  );
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await page.getByTestId('code-input').fill('BIG100');
+  await page.getByTestId('code-apply').click();
+  await expect(page.getByTestId('code-short')).toContainText('more to use it');
+  await expect(page.getByTestId('discount-row')).toHaveCount(0);
+  // and the server refuses to place it as if the code had worked
+  const r = await request.post('/api/orders', {
+    data: {
+      key: `min-${Date.now()}`,
+      type: 'takeaway',
+      name: null,
+      payMethod: 'cash',
+      code: 'BIG100',
+      lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+    },
+  });
+  expect(r.status()).toBe(409);
+  expect((await r.json()).error).toContain('needs an order of ₹5000');
+});
+
+test('the owner can switch the code box and the phone box off; the server then ignores both', async ({
+  page,
+  request,
+}) => {
+  await owner(page);
+  await page.getByTestId('tab-offers').click();
+  await page.getByTestId('set-codes').click();
+  await page.getByTestId('set-phone').click();
+  await expect(page.getByTestId('set-phone')).toHaveAttribute('aria-checked', 'false');
+  await expect.poll(async () => (await request.get('/api/kiosk')).json()).toEqual({ codes: false, phone: false });
+
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await expect(page.getByTestId('cart-total')).toBeVisible();
+  await expect(page.getByTestId('code-input')).toHaveCount(0);
+  await expect(page.getByTestId('phone-input')).toHaveCount(0);
+
+  const place = (extra: object) =>
+    request.post('/api/orders', {
+      data: {
+        key: `sw-${Date.now()}-${k++}`,
+        type: 'takeaway',
+        name: 'Switched',
+        payMethod: 'cash',
+        lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+        ...extra,
+      },
+    });
+  expect((await place({ code: 'WELCOME10' })).status()).toBe(409);
+  const o = await (await place({ phone: '9123456780' })).json();
+  await request.post(`/api/orders/${o.id}/status`, { data: { to: 'new' }, headers: H });
+  const customers = await (await request.get('/api/admin/customers', { headers: H })).json();
+  expect(JSON.stringify(customers)).not.toContain('9123456780'); // switched off: the number was not kept
+
+  // back on, but with every code switched off the box stays hidden (it would lead nowhere)
+  await offers(request, { settings: { codes: true, phone: true } });
+  expect((await (await request.get('/api/kiosk')).json()).codes).toBe(true);
+  for (const c of (await (await request.get('/api/admin/offers', { headers: H })).json()).codes)
+    await offers(request, { code: { ...c, active: false } });
+  expect(await (await request.get('/api/kiosk')).json()).toEqual({ codes: false, phone: true });
+  const history = await (await request.get('/api/admin/events', { headers: H })).json();
+  expect(history.some((e: { kind: string }) => e.kind === 'setting')).toBe(true);
+  expect(history.some((e: { kind: string }) => e.kind === 'discount')).toBe(true);
 });
