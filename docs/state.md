@@ -6,7 +6,7 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 **Live on `main`** (production: https://benne14-git-main-abhinav-mudgal-s-projects.vercel.app, check
 `/api/health`). Kiosk, kitchen, TV board, phone bill and owner dashboard all work end to end on
-Supabase. Not launched to customers yet: test mode is on, and the launch blockers in `docs/audit.md`
+Supabase. UPI is confirmed automatically through Easebuzz's payment gateway (`PAYMENTS=easebuzz`). Not launched to customers yet: test mode is on, and the launch blockers in `docs/audit.md`
 section A are open.
 
 ## Up next
@@ -59,6 +59,8 @@ section A are open.
 - Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
 
 ## Done
+
+- 2026-11-14 — Easebuzz went live on production. The UPI screen no longer counts down: the kiosk waits for the payment, asks "Still there?" after four quiet minutes, and a customer who walks off and pays later still gets the order (the kitchen screen's polling re-checks open payments).
 
 - 2026-11-14 — Automatic UPI confirmation through Easebuzz (the shop's own gateway account), built and off by default: the kiosk shows Easebuzz's payment page, the order goes to the kitchen by itself once Easebuzz confirms, with fallbacks. Tried end to end on Easebuzz's sandbox. Steps to switch on: `docs/payments.md`.
 

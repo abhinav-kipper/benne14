@@ -64,10 +64,13 @@ export const api = {
   gatewayStart: (id: string) =>
     call<GatewayView>(`/api/orders/${id}/gateway`, { method: 'POST', body: JSON.stringify({ action: 'start' }) }),
   gatewayCheck: (id: string) =>
-    call<{ order: Order; state: 'paid' | 'failed' | 'waiting' | 'problem' }>(`/api/orders/${id}/gateway`, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'check' }),
-    }),
+    call<{ order: Order; state: 'paid' | 'failed' | 'waiting' | 'problem'; gatewayStatus?: string }>(
+      `/api/orders/${id}/gateway`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ action: 'check' }),
+      },
+    ),
   // `from` = the status this screen shows; the server refuses (409) if another screen changed it first.
   setStatus: (id: string, to: OrderStatus, pin: string, from?: OrderStatus) =>
     call<Order>(`/api/orders/${id}/status`, {

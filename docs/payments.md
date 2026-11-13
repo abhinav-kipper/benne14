@@ -58,6 +58,15 @@ Transaction API V2.1, Transaction Webhook). Read on 2026-11-14.
   - Wrong amount, or paid after the order was cancelled: the order is **not** marked paid and a
     "payment" line appears in the dashboard's change history so the owner can refund.
   - Easebuzz down or refusing: the kiosk falls back to the shop's own QR and "I've paid".
+- **No countdown with the gateway (owner's call, 2026-11-14):** the kiosk waits for the payment. Easebuzz
+  reports where the customer is (`preinitiated` → `initiated` page open → `pending` QR on screen →
+  `success`). After 4 quiet minutes the kiosk asks "Still there?" (30 s); if nobody answers it goes back
+  to the start. If a QR had been shown the order is **left waiting, not cancelled**, so a late payment
+  still becomes the order; if no QR ever appeared it is cancelled (nothing could be paid). "Other ways
+  to pay" and "Cancel order" still cancel. The shop's own QR (fallback) keeps its 5-minute timer.
+- **Late payments are found without the kiosk or the webhook:** whenever the kitchen or TV fetches the
+  live orders, UPI orders still waiting are re-checked with Easebuzz (at most every 15 s each;
+  `ordersToRecheck` / `recheck` in `lib/gateway.ts`).
 - **Sandbox end to end (2026-11-14):** the sandbox QR is a link to Easebuzz's test page that plays the
   customer's UPI app (type the PIN it shows, choose Success / Failure / Delayed). A ₹219 order went
   kiosk → page → Success → order number by itself, with the Easebuzz reference in the order's history.
