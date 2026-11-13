@@ -9,7 +9,7 @@ import { priceOrder, type CartLine } from '@/lib/pricing';
 import { Cart } from './screens/Cart';
 import { Done } from './screens/Done';
 import { Home } from './screens/Home';
-import { Idle } from './screens/Idle';
+import { Idle, StartOver } from './screens/Idle';
 import { ItemSheet } from './screens/ItemSheet';
 import { MenuScreen } from './screens/Menu';
 import { Pay } from './screens/Pay';
@@ -85,7 +85,21 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
         ? cur.map((x) => (x === same ? { ...x, qty: Math.min(20, x.qty + l.qty) } : x))
         : [...cur, { ...l, uid: newKey() }];
     });
-  const quickAdd = (itemId: string) => addLine({ itemId, qty: 1, choices: {}, notes: [] });
+  // One tap on + adds the dish as it comes: every pick-one choice at its default, no extras, no notes.
+  // Written out in full so it merges with the same dish added from the sheet without changes.
+  const quickAdd = (itemId: string) => {
+    const item = catalog.items.find((i) => i.id === itemId);
+    const choices: Record<string, string[]> = {};
+    for (const g of item?.groups ?? [])
+      if (catalog.groups[g].kind === 'one') choices[g] = [catalog.groups[g].defaultId!];
+    addLine({ itemId, qty: 1, choices, notes: [] });
+  };
+  // "Start over" asks first when there is something to lose.
+  const [confirmReset, setConfirmReset] = useState(false);
+  const startOver = () => (lines.length ? setConfirmReset(true) : reset());
+  useEffect(() => {
+    if (screen === 'home') setConfirmReset(false); // e.g. the idle timer cleared the order meanwhile
+  }, [screen]);
   const setQty = (uid: string, qty: number) =>
     setLines((cur) =>
       qty <= 0
@@ -104,6 +118,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             qtyOf={qtyOf}
             onOpen={(id) => setSheet({ itemId: id })}
             onQuick={quickAdd}
+            onStartOver={startOver}
             lines={lines}
             setQty={setQty}
             count={count}
@@ -126,6 +141,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             }}
             onAdd={quickAdd}
             onBack={() => setScreen('menu')}
+            onStartOver={startOver}
             onPay={() => setScreen('pay')}
           />
         )}
@@ -193,6 +209,15 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
           <div className="k-test" data-testid="test-ribbon">
             Test mode · cash = paid
           </div>
+        )}
+        {confirmReset && !idle && (
+          <StartOver
+            onKeep={() => setConfirmReset(false)}
+            onReset={() => {
+              setConfirmReset(false);
+              reset();
+            }}
+          />
         )}
         {idle && (
           <Idle

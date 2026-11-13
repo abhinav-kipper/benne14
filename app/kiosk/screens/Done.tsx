@@ -26,7 +26,7 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
     <div className="screen k-done">
       {atCounter && o.payMethod === 'upi' ? (
         <div className="paid due">
-          <i>₹</i>UPI payment of ₹{o.total} being checked at the counter
+          <i>₹</i>Checking your UPI payment of ₹{o.total} at the counter
         </div>
       ) : atCounter ? (
         <div className="paid due">
@@ -64,7 +64,8 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
             {o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}
           </b>
           <span>
-            {atCounter ? (o.payMethod === 'upi' ? 'Show UPI screen if asked' : 'Show at counter') : 'Ready in ~8 min'}
+            {/* what to do next is the sentence above the ticket; the stub only carries a fact */}
+            {atCounter ? (o.payMethod === 'upi' ? `₹${o.total} · UPI` : `₹${o.total} to pay`) : 'Ready in ~8 min'}
           </span>
         </div>
       </div>

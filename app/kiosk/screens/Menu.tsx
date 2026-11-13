@@ -9,6 +9,7 @@ export function MenuScreen(p: {
   qtyOf: (id: string) => number;
   onOpen: (id: string) => void;
   onQuick: (id: string) => void;
+  onStartOver: () => void;
   lines: Line[];
   setQty: (uid: string, q: number) => void;
   count: number;
@@ -23,7 +24,8 @@ export function MenuScreen(p: {
   const main = useRef<HTMLElement>(null);
   const sp = items.find((i) => i.special)!;
 
-  // Quick +/- on the list adjusts the simplest line for that item; customised lines are edited in the cart.
+  // + adds the dish as it comes with one tap and becomes the − 1 + stepper; tapping the dish itself opens the
+  // sheet for extras and notes. The stepper adjusts the latest line for that dish.
   const stepper = (i: MenuItem) => {
     if (i.soldOut) return <span className="soldout">Sold out</span>;
     const q = p.qtyOf(i.id);
@@ -34,7 +36,7 @@ export function MenuScreen(p: {
           aria-label={`Add ${i.name}`}
           onClick={(e) => {
             e.stopPropagation();
-            p.onOpen(i.id);
+            p.onQuick(i.id);
           }}
         >
           +
@@ -91,6 +93,9 @@ export function MenuScreen(p: {
             </button>
           ))}
         </div>
+        <button className="startover" onClick={p.onStartOver} data-testid="start-over">
+          Start over
+        </button>
       </aside>
       <main ref={main} onScroll={onScroll}>
         <section
@@ -116,10 +121,12 @@ export function MenuScreen(p: {
           </div>
         </section>
         <section className="list">
-          {cats.map((c) => (
+          {cats.map((c, n) => (
             <div key={c.id}>
               <div className="sec" id={`cat-${c.id}`}>
                 <h3 className="disp">{c.name}</h3>
+                {/* said once, where prices start, so the total with GST is no surprise */}
+                {n === 0 && <span className="gst">Prices + 5% GST</span>}
               </div>
               {items
                 .filter((i) => i.cat === c.id && !i.special)
@@ -158,7 +165,10 @@ export function MenuScreen(p: {
           </div>
           <div className="go">
             <small>VIEW ORDER</small>
-            <span className="tot">₹{p.total}</span>
+            <span className="tot">
+              ₹{p.total}
+              <small>incl. GST</small>
+            </span>
             <span className="arrow">→</span>
           </div>
         </button>

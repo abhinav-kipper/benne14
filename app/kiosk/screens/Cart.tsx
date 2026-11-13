@@ -17,9 +17,11 @@ export function Cart(p: {
   onEdit: (uid: string) => void;
   onAdd: (id: string) => void;
   onBack: () => void;
+  onStartOver: () => void;
   onPay: () => void;
 }) {
   const catalog = useCatalog();
+  const hasDosa = p.lines.some((l) => itemById(l.itemId, catalog)?.cat === 'dosa');
   const upsell = CART_UPSELL.filter(
     (id) => !p.lines.some((l) => l.itemId === id) && !itemById(id, catalog)?.soldOut,
   ).slice(0, 3);
@@ -31,6 +33,9 @@ export function Cart(p: {
           <span>←</span>Menu
         </button>
         <h1 className="disp">Your order</h1>
+        <button className="startover" onClick={p.onStartOver} data-testid="start-over">
+          Start over
+        </button>
       </div>
       <div className="body">
         {p.lines.map((l, i) => {
@@ -82,7 +87,7 @@ export function Cart(p: {
           <div className="more">
             <div className="gh">
               <h2 className="disp">Anything else?</h2>
-              <span className="alt">Goes well with your dosa</span>
+              <span className="alt">Goes well with your {hasDosa ? 'dosa' : 'order'}</span>
             </div>
             <div className="strip">
               {upsell.map((id) => {
@@ -111,13 +116,10 @@ export function Cart(p: {
               </span>
               <span className="v">₹{p.priced.subtotal.toFixed(2)}</span>
             </div>
+            {/* one line for customers; the CGST / SGST split is on the phone bill */}
             <div className="row muted">
-              <span>CGST 2.5%</span>
-              <span className="v">₹{p.priced.cgst.toFixed(2)}</span>
-            </div>
-            <div className="row muted">
-              <span>SGST 2.5%</span>
-              <span className="v">₹{p.priced.sgst.toFixed(2)}</span>
+              <span>GST 5%</span>
+              <span className="v">₹{(p.priced.cgst + p.priced.sgst).toFixed(2)}</span>
             </div>
           </div>
           <div className="total">
@@ -140,7 +142,7 @@ export function Cart(p: {
       </div>
       <div className="foot">
         <div className="eat">
-          <span className="q">{p.type ? 'Eating' : 'Dine in or takeaway?'}</span>
+          <span className="q">Dine in or takeaway?</span>
           <button
             className={p.type === 'dine_in' ? 'on' : ''}
             onClick={() => p.setType('dine_in')}

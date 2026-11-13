@@ -139,7 +139,7 @@ export function Pay({
         </button>
       </div>
       {err && <div className="err">{err}</div>}
-      <div className="note">Payment stuck? Don&apos;t worry, the money comes back to you automatically.</div>
+      <div className="note">Payment stuck? Ask at the counter.</div>
     </div>
   );
 }

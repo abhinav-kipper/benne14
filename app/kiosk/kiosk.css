@@ -389,6 +389,18 @@
   font-family: var(--display);
   font-weight: 900;
   font-size: 44px;
+  line-height: 0.9;
+  text-align: right;
+}
+.k-menu .cartbar .tot small {
+  display: block;
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-top: 4px;
 }
 .k-menu .cartbar .arrow {
   width: 62px;
@@ -1459,13 +1471,15 @@
   font-weight: 800;
   font-size: 20px;
 }
+/* Waiting for the counter is a normal step, not an error: neutral paper, butter-yellow mark. */
 .k-done .paid.due {
-  background: rgba(209, 79, 43, 0.08);
-  border-color: rgba(209, 79, 43, 0.35);
-  color: var(--chilli);
+  background: var(--s1);
+  border-color: var(--line);
+  color: var(--cream);
 }
 .k-done .paid.due i {
-  background: var(--chilli);
+  background: var(--benne);
+  color: var(--benne-ink);
 }
 .k-done .thanks {
   margin-top: 44px;
@@ -1805,4 +1819,32 @@
   font-weight: 700;
   color: var(--chilli);
   margin: 2px 0 6px;
+}
+
+/* ---------- Round 1 (docs/ui-audit.md): GST note, start over ---------- */
+.k-menu .sec .gst {
+  margin-left: auto;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cream-2);
+}
+.k-menu .startover {
+  margin: 0 18px 24px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+  color: var(--cream-2);
+  font-size: 16px;
+  font-weight: 600;
+}
+.k-cart .top .startover {
+  height: 64px;
+  padding: 0 22px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--s1);
+  color: var(--cream-2);
+  font-size: 18px;
+  font-weight: 600;
 }
