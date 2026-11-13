@@ -28,6 +28,10 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+// direct: the shop's own QR, staff confirm. page: the gateway's payment page in a frame.
+// qr: a QR drawn from the gateway's UPI link. The last two confirm by themselves.
+export type GatewayView = { kind: 'direct' } | { kind: 'page'; url: string } | { kind: 'qr'; svg: string };
+
 export const api = {
   placeOrder: (b: {
     key: string;
@@ -56,6 +60,14 @@ export const api = {
   claim: (id: string, action: 'paid' | 'cancel') =>
     call<Order>(`/api/orders/${id}/claim`, { method: 'POST', body: JSON.stringify({ action }) }),
   mockPay: (id: string) => call<Order>(`/api/orders/${id}/pay`, { method: 'POST' }),
+  // The payment gateway, for the kiosk's UPI screen: how to show this order's payment, and "is it paid yet?"
+  gatewayStart: (id: string) =>
+    call<GatewayView>(`/api/orders/${id}/gateway`, { method: 'POST', body: JSON.stringify({ action: 'start' }) }),
+  gatewayCheck: (id: string) =>
+    call<{ order: Order; state: 'paid' | 'failed' | 'waiting' | 'problem' }>(`/api/orders/${id}/gateway`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'check' }),
+    }),
   // `from` = the status this screen shows; the server refuses (409) if another screen changed it first.
   setStatus: (id: string, to: OrderStatus, pin: string, from?: OrderStatus) =>
     call<Order>(`/api/orders/${id}/status`, {

@@ -44,13 +44,32 @@ Transaction API V2.1, Transaction Webhook). Read on 2026-11-14.
      (`key, txnid, hash = sha512(key|txnid|salt)`) for polling. Easebuzz says both are mandatory for the QR flow.
   4. Always verify the response hash (reverse sequence) and re-check with the status API before marking paid.
 - Hosts: sandbox `testpay.easebuzz.in` + `testdashboard.easebuzz.in`; live `pay.easebuzz.in` + `dashboard.easebuzz.in`.
-- **Sandbox probe (2026-11-14, test kit "benne 14"):** `initiateLink` works; the status API works (a fresh
-  transaction reads `bounced`); **`initiate_seamless_payment` is refused: "Cannot access seamless payment
-  mode for this merchant"**. Seamless mode must be enabled by Easebuzz on the **test** account (and
-  confirmed on the live one). Without it only Easebuzz's own hosted page is available.
-- Open: UPI fee and settlement time; whether refunds should go through the Refund API V2.
-- Credentials (env only): `EASEBUZZ_KEY`, `EASEBUZZ_SALT`, `EASEBUZZ_ENV=test|live`. The key and salt for
-  both environments were shown in chat on 2026-11-14: have Easebuzz regenerate the **live** pair before use.
+- **Probes (2026-11-14):** on the test kit "benne 14" and on the live account (one ₹1 request, unpaid),
+  `initiateLink` and the status API work; **`initiate_seamless_payment` is refused on both** ("Seamless
+  payment mode access not authorised for merchant"). Easebuzz's **own payment page** (`{pay}/pay/<access_key>`,
+  limited to UPI with `show_payment_mode=UPI`) works on both and can be shown in a frame (no frame-blocking headers).
+- **Built (2026-11-14), off until switched on:** `lib/easebuzz.ts` (requests, signatures), `lib/gateway.ts`
+  (`settle`: the one place an order is marked paid by the gateway), `POST /api/orders/[id]/gateway`
+  (`start` / `check`), `POST /api/payments/easebuzz/webhook`, the kiosk's UPI screen.
+  - The kiosk shows Easebuzz's page in a frame (customer taps "Pay by QR", then "Pay ₹…", and scans).
+    With `EASEBUZZ_SEAMLESS=1` (once Easebuzz enables it) the kiosk draws the QR itself: no extra taps.
+  - Paid is decided only by asking Easebuzz's status API: signed reply, `status=success`, exact amount,
+    a payment reference. The webhook and the kiosk's 3-second check both end in that same function.
+  - Wrong amount, or paid after the order was cancelled: the order is **not** marked paid and a
+    "payment" line appears in the dashboard's change history so the owner can refund.
+  - Easebuzz down or refusing: the kiosk falls back to the shop's own QR and "I've paid".
+- **Sandbox end to end (2026-11-14):** the sandbox QR is a link to Easebuzz's test page that plays the
+  customer's UPI app (type the PIN it shows, choose Success / Failure / Delayed). A ₹219 order went
+  kiosk → page → Success → order number by itself, with the Easebuzz reference in the order's history.
+- **To switch on (per environment):** in Vercel set `PAYMENTS=easebuzz`, `EASEBUZZ_KEY`, `EASEBUZZ_SALT`,
+  `EASEBUZZ_ENV=test|live` (and `EASEBUZZ_SEAMLESS=1` when enabled), then redeploy; run migration 0007;
+  in the Easebuzz dashboard (Payment Gateway → Account Settings → Webhooks → Transaction webhook) set
+  `https://<site>/api/payments/easebuzz/webhook`. `/api/health` shows `payments: easebuzz` when it is on.
+- **Before live:** Easebuzz regenerates the live key and salt (both were shown in chat); a real ₹1 payment
+  from GPay, PhonePe and Paytm; confirm UPI fee and settlement time; decide who refunds and how
+  (Easebuzz dashboard, or their Refund API V2 later).
+- Tests: `tests/unit/easebuzz.test.ts`, `tests/e2e/gateway.spec.ts` against `tests/support/fake-easebuzz.mjs`
+  (a stand-in that signs and answers like Easebuzz; no real calls in CI).
 
 ### Route A — Paytm card machine, cloud "Connection via Payment Request" (most promising)
 - Works with the owner's existing Paytm Android EDC on the **same MID**; Paytm says EDC/DQR integration is free. Probably does **not** need the stuck online-merchant account.

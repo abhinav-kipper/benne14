@@ -13,6 +13,7 @@ import {
   plainToken,
   UPI_OPEN_MIN,
   type AdminEvent,
+  type GatewayPayment,
   type Order,
   type OrderEvent,
   type OrderStatus,
@@ -37,6 +38,8 @@ interface Row {
   total: string | number;
   savings: string | number;
   discount_code?: string | null;
+  pay_gateway?: string | null;
+  pay_ref?: string | null;
   created_at: string;
   updated_at: string;
   paid_at: string | null;
@@ -97,6 +100,8 @@ const toOrder = (r: Row): Order => ({
   total: +r.total,
   savings: +r.savings,
   discountCode: r.discount_code ?? null,
+  payGateway: r.pay_gateway ?? null,
+  payRef: r.pay_ref ?? null,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   paidAt: r.paid_at,
@@ -230,6 +235,38 @@ export class SupabaseStore {
     if (error) throw storeError(error);
     if (!data) throw new StoreError(`Order ${cur.token} was just changed on another screen`, 409);
     return toOrder(data as Row);
+  }
+
+  async confirmPayment(id: string, p: GatewayPayment): Promise<Order> {
+    const cur = await this.getOrder(id);
+    if (!cur) throw new StoreError('Order not found', 404);
+    if (isPaid(cur)) return cur;
+    if (cur.status === 'cancelled')
+      throw new StoreError(`Order ${cur.token} is cancelled and can't take a payment`, 409);
+    const now = new Date().toISOString();
+    // One UPDATE: paid, with the gateway's reference, only if nobody changed the order meanwhile.
+    const { data, error } = await this.db
+      .from('orders')
+      .update({
+        status: 'new',
+        paid_at: now,
+        updated_at: now,
+        pay_gateway: p.gateway,
+        pay_ref: p.ref,
+        pay_bank_ref: p.bankRef ?? null,
+      })
+      .eq('id', id)
+      .eq('status', cur.status)
+      .select('*')
+      .maybeSingle();
+    // Before migration 0007 the reference columns don't exist: the order is still marked paid.
+    if (error && (error.code === 'PGRST204' || error.code === '42703')) {
+      console.error('pay_ref columns missing: run supabase/migrations/0007_gateway_payments.sql');
+      return this.setStatus(id, 'new', cur.status);
+    }
+    if (error) throw storeError(error);
+    if (data) return toOrder(data as Row);
+    return this.confirmPayment(id, p); // it changed under us: look again (paid by now, or cancelled)
   }
 
   async listOrderEvents(id: string): Promise<OrderEvent[]> {

@@ -1903,3 +1903,80 @@
   font-size: 17px;
   letter-spacing: 0;
 }
+
+/* ---------- UPI through the payment gateway: confirms itself, nothing to tap ---------- */
+.k-upi .qrcard[hidden] {
+  display: none;
+}
+.k-upi .qrwait,
+.k-upi .qrsvg {
+  width: 468px;
+  height: 468px;
+  display: grid;
+  place-items: center;
+  font-size: var(--t-md);
+  color: var(--cream-2);
+}
+.k-upi .qrsvg svg {
+  width: 100%;
+  height: 100%;
+}
+.k-upi .gateway {
+  margin-top: 24px;
+  margin-bottom: 18px;
+  align-self: stretch;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px -16px rgba(60, 45, 20, 0.35);
+}
+.k-upi .gateway .frame {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+/* The gateway's page is shown 1.3 times larger, so its QR and buttons suit a kiosk at arm's length, and
+   moved up so its own dark top band (with a close button that would leave our flow) stays out of view:
+   "Other ways to pay" above is the way out. */
+.k-upi .gateway iframe {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  width: 76.92%;
+  height: calc(76.92% + 77px);
+  border: 0;
+  transform: scale(1.3);
+  transform-origin: 0 0;
+}
+.k-upi .waitline {
+  margin-top: auto;
+  align-self: stretch;
+  min-height: 96px;
+  border-radius: 16px;
+  background: var(--s2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 24px;
+  font-size: var(--t-md);
+  font-weight: 600;
+  text-align: center;
+}
+.k-upi .waitline i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--leaf);
+  flex: none;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.k-upi .waitline.bad {
+  background: rgba(209, 79, 43, 0.1);
+  color: var(--chilli);
+}

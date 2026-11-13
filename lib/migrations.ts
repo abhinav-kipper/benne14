@@ -8,4 +8,5 @@ export const MIGRATIONS = [
   '0004_menu_edit_and_migration_log',
   '0005_discount_codes_and_phone',
   '0006_order_integrity',
+  '0007_gateway_payments',
 ];

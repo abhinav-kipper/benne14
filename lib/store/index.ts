@@ -3,7 +3,7 @@
 import 'server-only';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import type { Overrides } from '../menu';
-import type { AdminEvent, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
+import type { AdminEvent, GatewayPayment, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
 import { MemoryStore, StoreError } from './memory';
 import { SupabaseStore } from './supabase';
 
@@ -21,6 +21,10 @@ export interface Store {
   // change is refused with 409 instead of silently undoing the other tablet's tap.
   setStatus(id: string, to: OrderStatus, from?: OrderStatus): Promise<Order>;
 
+  // A gateway says this order is paid: move it to the kitchen and keep the gateway's reference, in one
+  // step. Harmless to repeat (the same payment again returns the order as it is). 409 when the order
+  // can no longer be paid (cancelled): the caller records that for a refund.
+  confirmPayment(id: string, p: GatewayPayment): Promise<Order>;
   // An order's own history, oldest first: placed, every change of state, a refund ([] before 0006 is run).
   listOrderEvents(id: string): Promise<OrderEvent[]>;
 

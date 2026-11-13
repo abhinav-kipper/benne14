@@ -26,6 +26,9 @@ export interface Order {
   total: number;
   savings: number; // discount taken off the item total (0 without a code)
   discountCode?: string | null;
+  // Set when a payment gateway (not staff) confirmed the payment: which one, and its reference.
+  payGateway?: string | null;
+  payRef?: string | null;
   // The customer's phone number is deliberately not part of an order as screens see it: orders are
   // read by the TV and the phone bill. The dashboard's customer list reads it through the store.
   createdAt: string;
@@ -55,10 +58,18 @@ export interface OrderEvent {
   note: string | null;
 }
 
+// A payment a gateway has confirmed with us: who, their reference, and the UPI reference if any.
+export interface GatewayPayment {
+  gateway: string;
+  ref: string;
+  bankRef?: string | null;
+}
+
 // Change history shown on the dashboard.
 export interface AdminEvent {
   at: string;
-  kind: 'price' | 'name' | 'desc' | 'sold_out' | 'back_on' | 'option_price' | 'refund' | 'discount' | 'setting';
+  kind:
+    'price' | 'name' | 'desc' | 'sold_out' | 'back_on' | 'option_price' | 'refund' | 'discount' | 'setting' | 'payment';
   subject: string;
   before?: string | null;
   after?: string | null;
@@ -89,6 +100,8 @@ export interface PlaceOrderInput {
     | 'refundedAt'
     | 'refundReason'
     | 'refundAmount'
+    | 'payGateway'
+    | 'payRef'
   > & { discountShort?: number };
 }
 
