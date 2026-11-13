@@ -179,7 +179,7 @@ export function MenuScreen(p: {
       </main>
       <div className="shade" />
       {p.count > 0 && (
-        <button className="cartbar" onClick={p.onCart} data-testid="cartbar">
+        <button className="cartbar" key={p.count} onClick={p.onCart} data-testid="cartbar">
           <div className="count">
             <b>{p.count}</b>
             {p.count === 1 ? 'item' : 'items'}

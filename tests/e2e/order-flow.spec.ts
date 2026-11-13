@@ -364,3 +364,38 @@ test('menu: a tapped section lights up, and the menu is where you left it after 
   await expect(page.getByTestId('item-masala-tea')).toBeInViewport(); // not back at the top
   await expect(on).toHaveText('Coffee & Tea');
 });
+
+test('kiosk reads at arm’s length: four dishes on the first screen, no text under 16 px', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  // text smaller than 16 px on the screen showing, apart from the logo's own tagline
+  const small = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('.kiosk *')]
+        .filter((e) => e.offsetParent && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim()))
+        .filter((e) => parseFloat(getComputedStyle(e).fontSize) < 16)
+        .filter((e) => !e.closest('.logo, .brand, .k-test'))
+        .map((e) => e.textContent!.trim().slice(0, 30)),
+    );
+  expect(await small()).toEqual([]);
+  await page.getByTestId('start').click();
+  for (const id of ['masala-dosa', 'plain-benne-dosa', 'plain-dosa'])
+    await expect(page.getByTestId(`item-${id}`)).toBeInViewport({ ratio: 1 });
+  await expect(page.getByTestId('item-mallige-idli')).toBeInViewport({ ratio: 0.5 }); // the fourth dish shows too
+  expect(await small()).toEqual([]);
+  await page.getByTestId('item-masala-dosa').click();
+  expect(await small()).toEqual([]);
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  expect(await small()).toEqual([]);
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('continue-to-pay').click();
+  expect(await small()).toEqual([]);
+  await page.getByTestId('pay-upi').click();
+  await expect(page.locator('.k-upi')).toContainText('The amount is filled in.');
+  await expect(page.locator('.k-upi .steps')).toHaveCount(0); // one instruction, not three ways of saying it
+  expect(await small()).toEqual([]);
+  await page.getByTestId('i-paid').click();
+  await expect(page.getByTestId('token')).toBeVisible();
+  expect(await small()).toEqual([]);
+});

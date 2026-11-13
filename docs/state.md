@@ -11,7 +11,7 @@ section A are open.
 
 ## Up next
 
-0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Owner wants the UI raised first; the launch blockers below are on hold until then, not dropped.
+0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Round 1 (flow) is merged; round 2 (feel) is on `feat/ui-round-2`. Left: round 3 needs the owner (photos, veg marks, invoice numbers, keyboard check on the tablet), round 4 is the staff screens. The launch blockers below are on hold until then, not dropped.
 
 1. **Launch blockers: `docs/audit.md` section A** (not yet discussed with the owner): device key + rate
    limit for placing orders, PIN on the order list, separate owner PIN, reword the "money comes back"
@@ -58,6 +58,8 @@ section A are open.
 
 ## Done
 
+
+- 2026-11-13 — UI round 1 (`docs/ui-audit.md`): prices say "+ 5% GST", one GST line in the cart, calmer order-number screen, honest pay-screen wording, and timers instead of a Start over button ("Still there?" after 60 s mid-order and 90 s after an order).
 - 2026-11-13 — Code upkeep (audit D): kiosk and dashboard split per screen, menu state via context, ESLint + Prettier in CI, Supabase store tested on a real Postgres in CI, migration log, docs rewritten, Dependabot.
 
 - 2026-11-13 — Audit (`docs/audit.md`) and fixes for reliability and ease of use: TV shows every ready order as scaled tickets, busy kitchen rail, auto-reload, orders past midnight, lighter polling, atomic menu edits, uptime check, wording, readable text, app icons.

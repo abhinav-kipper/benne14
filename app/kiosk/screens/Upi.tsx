@@ -77,7 +77,7 @@ export function Upi({
         </div>
       </div>
       <h1 className="disp">Scan &amp; pay</h1>
-      <div className="sub">Open any UPI app, scan, done.</div>
+      <div className="sub">With Google Pay, PhonePe, Paytm, BHIM or any UPI app.</div>
       <div className="qrcard">
         <span className="corner c1" />
         <span className="corner c2" />
@@ -92,18 +92,7 @@ export function Upi({
           <span>₹{order.total}</span>
         </div>
       </div>
-      <div className="apps">Amount is filled in. Works with Google Pay, PhonePe, Paytm, BHIM or any UPI app</div>
-      <div className="steps">
-        <div>
-          <b>1</b>Scan this QR<span>With any UPI app</span>
-        </div>
-        <div>
-          <b>2</b>Enter UPI PIN<span>Amount is filled in</span>
-        </div>
-        <div>
-          <b>3</b>Tap below<span>Get your order number</span>
-        </div>
-      </div>
+      <div className="apps">The amount is filled in. Pay in your app, then tap below.</div>
       <button className="paidbtn" onClick={paid} disabled={claiming} data-testid="i-paid">
         <span>
           <b>{claiming ? 'Getting your order number…' : "I've paid"}</b>
