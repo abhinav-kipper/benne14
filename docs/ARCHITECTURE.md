@@ -81,3 +81,24 @@ route to automatic confirmation: `docs/payments.md`.
 `docs/testing.md`. Every push runs typecheck, lint, format check, unit + database tests, the store
 contract on a real Postgres, and the browser suites; every push to `main` is smoke-checked on the live
 site after Vercel deploys it; an uptime check runs during shop hours.
+
+## Discount codes and phone numbers
+
+- **Codes** live in `discount_codes` (owner makes them in the dashboard's Offers tab). A code is a
+  percentage or a flat amount, with an optional minimum order, cap and last day. It comes off the item
+  total **before GST**; `orders.savings` holds the amount, `orders.discount_code` the code, and
+  `orders.subtotal` is the taxable value after the discount (so reports and the GST export stay right).
+- The kiosk asks `/api/discounts/check` whether a code works, only to show it; the order is priced again
+  at checkout (`priceOrder(lines, catalog, rule)`). A code that stopped working, or an order under the
+  code's minimum, is refused with a message rather than charged in full. Ten wrong codes from one
+  address in ten minutes are cut off.
+- **Phone numbers** are optional and only taken next to a line saying they are for offers from Benne 14,
+  so a stored number carries consent (the first order's date is the consent date). The number is stored on
+  the order row but is **not part of the `Order` object**: orders are read by the TV, the phone bill and
+  public endpoints. Only `Store.listCustomers()` (the `customers` view, paid orders only) reads it, behind
+  the PIN. The app sends no messages; the list downloads as CSV.
+- **Switches**: `kiosk_settings` (one row) says whether the kiosk shows the code box and the phone box.
+  `/api/kiosk` tells the kiosk on every start screen; the code box also needs one usable code. With a
+  switch off the server ignores a number and refuses a code, whatever the client sends.
+- Before migration 0005 is run, the Supabase store answers "no codes, both switches off" and orders
+  still go through.

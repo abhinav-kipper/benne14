@@ -1,9 +1,13 @@
 'use client';
-// The order so far, the bill, the name to call, and dine in or takeaway.
+// The order so far, the bill (with a discount code if the owner allows them), the name to call, an
+// optional phone number for offers, and dine in or takeaway.
+import { useState } from 'react';
 import { useCatalog } from '@/components/Catalog';
+import { ApiError } from '@/lib/client';
+import { cleanPhone, describeCode, type DiscountRule, type KioskSettings } from '@/lib/discounts';
 import { CART_UPSELL, itemById } from '@/lib/menu';
 import type { OrderType } from '@/lib/orders';
-import type { priceOrder } from '@/lib/pricing';
+import { itemTotal, type priceOrder } from '@/lib/pricing';
 import { BagIcon, DineIcon, Photo, type Line } from './shared';
 
 export function Cart(p: {
@@ -12,6 +16,12 @@ export function Cart(p: {
   setType: (t: OrderType) => void;
   name: string;
   setName: (n: string) => void;
+  asks: KioskSettings; // which optional fields the owner has switched on
+  phone: string;
+  setPhone: (p: string) => void;
+  code: DiscountRule | null;
+  onCode: (typed: string) => Promise<void>; // rejects with the reason when the code doesn't work
+  onCodeRemove: () => void;
   priced: ReturnType<typeof priceOrder>;
   setQty: (uid: string, q: number) => void;
   onEdit: (uid: string) => void;
@@ -25,6 +35,24 @@ export function Cart(p: {
     (id) => !p.lines.some((l) => l.itemId === id) && !itemById(id, catalog)?.soldOut,
   ).slice(0, 3);
   const soldOut = p.lines.filter((l) => itemById(l.itemId, catalog)?.soldOut);
+  const [typed, setTyped] = useState('');
+  const [codeErr, setCodeErr] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const apply = async () => {
+    if (!typed.trim() || checking) return;
+    setChecking(true);
+    setCodeErr(null);
+    try {
+      await p.onCode(typed);
+      setTyped('');
+    } catch (e) {
+      // the server's own words for a code that doesn't work; a plain line when it couldn't be reached
+      setCodeErr(e instanceof ApiError && e.status < 500 ? e.message : 'Couldn’t check the code. Try again.');
+    }
+    setChecking(false);
+  };
+  // A number that was started must be a whole one; an empty field is fine (it is optional).
+  const badPhone = p.asks.phone && p.phone !== '' && !cleanPhone(p.phone);
   return (
     <div className="screen k-cart">
       <div className="top">
@@ -110,8 +138,19 @@ export function Cart(p: {
               <span>
                 Item total · {p.priced.itemCount} {p.priced.itemCount === 1 ? 'item' : 'items'}
               </span>
-              <span className="v">₹{p.priced.subtotal.toFixed(2)}</span>
+              <span className="v">₹{itemTotal(p.priced).toFixed(2)}</span>
             </div>
+            {p.priced.savings > 0 && (
+              <div className="row off" data-testid="discount-row">
+                <span>
+                  Code {p.priced.discountCode}
+                  <button className="rm" onClick={p.onCodeRemove} data-testid="code-remove">
+                    Remove
+                  </button>
+                </span>
+                <span className="v">−₹{p.priced.savings.toFixed(2)}</span>
+              </div>
+            )}
             {/* one line for customers; the CGST / SGST split is on the phone bill */}
             <div className="row muted">
               <span>GST 5%</span>
@@ -123,6 +162,45 @@ export function Cart(p: {
             <b data-testid="cart-total">₹{p.priced.total}</b>
           </div>
         </div>
+        {p.asks.codes && !p.priced.savings && (
+          <div className="name code">
+            <div>
+              <b>Have a discount code?</b>
+              {p.code && p.priced.discountShort > 0 ? (
+                <span className="warn" data-testid="code-short">
+                  {p.code.code} ({describeCode(p.code)}): add ₹{p.priced.discountShort} more to use it.
+                </span>
+              ) : codeErr ? (
+                <span className="warn" data-testid="code-error">
+                  {codeErr}
+                </span>
+              ) : (
+                <span>Optional. Type it here and tap Apply.</span>
+              )}
+            </div>
+            <input
+              value={typed}
+              onChange={(e) => {
+                setTyped(
+                  e.target.value
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]/g, '')
+                    .slice(0, 16),
+                );
+                setCodeErr(null);
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && apply()}
+              placeholder="Code"
+              aria-label="Discount code"
+              autoCapitalize="characters"
+              autoComplete="off"
+              data-testid="code-input"
+            />
+            <button className="apply" onClick={apply} disabled={!typed || checking} data-testid="code-apply">
+              {checking ? '…' : 'Apply'}
+            </button>
+          </div>
+        )}
         <div className="name">
           <div>
             <b>What name should we call?</b>
@@ -135,6 +213,29 @@ export function Cart(p: {
             aria-label="Your name"
           />
         </div>
+        {p.asks.phone && (
+          <div className="name">
+            <div>
+              <b>Phone number for offers</b>
+              {badPhone ? (
+                <span className="warn" data-testid="phone-error">
+                  A mobile number has 10 digits. Fix it or clear the box.
+                </span>
+              ) : (
+                <span>Optional. For offers from Benne 14 by SMS or WhatsApp. We never share it.</span>
+              )}
+            </div>
+            <input
+              value={p.phone}
+              onChange={(e) => p.setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="10-digit mobile"
+              aria-label="Phone number"
+              inputMode="numeric"
+              autoComplete="off"
+              data-testid="phone-input"
+            />
+          </div>
+        )}
       </div>
       <div className="foot">
         <div className="eat">
@@ -159,11 +260,17 @@ export function Cart(p: {
         <button
           className="btn-benne"
           onClick={p.onPay}
-          disabled={!p.type || soldOut.length > 0}
+          disabled={!p.type || soldOut.length > 0 || badPhone}
           data-testid="continue-to-pay"
         >
           <span>
-            {soldOut.length ? 'Remove the sold-out dish' : p.type ? 'Continue to pay' : 'Choose dine in or takeaway'}
+            {soldOut.length
+              ? 'Remove the sold-out dish'
+              : badPhone
+                ? 'Check the phone number'
+                : p.type
+                  ? 'Continue to pay'
+                  : 'Choose dine in or takeaway'}
           </span>
           <span className="amt">₹{p.priced.total} →</span>
         </button>

@@ -1,5 +1,6 @@
 // Owner dashboard numbers, computed from order snapshots (so later price changes never change past
 // reports). Pure functions: the API passes in the orders for a range of IST days.
+import type { Customer } from './discounts';
 import { addDays, daysBetween, isPaid, istHour, type Order, type PayMethod } from './orders';
 import { SHOP } from './shop';
 
@@ -15,6 +16,7 @@ export interface Summary {
   orders: number;
   avgBill: number;
   refunds: { count: number; amount: number };
+  discounts: { count: number; amount: number }; // given through codes, already taken off the takings
   split: Record<PayMethod, number>;
   dishes: DishRow[]; // by quantity, then amount
   extras: { qty: number; amount: number };
@@ -75,6 +77,7 @@ export function summarize(all: Order[], fromDay: string, toDay: string): Summary
     orders: kept.length,
     avgBill: kept.length ? Math.round(takings / kept.length) : 0,
     refunds: { count: refunded.length, amount: refunded.reduce((a, o) => a + (o.refundAmount ?? o.total), 0) },
+    discounts: { count: kept.filter((o) => o.savings > 0).length, amount: kept.reduce((a, o) => a + o.savings, 0) },
     split,
     dishes: [...dishes.values()].sort((a, b) => b.qty - a.qty || b.amount - a.amount),
     extras,
@@ -114,7 +117,9 @@ export function billsCsv(all: Order[]) {
       'Type',
       'Payment',
       'Items',
-      'Subtotal',
+      'Discount',
+      'Code',
+      'Taxable value',
       'CGST',
       'SGST',
       'Total',
@@ -130,6 +135,8 @@ export function billsCsv(all: Order[]) {
       o.type === 'dine_in' ? 'Dine-in' : 'Takeaway',
       o.payMethod.toUpperCase(),
       o.lines.map((l) => `${l.qty} x ${l.name}`).join('; '),
+      o.savings ? o.savings.toFixed(2) : '',
+      o.discountCode ?? '',
       o.subtotal.toFixed(2),
       o.cgst.toFixed(2),
       o.sgst.toFixed(2),
@@ -167,5 +174,21 @@ export function dishesCsv(all: Order[], fromDay: string, toDay: string) {
     ['Dish', 'Sold', 'Amount (before GST)'],
     ...s.dishes.map((d) => [d.name, d.qty, d.amount.toFixed(2)]),
     ['Extras', s.extras.qty, s.extras.amount.toFixed(2)],
+    ...(s.discounts.amount ? [['Discount codes', s.discounts.count, (-s.discounts.amount).toFixed(2)]] : []),
+  ]);
+}
+
+// The customer list for a WhatsApp or SMS tool. Numbers with +91 so they import as they are.
+export function customersCsv(list: Customer[]) {
+  return csv([
+    ['Phone', 'Name', 'Orders', 'Spent', 'First order (agreed to offers)', 'Last order'],
+    ...list.map((c) => [
+      `91${c.phone}`,
+      c.name ?? '',
+      c.orders,
+      c.spent.toFixed(2),
+      c.firstOrderAt.slice(0, 10),
+      c.lastOrderAt.slice(0, 10),
+    ]),
   ]);
 }

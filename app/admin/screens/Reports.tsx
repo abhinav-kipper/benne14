@@ -227,7 +227,11 @@ export function Reports(p: Ctx) {
                 <b>{inr2(s.gst.total)}</b>
               </div>
             </div>
-            <div className="was">Paid orders only. Refunded and cancelled orders are left out.</div>
+            <div className="was">
+              Paid orders only. Refunded and cancelled orders are left out.
+              {s.discounts.amount > 0 &&
+                ` Discount codes took off ${inr(s.discounts.amount)} on ${s.discounts.count} ${s.discounts.count === 1 ? 'order' : 'orders'} (already left out of these numbers).`}
+            </div>
           </div>
           <div className="dl">
             {(

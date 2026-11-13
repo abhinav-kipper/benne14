@@ -1849,3 +1849,44 @@
 .kiosk .eyebrow {
   font-size: var(--t-min);
 }
+
+/* ---------- Cart: discount code and phone number (owner can switch each off) ---------- */
+.k-cart .row.off,
+.k-cart .row.off .v {
+  color: var(--leaf);
+}
+.k-cart .row.off span:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-weight: 600;
+}
+.k-cart .row .rm {
+  height: 48px;
+  padding: 0 var(--sp-3);
+  margin: -12px 0;
+  font-size: var(--t-min);
+  color: var(--cream-2);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.k-cart .name .warn {
+  color: var(--chilli);
+}
+.k-cart .name.code input {
+  width: 170px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.k-cart .name .apply {
+  height: 56px;
+  padding: 0 22px;
+  border-radius: 12px;
+  background: var(--cream);
+  color: var(--bg);
+  font-size: var(--t-sm);
+  font-weight: 700;
+}
+.k-cart .name .apply:disabled {
+  opacity: 0.35;
+}

@@ -111,6 +111,61 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(events[1]).toMatchObject({ subject: 'Big Masala Dosa', before: '₹209', after: '₹219' });
     });
 
+    it('keeps discount codes, the kiosk switches and their history', async () => {
+      expect(await s.listCodes()).toEqual([]);
+      expect(await s.getSettings()).toEqual({ codes: true, phone: true });
+      const code = {
+        code: 'WELCOME10',
+        kind: 'percent' as const,
+        value: 10,
+        minOrder: 200,
+        maxDiscount: 50,
+        expiresOn: '2030-01-31',
+        active: true,
+      };
+      await s.saveCode(code, { kind: 'discount', subject: 'WELCOME10', after: '10% off' });
+      await s.saveCode(
+        { code: 'FLAT40', kind: 'flat', value: 40, minOrder: 300, maxDiscount: null, expiresOn: null, active: true },
+        { kind: 'discount', subject: 'FLAT40', after: '₹40 off' },
+      );
+      expect(await s.getCode('WELCOME10')).toEqual(code);
+      expect(await s.getCode('NOPE')).toBeNull();
+      await s.saveCode({ ...code, active: false }, { kind: 'discount', subject: 'WELCOME10', after: 'off' }); // same code: replaced
+      expect((await s.listCodes()).map((c) => [c.code, c.active])).toEqual([
+        ['FLAT40', true],
+        ['WELCOME10', false],
+      ]); // newest first
+      expect(
+        await s.saveSettings({ phone: false }, [{ kind: 'setting', subject: 'Phone', before: 'On', after: 'Off' }]),
+      ).toEqual({ codes: true, phone: false });
+      expect(await s.getSettings()).toEqual({ codes: true, phone: false });
+      expect((await s.listEvents()).map((e) => e.kind)).toEqual(['setting', 'discount', 'discount', 'discount']);
+    });
+
+    it('stores a discount with the order, and phone numbers only where the dashboard reads them', async () => {
+      const rule = { code: 'WELCOME10', kind: 'percent' as const, value: 10, minOrder: null, maxDiscount: null };
+      const withCode = priceOrder([{ itemId: 'masala-dosa', qty: 2, choices: {}, notes: [] }], undefined, rule);
+      const a = await s.placeOrder({ ...input('cash', 'Asha'), priced: withCode, customerPhone: '9876543210' });
+      expect(a).toMatchObject({ savings: 42, discountCode: 'WELCOME10', total: 395, subtotal: 376 });
+      // the number never rides along with the order (orders are read by the TV and the phone bill)
+      expect(JSON.stringify([a, await s.getOrder(a.id), await s.listToday()])).not.toContain('9876543210');
+      expect(await s.listCustomers()).toEqual([]); // not paid yet
+      await s.setStatus(a.id, 'new');
+      const b = await s.placeOrder({ ...input('cash', 'Asha K'), customerPhone: '9876543210' });
+      await s.setStatus(b.id, 'new');
+      const c = await s.placeOrder({ ...input('cash', null), customerPhone: '9123456780' });
+      await s.setStatus(c.id, 'new');
+      await s.refund(c.id, 'Wrong order');
+      await s.setStatus((await s.placeOrder(input())).id, 'new'); // no number given: not a customer row
+      // (sorted here: orders placed in the same millisecond have no latest-first order to check)
+      const list = (await s.listCustomers()).sort((x, y) => x.phone.localeCompare(y.phone));
+      expect(list.map((x) => [x.phone, x.name, x.orders, x.spent])).toEqual([
+        ['9123456780', null, 1, 0], // a refunded order counts as a visit, not as money
+        ['9876543210', 'Asha K', 2, 395 + priced.total],
+      ]);
+      expect(list[1].firstOrderAt <= list[1].lastOrderAt).toBe(true);
+    });
+
     it('knows which migrations have run', async () => {
       expect([...(await s.appliedMigrations())].sort()).toEqual(MIGRATIONS);
     });

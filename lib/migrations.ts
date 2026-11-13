@@ -6,4 +6,5 @@ export const MIGRATIONS = [
   '0002_plain_tokens',
   '0003_owner_dashboard',
   '0004_menu_edit_and_migration_log',
+  '0005_discount_codes_and_phone',
 ];

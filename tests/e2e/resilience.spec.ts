@@ -145,3 +145,21 @@ test('phone bill: a wrong link says so instead of loading forever', async ({ pag
   await page.goto('/r/00000000-0000-0000-0000-000000000000');
   await expect(page.getByTestId('bill-missing')).toBeVisible({ timeout: 8000 });
 });
+
+test('kiosk: if a discount code can’t be checked, the cart says so and the order still goes through', async ({
+  page,
+}) => {
+  await page.route('**/api/kiosk', (r) => r.fulfill({ json: { codes: true, phone: true } }));
+  await page.route('**/api/discounts/check', (r) => r.abort());
+  await kioskTo(page);
+  const before = await todayCount(page);
+  await page.getByTestId('code-input').fill('WELCOME10');
+  await page.getByTestId('code-apply').click();
+  await expect(page.getByTestId('code-error')).toContainText('Couldn’t check the code');
+  await expect(page.getByTestId('discount-row')).toHaveCount(0);
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('continue-to-pay').click();
+  await page.getByTestId('pay-cash').click();
+  await expect(page.getByTestId('token')).toBeVisible();
+  expect(await todayCount(page)).toBe(before + 1);
+});

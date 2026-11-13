@@ -86,9 +86,57 @@ describe('database (supabase/migrations)', () => {
     );
     expect(rls.rows.every((r) => r.relrowsecurity)).toBe(true);
     const can = await db.query<{ anon: boolean; auth: boolean }>(
-      "select has_function_privilege('anon', 'place_order(text,text,text,text,jsonb)', 'execute') anon, has_function_privilege('authenticated', 'place_order(text,text,text,text,jsonb)', 'execute') auth",
+      "select has_function_privilege('anon', 'place_order(text,text,text,text,jsonb,text)', 'execute') anon, has_function_privilege('authenticated', 'place_order(text,text,text,text,jsonb,text)', 'execute') auth",
     );
     expect(can.rows[0]).toEqual({ anon: false, auth: false });
+  });
+
+  it('stores discount codes, the kiosk switches and phone numbers, with sane limits (0005)', async () => {
+    await db.query(
+      "insert into discount_codes (code, kind, value, min_order) values ('WELCOME10', 'percent', 10, 200)",
+    );
+    for (const bad of [
+      "('lower', 'percent', 10)", // codes are upper-case letters and digits
+      "('AB', 'percent', 10)",
+      "('HALF', 'percent', 95)", // at most 90%
+      "('ZERO', 'flat', 0)",
+      "('ODD', 'bogof', 1)",
+    ])
+      await expect(db.query(`insert into discount_codes (code, kind, value) values ${bad}`), bad).rejects.toThrow();
+    expect((await db.query('select codes, phone from kiosk_settings')).rows).toEqual([{ codes: true, phone: true }]);
+    await expect(db.query('insert into kiosk_settings (id) values (2)')).rejects.toThrow(); // one row only
+
+    const withCode = JSON.stringify({ ...JSON.parse(priced), savings: 42, discountCode: 'WELCOME10' });
+    const o = (
+      await db.query<{ id: string; discount_code: string; customer_phone: string; savings: string }>(
+        'select * from place_order($1, $2, $3, $4, $5::jsonb, $6)',
+        ['db-code-1', 'takeaway', 'Asha', 'cash', withCode, '9876543210'],
+      )
+    ).rows[0];
+    expect(o).toMatchObject({ discount_code: 'WELCOME10', customer_phone: '9876543210', savings: '42.00' });
+    await expect(
+      db.query('select place_order($1, $2, $3, $4, $5::jsonb, $6)', [
+        'db-code-2',
+        'takeaway',
+        '',
+        'cash',
+        priced,
+        '12345',
+      ]),
+    ).rejects.toThrow(); // not a mobile number
+    expect((await place('db-code-3')).customer_name).toBe('Rahul'); // the old 5-argument call still works
+
+    // the customer list: paid orders only, and closed to the public roles
+    expect((await db.query('select * from customers')).rows).toEqual([]);
+    await db.query("update orders set status = 'new' where id = $1", [o.id]);
+    expect((await db.query('select phone, name, orders from customers')).rows).toEqual([
+      { phone: '9876543210', name: 'Asha', orders: 1 },
+    ]);
+    const can = await db.query<{ a: boolean; b: boolean; rls: number }>(
+      "select has_table_privilege('anon', 'customers', 'select') a, has_table_privilege('authenticated', 'customers', 'select') b, (select count(*)::int from pg_class where relname in ('discount_codes','kiosk_settings') and relrowsecurity) rls",
+    );
+    expect(can.rows[0]).toEqual({ a: false, b: false, rls: 2 });
+    await db.query("insert into admin_events (kind, subject) values ('discount', 'WELCOME10'), ('setting', 'Phone')");
   });
 
   it('has the owner dashboard tables, with sane limits', async () => {

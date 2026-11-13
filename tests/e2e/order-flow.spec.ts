@@ -357,6 +357,7 @@ test('menu: a tapped section lights up, and the menu is where you left it after 
     await expect(on).toHaveText(name);
   }
   await page.locator('.k-menu .cat', { hasText: 'Coffee & Tea' }).click();
+  await page.waitForTimeout(900); // let the list arrive, as a customer would, before tapping a dish in it
   await page.getByTestId('item-masala-tea').click();
   await page.getByTestId('add-to-order').click();
   await page.getByTestId('cartbar').click();

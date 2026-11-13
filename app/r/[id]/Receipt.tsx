@@ -124,8 +124,20 @@ export default function Receipt({ id }: { id: string }) {
           );
         })}
         <div className="sums">
+          {o.savings > 0 && (
+            <>
+              <div className="row">
+                <span>Item total</span>
+                <span>{money(o.subtotal + o.savings)}</span>
+              </div>
+              <div className="row" data-testid="bill-discount">
+                <span>Discount{o.discountCode ? ` (${o.discountCode})` : ''}</span>
+                <span>−{money(o.savings)}</span>
+              </div>
+            </>
+          )}
           <div className="row">
-            <span>Subtotal</span>
+            <span>{o.savings > 0 ? 'Taxable value' : 'Subtotal'}</span>
             <span>{money(o.subtotal)}</span>
           </div>
           <div className="row">

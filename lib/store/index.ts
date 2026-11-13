@@ -1,6 +1,7 @@
 // Order storage. Supabase when its env vars are set; otherwise an in-memory store so the app runs
 // (and tests pass) with no database. Only server code imports this.
 import 'server-only';
+import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import type { Overrides } from '../menu';
 import type { AdminEvent, Order, OrderStatus, PlaceOrderInput } from '../orders';
 import { MemoryStore, StoreError } from './memory';
@@ -25,6 +26,14 @@ export interface Store {
   saveMenuEdit(edit: MenuEdit): Promise<void>;
   addEvent(e: Omit<AdminEvent, 'at'>): Promise<void>;
   listEvents(limit?: number): Promise<AdminEvent[]>; // newest first
+  // Discount codes, the kiosk switches and the customer list (migration 0005). Before it is run a
+  // Supabase store answers as if there were no codes and both switches were off.
+  listCodes(): Promise<DiscountCode[]>; // newest first
+  getCode(code: string): Promise<DiscountCode | null>;
+  saveCode(c: DiscountCode, event: Omit<AdminEvent, 'at'>): Promise<void>; // creates or replaces by code
+  getSettings(): Promise<KioskSettings>;
+  saveSettings(patch: Partial<KioskSettings>, events: Omit<AdminEvent, 'at'>[]): Promise<KioskSettings>;
+  listCustomers(): Promise<Customer[]>; // phone numbers on paid orders, latest order first
   appliedMigrations(): Promise<string[]>; // names recorded in schema_migrations ([] before 0004 is run)
 }
 

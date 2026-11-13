@@ -14,12 +14,17 @@ export function MenuScreen(p: {
   total: number;
   onCart: () => void;
   testMode: boolean;
-  scrollMemo: { current: number }; // where the customer was, kept while they visit the cart
+  // where the customer was (scroll position and lit section), kept while they visit the cart
+  scrollMemo: { current: { top: number; cat: string | null } };
 }) {
   const catalog = useCatalog();
   const items = visibleItems(p.testMode, catalog);
   const cats = CATEGORIES.filter((c) => items.some((i) => i.cat === c.id));
-  const [active, setActive] = useState(cats[0].id);
+  const [active, setActiveState] = useState(cats.find((c) => c.id === p.scrollMemo.current.cat)?.id ?? cats[0].id);
+  const setActive = (id: typeof active) => {
+    p.scrollMemo.current.cat = id;
+    setActiveState(id);
+  };
   const main = useRef<HTMLElement>(null);
   const sp = items.find((i) => i.special)!;
 
@@ -55,27 +60,28 @@ export function MenuScreen(p: {
     );
   };
 
+  // A section the customer tapped (or came back to) stays lit until they move the list by hand: the glide
+  // towards it must not re-light sections on the way, however slowly a busy tablet draws it.
+  const tapped = useRef(false);
   // Back from the cart: the menu is where the customer left it, not at the top again.
   useLayoutEffect(() => {
     const m = main.current;
-    if (!m || !p.scrollMemo.current) return;
+    if (!m || !p.scrollMemo.current.top) return;
+    // the section that was lit stays lit: don't let this jump's own scroll event re-read it
+    tapped.current = true;
     m.style.scrollBehavior = 'auto';
-    m.scrollTop = p.scrollMemo.current;
+    m.scrollTop = p.scrollMemo.current.top;
     m.style.scrollBehavior = '';
-  }, [p.scrollMemo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the menu comes back
+  }, []);
 
   // Which section is showing. A tapped section lights up at once and stays lit while the list glides to it
   // (the last section is too short to reach the top, so position alone would never light it).
-  const tapped = useRef<{ id: string; t: ReturnType<typeof setTimeout> } | null>(null);
   const onScroll = () => {
     const m = main.current;
     if (!m) return;
-    p.scrollMemo.current = m.scrollTop;
-    if (tapped.current) {
-      clearTimeout(tapped.current.t); // still gliding: let go shortly after the last movement
-      tapped.current.t = setTimeout(() => (tapped.current = null), 200);
-      return;
-    }
+    p.scrollMemo.current.top = m.scrollTop;
+    if (tapped.current) return;
     let cur = cats[0].id;
     for (const c of cats) {
       const el = m.querySelector<HTMLElement>(`#cat-${c.id}`);
@@ -87,8 +93,7 @@ export function MenuScreen(p: {
   const goTo = (id: typeof active) => {
     const m = main.current;
     if (!m) return;
-    if (tapped.current) clearTimeout(tapped.current.t);
-    tapped.current = { id, t: setTimeout(() => (tapped.current = null), 400) };
+    tapped.current = true;
     setActive(id);
     // the first section starts at the very top, with the house special
     if (id === cats[0].id) m.scrollTo({ top: 0, behavior: 'smooth' });
@@ -118,7 +123,12 @@ export function MenuScreen(p: {
           ))}
         </div>
       </aside>
-      <main ref={main} onScroll={onScroll}>
+      <main
+        ref={main}
+        onScroll={onScroll}
+        onPointerDown={() => (tapped.current = false)}
+        onWheel={() => (tapped.current = false)}
+      >
         <section
           className={`hero ${sp.soldOut ? 'out' : ''}`}
           onClick={() => {
