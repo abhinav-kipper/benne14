@@ -233,7 +233,7 @@ export default function Kitchen() {
   const [showHistory, setShowHistory] = useState(false);
 
   // The rail scrolls sideways when it's full. Count the chits out of view on each side so a clear
-  // "+3 more →" tab can say so: the newest orders land at the far right.
+  // "+3 more ›" tab can say so: the newest orders land at the far right.
   const railRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState({ left: 0, right: 0 });
   const countHidden = useCallback(() => {
@@ -335,12 +335,12 @@ export default function Kitchen() {
         </div>
         {hidden.left > 0 && (
           <button className="railtab left" onClick={() => scrollRail(-1)} data-testid="rail-earlier">
-            ←<b>{hidden.left}</b> earlier
+            ‹ <b>{hidden.left}</b> earlier
           </button>
         )}
         {hidden.right > 0 && (
           <button className="railtab right" onClick={() => scrollRail(1)} data-testid="rail-more">
-            <b>+{hidden.right}</b> more →
+            <b>+{hidden.right}</b> more ›
           </button>
         )}
       </div>
@@ -417,7 +417,7 @@ export default function Kitchen() {
                   {o.type === 'dine_in' ? <Dine /> : <Bag />}
                   <span className="w">
                     <i className={w >= 3 ? 'long' : ''} />
-                    {w}′
+                    {w} min
                   </span>
                 </div>
                 <div className="nm2">
@@ -497,7 +497,10 @@ function Chit({ o, now, fresh, onGo }: { o: Order; now: number; fresh: boolean; 
       <div className="ch-h">
         <span className="tok">{o.token}</span>
         {o.type === 'dine_in' ? <Dine /> : <Bag />}
-        <span className="min">{m}′</span>
+        <span className="min">
+          {m}
+          <small>min</small>
+        </span>
       </div>
       {o.customerName && <div className="who">{o.customerName}</div>}
       <div className="perf" />

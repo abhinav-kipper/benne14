@@ -206,6 +206,13 @@
   border-radius: 6px;
   background: var(--chit-2);
 }
+.chit .min small {
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 0.55em;
+  margin-left: 4px;
+  letter-spacing: 0.02em;
+}
 .chit .who {
   padding: 0 14px 8px;
   font-size: 17px;

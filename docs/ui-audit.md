@@ -86,3 +86,10 @@ number is unmissable; sold-out and offline states are handled; the kitchen rail 
 - U16: the start screen's photo columns drift slowly.
 - U17: UPI screen: the three step boxes are gone; one line under the QR ("The amount is filled in. Pay in your app, then tap below.").
 - U18: scale written down in `docs/design-scale.md` and `app/globals.css`. Used by the new rules; older rules keep their values until a screen is next touched.
+
+2026-11-14 · owner's notes after using it:
+- TV banner prices and the kiosk's menu now follow a price change within 30 s (the TV checked every 5 minutes, the kiosk only between customers). The TV doesn't advertise a dish that is sold out today.
+- Cart "Anything else?" is no longer the same three dishes: it offers what the order is missing (a drink, then a side, then a dosa), best sellers of the last two weeks first (`lib/suggest.ts`, `/api/popular`).
+- Kitchen timers say "2 min" instead of "2′".
+- Long arrows (→) are gone everywhere. Kiosk bars carry a round dark button with a short chevron (owner picked it from three mock-ups); the kitchen rail tabs use ‹ ›.
+- Removed sub-lines: "Dosas, idli, vada, filter coffee" under Tap to order, "Dine in or takeaway, you choose at the end", "UPI · Card · Cash at counter". Kept by the owner's choice: "Tap after paying" and the line under the start-screen headline.

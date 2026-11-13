@@ -61,6 +61,7 @@ section A are open.
 ## Done
 
 - 2026-11-14 — Accuracy audit (`docs/accuracy-audit.md`), first fixes: a changed cart can no longer be saved as the old order, paid orders can't be cancelled (refund only), the total shown must be the total charged, one rule for takings on every screen, integer money maths, and reports cross-checked against the CSVs by tests.
+- 2026-11-14 — Owner's notes: price changes reach the TV banner and an open kiosk within 30 s; cart suggestions depend on the order and on best sellers; kitchen timers say "min"; round chevron buttons replace the long arrows; three sub-lines removed.
 
 - 2026-11-14 — Discount codes and phone numbers: owner makes % or ₹ codes in a new Offers tab (minimum order, cap, last day, on/off); the kiosk cart takes a code (off before GST) and an optional phone number for offers; two owner switches hide either box; customer list with CSV. Phone numbers never ride along with an order to the TV or the bill.
 
