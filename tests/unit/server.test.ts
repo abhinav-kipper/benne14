@@ -34,10 +34,10 @@ describe('staff PIN', () => {
     expect(staffOk(req('', { 'x-staff-pin': '' }))).toBe(false);
   });
 
-  it('locks an address out after 10 wrong PINs, without affecting others', () => {
+  it('locks an address out after 30 wrong PINs, without affecting others', () => {
     vi.stubEnv('STAFF_PIN', '4321');
     const from = (ip: string, pin: string) => req('', { 'x-staff-pin': pin, 'x-forwarded-for': `${ip}, 10.0.0.1` });
-    for (let i = 0; i < 10; i++) expect(staffCheck(from('9.9.9.9', String(1000 + i)))).toBe('bad');
+    for (let i = 0; i < 30; i++) expect(staffCheck(from('9.9.9.9', String(1000 + i)))).toBe('bad');
     expect(staffCheck(from('9.9.9.9', '4321'))).toBe('locked'); // even the right PIN, until the window passes
     expect(staffCheck(from('8.8.8.8', '4321'))).toBe('ok');
   });

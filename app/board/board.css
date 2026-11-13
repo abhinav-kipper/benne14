@@ -62,3 +62,19 @@
 .board .done .lbl{font-size:18px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3);margin-right:6px}
 .board .done .none{font-size:22px;color:var(--cream-3)}
 .board .done .dn{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;color:var(--cream-3);padding:6px 14px;border-radius:12px;background:var(--s2)}
+/* Many ready orders: the big ticket gets smaller and the others become a grid of number tiles. */
+.board .ready.t1 .more,.board .ready.t2 .more,.board .ready.t3 .more{display:grid;gap:14px}
+.board .ready.t1 .more{grid-template-columns:repeat(3,minmax(0,1fr))}
+.board .ready.t2 .more{grid-template-columns:repeat(4,minmax(0,1fr))}
+.board .ready.t3 .more{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.board .mini{background:#F6E7B5;color:var(--benne-ink);border-radius:16px;display:flex;flex-direction:column;justify-content:center;padding:0 22px;min-width:0;overflow:hidden}
+.board .mini .num{font-family:var(--display);font-weight:900;line-height:.9}
+.board .mini .nm{font-size:22px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:6px}
+.board .ready.t1 .mini{height:128px}.board .ready.t1 .mini .num{font-size:76px}
+.board .ready.t2 .mini{height:84px;align-items:center}.board .ready.t2 .mini .num{font-size:64px}
+.board .ready.t3 .mini{height:62px;align-items:center;padding:0 8px;border-radius:12px}.board .ready.t3 .mini .num{font-size:46px}
+.board .mini.extra{background:var(--s2);color:var(--cream-3);font-family:var(--display);font-weight:900;font-size:40px;align-items:center}
+.board .ready.t2 .hero .tkt .num,.board .ready.t3 .hero .tkt .num{font-size:170px;padding:24px 36px 20px}
+.board .ready.t2 .hero .tkt .nm,.board .ready.t3 .hero .tkt .nm{font-size:30px;padding:14px 36px 18px}
+.board .ready.t2 .hero .tkt::before,.board .ready.t2 .hero .tkt::after,.board .ready.t3 .hero .tkt::before,.board .ready.t3 .hero .tkt::after{bottom:60px}
+.board .ready.t2 .callout,.board .ready.t3 .callout{font-size:42px}

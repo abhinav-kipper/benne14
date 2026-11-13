@@ -76,7 +76,7 @@ describe('memory store', () => {
       expect(await s.listToday()).toHaveLength(2); // still in today's history
     });
 
-    it("starts numbering again at 1 after midnight IST and hides yesterday's orders", async () => {
+    it('after midnight IST: numbers restart at 1, but unfinished orders stay on the kitchen screen', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-11-13T18:00:00Z')); // 23:30 IST
       const late = await s.placeOrder(input('day-1', 'cash'));
@@ -84,8 +84,29 @@ describe('memory store', () => {
       vi.setSystemTime(new Date('2026-11-13T18:31:00Z')); // 00:01 IST next day
       const early = await s.placeOrder(input('day-2', 'cash'));
       expect([late.token, early.token]).toEqual(['1', '1']);
-      expect((await s.listLive()).map((o) => o.id)).toEqual([early.id]);
-      expect((await s.listToday()).map((o) => o.id)).toEqual([early.id]);
+      expect((await s.listLive()).map((o) => o.id)).toEqual([late.id, early.id]); // the cook still sees last night's order
+      expect((await s.listToday()).map((o) => o.id)).toEqual([early.id]); // history and takings are per day
+    });
+
+    it('drops an order nobody finished after 6 hours, so it does not haunt the next shift', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-13T06:00:00Z'));
+      const o = await s.placeOrder(input('forgotten', 'cash'));
+      await s.setStatus(o.id, 'new');
+      vi.setSystemTime(new Date('2026-11-13T11:59:00Z'));
+      expect(await s.listLive()).toHaveLength(1);
+      vi.setSystemTime(new Date('2026-11-13T12:01:00Z'));
+      expect(await s.listLive()).toHaveLength(0);
+    });
+
+    it('lists the whole day (no cap) and the last collected numbers for the TV', async () => {
+      const ids: string[] = [];
+      for (let i = 0; i < 320; i++) ids.push((await s.placeOrder(input(`many-${i}`, 'cash'))).id);
+      expect(await s.listToday()).toHaveLength(320);
+      for (const id of ids.slice(0, 10)) for (const to of ['new', 'cooking', 'ready', 'handed_over'] as const) await s.setStatus(id, to);
+      const c = await s.listCollected(8);
+      expect(c).toHaveLength(8);
+      expect(Object.keys(c[0]).sort()).toEqual(['id', 'token']); // numbers only: no names, items or amounts
     });
   });
 
@@ -103,14 +124,24 @@ describe('memory store', () => {
     it('keeps menu changes; sold out lasts for today only', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-11-13T06:00:00Z'));
-      await s.saveItem('masala-dosa', { price: 219, soldOut: true });
-      await s.saveItem('masala-dosa', { name: 'Big Masala Dosa' });
+      const edit = (patch: Parameters<typeof s.saveMenuEdit>[0]['patch']) => s.saveMenuEdit({ itemId: 'masala-dosa', patch, options: [], events: [] });
+      await edit({ price: 219, soldOut: true });
+      await edit({ name: 'Big Masala Dosa' });
       expect((await s.getOverrides()).items['masala-dosa']).toEqual({ name: 'Big Masala Dosa', desc: null, price: 219, soldOut: true });
       vi.setSystemTime(new Date('2026-11-13T19:00:00Z')); // 00:30 IST next day
       expect((await s.getOverrides()).items['masala-dosa'].soldOut).toBe(false);
-      await s.saveItem('masala-dosa', { price: null });
+      await edit({ price: null });
       expect((await s.getOverrides()).items['masala-dosa'].price).toBeNull();
       vi.useRealTimers();
+    });
+
+    it('saves a menu edit with its extras and history lines together', async () => {
+      await s.saveMenuEdit({ itemId: 'plain-dosa', patch: { price: 179 }, options: [{ groupId: 'dosaExtras', optionId: 'benne', price: 30 }],
+        events: [{ kind: 'price', subject: 'Plain Dosa', before: '₹169', after: '₹179' }, { kind: 'option_price', subject: 'Extra benne', before: '₹25', after: '₹30' }] });
+      const o = await s.getOverrides();
+      expect(o.items['plain-dosa'].price).toBe(179);
+      expect(o.options['dosaExtras:benne']).toBe(30);
+      expect((await s.listEvents()).map((e) => e.kind).sort()).toEqual(['option_price', 'price']);
     });
 
     it('lists orders in a date range, oldest first', async () => {

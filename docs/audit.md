@@ -19,16 +19,16 @@ Legend: `[ ]` pending · `[x]` done · `[-]` decided not to do (with reason)
 
 ## B. Reliability
 
-- [ ] B1 TV board shows only 3 ready orders (`ready.slice(1, 3)` in `app/board/Board.tsx`); later ones are invisible.
-- [ ] B2 Kitchen rail: more than ~4 chits scroll off-screen right with no "more" marker; new orders arrive off-screen. Chime needs "Turn on sound" after every reload.
-- [ ] B3 Tablets keep old code after a deploy: no version check, no nightly reload.
-- [ ] B4 No error monitoring or uptime alert (nobody is told when orders fail).
-- [ ] B5 Screens can sleep: no Wake Lock; depends on tablet settings.
-- [ ] B6 PIN lockout is per IP: the shop's devices share one Wi-Fi address, so 10 wrong tries on any device locks kitchen + dashboard for 10 min. Also per server instance (in memory).
-- [ ] B7 Orders still cooking at midnight IST drop off the kitchen (live list is "today" only).
-- [ ] B8 On-screen "today" lists stop at 300 orders (`HISTORY_MAX`); reports unaffected.
-- [ ] B9 TV board downloads the whole day's orders every 10 s to show 8 collected numbers; polls don't pause when the tab is hidden and don't back off when offline.
-- [ ] B10 A dashboard menu edit saves field by field (several requests); a dropped connection can save half. Change + history line are not atomic.
+- [x] B1 TV board shows only 3 ready orders (`ready.slice(1, 3)` in `app/board/Board.tsx`); later ones are invisible.
+- [x] B2 Kitchen rail: more than ~4 chits scroll off-screen right with no "more" marker; new orders arrive off-screen. Chime needs "Turn on sound" after every reload.
+- [x] B3 Tablets keep old code after a deploy: no version check, no nightly reload.
+- [x] B4 No error monitoring or uptime alert (nobody is told when orders fail).
+- [-] B5 (owner: not now) Screens can sleep: no Wake Lock; depends on tablet settings.
+- [x] B6 PIN lockout is per IP: the shop's devices share one Wi-Fi address, so 10 wrong tries on any device locks kitchen + dashboard for 10 min. Also per server instance (in memory).
+- [x] B7 Orders still cooking at midnight IST drop off the kitchen (live list is "today" only).
+- [x] B8 On-screen "today" lists stop at 300 orders (`HISTORY_MAX`); reports unaffected.
+- [x] B9 TV board downloads the whole day's orders every 10 s to show 8 collected numbers; polls don't pause when the tab is hidden and don't back off when offline.
+- [x] B10 A dashboard menu edit saves field by field (several requests); a dropped connection can save half. Change + history line are not atomic.
 
 ## C. Ease of use
 

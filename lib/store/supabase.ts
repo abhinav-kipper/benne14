@@ -1,8 +1,8 @@
 // Supabase-backed store. Server only: uses the service role key; tables have RLS with no public policies.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { optionKey, type Overrides } from '../menu';
-import type { ItemPatch } from './index';
-import { canMove, HISTORY_MAX, isPaid, istDay, LIVE, plainToken, UPI_OPEN_MIN, type AdminEvent, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
+import type { ItemPatch, MenuEdit } from './index';
+import { canMove, HANDED_MIN, isPaid, istDay, LIVE, LIVE_HOURS, plainToken, UPI_OPEN_MIN, type AdminEvent, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
 import { StoreError } from './memory';
 
 interface Row {
@@ -45,20 +45,34 @@ export class SupabaseStore {
   }
 
   async listLive() {
-    const since = new Date(Date.now() - 10 * 60_000).toISOString();
-    const openQr = new Date(Date.now() - UPI_OPEN_MIN * 60_000).toISOString();
+    const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
     const { data, error } = await this.db.from('orders').select('*')
-      .eq('token_day', istDay())
-      .or(`status.in.(${LIVE.join(',')}),and(status.eq.handed_over,updated_at.gt.${since}),and(status.eq.pending_payment,created_at.gt.${openQr})`)
+      .or(`and(status.in.(${LIVE.join(',')}),created_at.gt.${ago(LIVE_HOURS * 3600_000)}),and(status.eq.handed_over,updated_at.gt.${ago(HANDED_MIN * 60_000)}),and(status.eq.pending_payment,created_at.gt.${ago(UPI_OPEN_MIN * 60_000)})`)
       .order('created_at');
     if (error) throw new StoreError(error.message, 500);
     return (data as Row[]).map(toOrder);
   }
 
+  // Supabase returns at most 1000 rows per request: page through.
+  private async pages(build: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>) {
+    const out: Order[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await build(from, from + 999);
+      if (error) throw new StoreError(error.message, 500);
+      out.push(...((data ?? []) as Row[]).map(toOrder));
+      if ((data ?? []).length < 1000) return out;
+    }
+  }
+
   async listToday() {
-    const { data, error } = await this.db.from('orders').select('*').eq('token_day', istDay()).order('created_at', { ascending: false }).limit(HISTORY_MAX);
+    return this.pages((a, b) => this.db.from('orders').select('*').eq('token_day', istDay()).order('created_at', { ascending: false }).order('id').range(a, b));
+  }
+
+  async listCollected(limit: number) {
+    const { data, error } = await this.db.from('orders').select('id,token').eq('token_day', istDay()).eq('status', 'handed_over')
+      .order('updated_at', { ascending: false }).limit(limit);
     if (error) throw new StoreError(error.message, 500);
-    return (data as Row[]).map(toOrder);
+    return (data as { id: string; token: string }[]).map((r) => ({ id: r.id, token: plainToken(r.token) }));
   }
 
   async setStatus(id: string, to: OrderStatus, from?: OrderStatus) {
@@ -80,15 +94,7 @@ export class SupabaseStore {
   }
 
   async listRange(fromDay: string, toDay: string) {
-    // Supabase returns at most 1000 rows per request: page through a long range.
-    const out: Order[] = [];
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await this.db.from('orders').select('*').gte('token_day', fromDay).lte('token_day', toDay)
-        .order('created_at').order('id').range(from, from + 999);
-      if (error) throw new StoreError(error.message, 500);
-      out.push(...(data as Row[]).map(toOrder));
-      if (data.length < 1000) return out;
-    }
+    return this.pages((a, b) => this.db.from('orders').select('*').gte('token_day', fromDay).lte('token_day', toDay).order('created_at').order('id').range(a, b));
   }
 
   async refund(id: string, reason: string) {
@@ -124,19 +130,33 @@ export class SupabaseStore {
     return out;
   }
 
-  async saveItem(itemId: string, patch: ItemPatch) {
-    const row: Record<string, unknown> = { item_id: itemId, updated_at: new Date().toISOString() };
-    if (patch.name !== undefined) row.name = patch.name;
-    if (patch.desc !== undefined) row.description = patch.desc;
-    if (patch.price !== undefined) row.price = patch.price;
-    if (patch.soldOut !== undefined) row.sold_out_on = patch.soldOut ? istDay() : null;
-    const { error } = await this.db.from('menu_overrides').upsert(row, { onConflict: 'item_id' });
-    if (error) throw new StoreError(error.message, 500);
-  }
-
-  async saveOptionPrice(groupId: string, optionId: string, price: number) {
-    const { error } = await this.db.from('option_overrides').upsert({ group_id: groupId, option_id: optionId, price, updated_at: new Date().toISOString() }, { onConflict: 'group_id,option_id' });
-    if (error) throw new StoreError(error.message, 500);
+  async saveMenuEdit(e: MenuEdit) {
+    const item: Record<string, unknown> = {};
+    if (e.patch.name !== undefined) item.name = e.patch.name;
+    if (e.patch.desc !== undefined) item.description = e.patch.desc;
+    if (e.patch.price !== undefined) item.price = e.patch.price;
+    if (e.patch.soldOut !== undefined) item.sold_out_on = e.patch.soldOut ? istDay() : null;
+    const options = e.options.map((o) => ({ group_id: o.groupId, option_id: o.optionId, price: o.price }));
+    const events = e.events.map((v) => ({ kind: v.kind, subject: v.subject, before: v.before ?? null, after: v.after ?? null, note: v.note ?? null }));
+    // One database transaction (migration 0004), so an edit can't half-save.
+    const rpc = await this.db.rpc('save_menu_edit', { p_item_id: e.itemId, p_item: item, p_options: options, p_events: events });
+    if (!rpc.error) return;
+    if (rpc.error.code !== 'PGRST202' && rpc.error.code !== '42883') throw new StoreError(rpc.error.message, 500);
+    // Migration 0004 not run yet: save step by step, as before it existed.
+    console.error('save_menu_edit missing: run supabase/migrations/0004_menu_edit_and_migration_log.sql');
+    const now = new Date().toISOString();
+    if (Object.keys(item).length) {
+      const { error } = await this.db.from('menu_overrides').upsert({ item_id: e.itemId, updated_at: now, ...item }, { onConflict: 'item_id' });
+      if (error) throw new StoreError(error.message, 500);
+    }
+    if (options.length) {
+      const { error } = await this.db.from('option_overrides').upsert(options.map((o) => ({ ...o, updated_at: now })), { onConflict: 'group_id,option_id' });
+      if (error) throw new StoreError(error.message, 500);
+    }
+    if (events.length) {
+      const { error } = await this.db.from('admin_events').insert(events);
+      if (error) throw new StoreError(error.message, 500);
+    }
   }
 
   async addEvent(e: Omit<AdminEvent, 'at'>) {
@@ -148,5 +168,11 @@ export class SupabaseStore {
     const { data, error } = await this.db.from('admin_events').select('at,kind,subject,before,after,note').order('at', { ascending: false }).limit(limit);
     if (error) throw new StoreError(error.message, 500);
     return data as AdminEvent[];
+  }
+
+  async appliedMigrations() {
+    const { data, error } = await this.db.from('schema_migrations').select('name');
+    if (error) return []; // the table arrives with migration 0004
+    return (data as { name: string }[]).map((r) => r.name);
   }
 }

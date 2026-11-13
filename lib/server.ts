@@ -38,7 +38,9 @@ export function staffOk(req: Request): boolean {
 
 // staffOk plus a lockout after repeated wrong PINs from one address (a 4-digit PIN is otherwise
 // guessable in minutes). 'locked' → 429.
-const pinFailures = new FailureLimiter(10, 10 * 60_000);
+// 30 per 10 minutes: the shop's tablets share one Wi-Fi address, so the limit must survive a few
+// fumbled PINs across devices, while 10,000 guesses still take over two days.
+const pinFailures = new FailureLimiter(30, 10 * 60_000);
 const clientKey = (req: Request) => req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.headers.get('x-real-ip') || 'local';
 export function staffCheck(req: Request): 'ok' | 'bad' | 'locked' {
   const key = clientKey(req);

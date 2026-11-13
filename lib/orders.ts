@@ -76,8 +76,11 @@ export const LIVE: OrderStatus[] = ['awaiting_cash', 'new', 'cooking', 'ready'];
 // so staff can match a soundbox announcement even if the customer forgot to tap "I've paid".
 export const UPI_OPEN_MIN = 15;
 
-// Most orders the history view loads for one day.
-export const HISTORY_MAX = 300;
+// Unfinished orders stay on the kitchen and TV this long after they were placed, whatever the date:
+// a shop open past midnight keeps its orders on screen, and an order nobody finished doesn't stay forever.
+export const LIVE_HOURS = 6;
+// How long a handed-over order stays in the live list (for undo and the "collected" moment).
+export const HANDED_MIN = 10;
 
 export function istDay(d = new Date()): string {
   return new Date(d.getTime() + 5.5 * 3600_000).toISOString().slice(0, 10);

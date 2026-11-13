@@ -1,8 +1,8 @@
 'use client';
 // Owner dashboard (phone). Design: prototype/admin.html. Behind the staff PIN until the owner gets a login.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PinGate, PIN_KEY } from '@/components/PinGate';
-import { admin, api, ApiError, useLiveOrders, useTodayOrders, type Report } from '@/lib/client';
+import { admin, api, ApiError, useLiveOrders, usePoll, useTodayOrders, type Report } from '@/lib/client';
 import { CATEGORIES, mergeCatalog, photoOf, placeholderOf, type Catalog, type MenuItem } from '@/lib/menu';
 import { addDays, isPaid, istDay, type AdminEvent, type Order, type OrderStatus } from '@/lib/orders';
 import type { Summary } from '@/lib/reports';
@@ -59,13 +59,14 @@ function Bar({ right }: { right?: React.ReactNode }) {
 function useReport({ pin, onAuthError }: Ctx, from: string, to: string, every = 0) {
   const [r, setR] = useState<Report | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  useEffect(() => {
-    let stop = false;
-    const load = () => admin.report(pin, from, to).then((x) => { if (!stop) { setR(x); setErr(null); } }).catch((e) => { onAuthError(e); if (!stop) setErr(e instanceof ApiError ? e.message : 'No internet'); });
-    setR(null); load();
-    const t = every ? setInterval(load, every) : undefined;
-    return () => { stop = true; if (t) clearInterval(t); };
-  }, [pin, from, to, every, onAuthError]);
+  const range = useRef({ from, to });
+  range.current = { from, to }; // an answer for a range the owner has already left is dropped
+  // `every` = 0: load once per range (a day keeps the poll asleep); otherwise refresh on that interval.
+  const reload = usePoll(async () => {
+    try { const x = await admin.report(pin, from, to); if (x.from === range.current.from && x.to === range.current.to) setR(x); setErr(null); }
+    catch (e) { onAuthError(e); setErr(e instanceof ApiError ? e.message : 'No internet'); return false; }
+  }, every || 24 * 3600_000, true);
+  useEffect(() => { setR(null); reload(); }, [from, to, reload]);
   return { r, err };
 }
 
@@ -339,14 +340,15 @@ function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; s
       if (n !== item.price) patch.price = n;
       if (name.trim() !== item.name) patch.name = name.trim();
       if (desc.trim() !== item.desc) patch.desc = desc.trim() || null;
-      if (Object.keys(patch).length > 1) await admin.saveItem(p.pin, patch);
+      const options: { groupId: string; optionId: string; price: number }[] = [];
       for (const g of extras) for (const o of g.options) {
         const v = ex[`${g.id}:${o.id}`];
-        if (v !== String(o.price)) {
-          if (!/^\d+$/.test(v) || Number(v) > 100000) throw new ApiError(`${o.name}: price must be a whole number of rupees`, 400);
-          await admin.saveOption(p.pin, g.id, o.id, Number(v));
-        }
+        if (v === String(o.price)) continue;
+        if (!/^\d+$/.test(v) || Number(v) > 100000) throw new ApiError(`${o.name}: price must be a whole number of rupees`, 400);
+        options.push({ groupId: g.id, optionId: o.id, price: Number(v) });
       }
+      if (options.length) patch.options = options;
+      if (Object.keys(patch).length > 1) await admin.saveItem(p.pin, patch); // one request: all of it or none
       p.saved();
     } catch (e) { p.onAuthError(e); setErr(e instanceof ApiError ? e.message : 'Not saved: no internet.'); setBusy(false); }
   };

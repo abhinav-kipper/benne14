@@ -4,7 +4,7 @@ import { activeCatalog, CART_UPSELL, CATEGORIES, mergeCatalog, PAIRING, itemById
 import { priceLine, priceOrder, type CartLine } from '@/lib/pricing';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
 import { orderedSentence } from '@/lib/wording';
-import { api, ApiError, newKey, useOrder } from '@/lib/client';
+import { api, ApiError, newKey, useOrder, useAutoReload } from '@/lib/client';
 
 type Screen = 'home' | 'menu' | 'cart' | 'pay' | 'upi' | 'done';
 interface Line extends CartLine { uid: string }
@@ -39,6 +39,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     api.menu().then((o) => { setActiveCatalog(mergeCatalog(o)); setMenuVersion((v) => v + 1); }).catch(() => {});
   }, []);
   useEffect(() => { if (screen === 'home') loadMenu(); }, [screen, loadMenu]);
+  useAutoReload(screen === 'home'); // pick up a new version between customers, never mid-order
 
   const reset = useCallback(() => {
     setScreen('home'); setType(null); setLines([]); setSheet(null); setName(''); setOrderId(null); setPlaced(null); setIdle(false);

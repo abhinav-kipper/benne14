@@ -1,9 +1,10 @@
 // In-memory store: one Node process holds today's orders. Used for local dev, demos and tests.
 // (On Vercel each serverless instance has its own memory, so production must use Supabase.)
 import { randomUUID } from 'node:crypto';
-import { canMove, formatToken, HISTORY_MAX, isPaid, istDay, UPI_OPEN_MIN, type AdminEvent, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
+import { canMove, formatToken, HANDED_MIN, isPaid, istDay, LIVE, LIVE_HOURS, UPI_OPEN_MIN, type AdminEvent, type Order, type OrderStatus, type PlaceOrderInput } from '../orders';
 import { optionKey, type Overrides } from '../menu';
-import type { ItemPatch } from './index';
+import type { ItemPatch, MenuEdit } from './index';
+import { MIGRATIONS } from '../migrations';
 
 interface ItemRow { name: string | null; desc: string | null; price: number | null; soldOutOn: string | null }
 
@@ -53,20 +54,26 @@ export class MemoryStore {
   }
 
   async listLive() {
-    const day = istDay();
-    const recent = Date.now() - 10 * 60_000;
+    const since = Date.now() - LIVE_HOURS * 3600_000;
+    const recent = Date.now() - HANDED_MIN * 60_000;
     const openQr = Date.now() - UPI_OPEN_MIN * 60_000;
     return [...this.orders.values()]
-      .filter((o) => o.tokenDay === day && (['awaiting_cash', 'new', 'cooking', 'ready'].includes(o.status)
+      .filter((o) => (LIVE.includes(o.status) && Date.parse(o.createdAt) > since)
         || (o.status === 'handed_over' && Date.parse(o.updatedAt) > recent)
-        || (o.status === 'pending_payment' && Date.parse(o.createdAt) > openQr)))
+        || (o.status === 'pending_payment' && Date.parse(o.createdAt) > openQr))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   async listToday() {
     const day = istDay();
     // reverse first so orders placed in the same millisecond still come out newest first
-    return [...this.orders.values()].reverse().filter((o) => o.tokenDay === day).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, HISTORY_MAX);
+    return [...this.orders.values()].reverse().filter((o) => o.tokenDay === day).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async listCollected(limit: number) {
+    const day = istDay();
+    return [...this.orders.values()].filter((o) => o.tokenDay === day && o.status === 'handed_over')
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, limit).map((o) => ({ id: o.id, token: o.token }));
   }
 
   async setStatus(id: string, to: OrderStatus, from?: OrderStatus) {
@@ -106,20 +113,22 @@ export class MemoryStore {
     return { items, options: Object.fromEntries(this.options) };
   }
 
-  async saveItem(itemId: string, patch: ItemPatch) {
-    const r: ItemRow = { ...(this.items.get(itemId) ?? { name: null, desc: null, price: null, soldOutOn: null }) };
-    if (patch.name !== undefined) r.name = patch.name;
-    if (patch.desc !== undefined) r.desc = patch.desc;
-    if (patch.price !== undefined) r.price = patch.price;
-    if (patch.soldOut !== undefined) r.soldOutOn = patch.soldOut ? istDay() : null;
-    this.items.set(itemId, r);
+  async saveMenuEdit(e: MenuEdit) {
+    const r: ItemRow = { ...(this.items.get(e.itemId) ?? { name: null, desc: null, price: null, soldOutOn: null }) };
+    if (e.patch.name !== undefined) r.name = e.patch.name;
+    if (e.patch.desc !== undefined) r.desc = e.patch.desc;
+    if (e.patch.price !== undefined) r.price = e.patch.price;
+    if (e.patch.soldOut !== undefined) r.soldOutOn = e.patch.soldOut ? istDay() : null;
+    this.items.set(e.itemId, r);
+    for (const o of e.options) this.options.set(optionKey(o.groupId, o.optionId), o.price);
+    for (const ev of e.events) await this.addEvent(ev);
   }
-
-  async saveOptionPrice(groupId: string, optionId: string, price: number) { this.options.set(optionKey(groupId, optionId), price); }
 
   async addEvent(e: Omit<AdminEvent, 'at'>) { this.events.unshift({ ...e, at: new Date().toISOString() }); }
 
   async listEvents(limit = 100) { return this.events.slice(0, limit); }
+
+  async appliedMigrations() { return MIGRATIONS; } // nothing to migrate in memory
 
   reset() { this.orders.clear(); this.byKey.clear(); this.counters.clear(); this.items.clear(); this.options.clear(); this.events = []; }
 }

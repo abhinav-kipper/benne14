@@ -3,6 +3,7 @@ import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { priceOrder } from '@/lib/pricing';
+import { MIGRATIONS } from '@/lib/migrations';
 
 // Runs the real migrations in an in-memory Postgres (PGlite), so the SQL that runs in Supabase
 // (place_order: daily numbers, idempotency, first status) is tested, not just the app around it.
@@ -85,5 +86,31 @@ describe('database (supabase/migrations)', () => {
 
   it('migrations can run twice (safe to re-run in Supabase)', async () => {
     for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) await db.exec(readFileSync(path.join(dir, f), 'utf8'));
+  });
+
+  it('saves a menu edit in one go: only the given fields change, null resets, history is written', async () => {
+    const edit = (item: object, options: object[] = [], events: object[] = []) =>
+      db.query('select save_menu_edit($1, $2::jsonb, $3::jsonb, $4::jsonb)', ['thatte-idli', JSON.stringify(item), JSON.stringify(options), JSON.stringify(events)]);
+    await edit({ price: 99, name: 'Big Thatte Idli' }, [{ group_id: 'idliExtras', option_id: 'ghee', price: 20 }], [{ kind: 'price', subject: 'Thatte Idli', before: '₹89', after: '₹99' }]);
+    await edit({ sold_out_on: '2026-11-13' });
+    const row = async () => (await db.query<{ name: string | null; price: number | null; sold_out_on: Date | string | null }>("select name, price, sold_out_on from menu_overrides where item_id = 'thatte-idli'")).rows[0];
+    expect(await row()).toMatchObject({ name: 'Big Thatte Idli', price: 99 }); // the second edit left them alone
+    expect((await row()).sold_out_on).not.toBeNull();
+    await edit({ name: null, sold_out_on: null });
+    expect(await row()).toMatchObject({ name: null, price: 99, sold_out_on: null });
+    expect((await db.query<{ price: number }>("select price from option_overrides where option_id = 'ghee'")).rows[0].price).toBe(20);
+    expect((await db.query<{ n: number }>("select count(*)::int n from admin_events where subject = 'Thatte Idli'")).rows[0].n).toBe(1);
+    // a bad value fails the whole edit: nothing is half-saved
+    await expect(edit({ price: 119 }, [{ group_id: 'idliExtras', option_id: 'sambar', price: -5 }])).rejects.toThrow();
+    expect((await row()).price).toBe(99);
+    const can = await db.query<{ anon: boolean }>("select has_function_privilege('anon', 'save_menu_edit(text,jsonb,jsonb,jsonb)', 'execute') anon");
+    expect(can.rows[0].anon).toBe(false);
+  });
+
+  it('records which migrations have run, matching lib/migrations.ts and the folder', async () => {
+    const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort().map((f) => f.replace('.sql', ''));
+    expect(files).toEqual(MIGRATIONS);
+    const applied = (await db.query<{ name: string }>('select name from schema_migrations order by name')).rows.map((r) => r.name);
+    expect(applied).toEqual(MIGRATIONS);
   });
 });

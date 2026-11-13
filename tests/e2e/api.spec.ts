@@ -84,7 +84,7 @@ test('staff actions need the PIN; unknown or malformed ids are 404', async ({ re
 test('wrong PINs lock that device out for a while (no guessing all 10,000)', async ({ request }) => {
   const ip = '203.0.113.7';
   const o = await (await place(request, {})).json();
-  for (let i = 0; i < 10; i++) expect((await status(request, o.id, { to: 'new' }, String(1000 + i), ip)).status()).toBe(401);
+  for (let i = 0; i < 30; i++) expect((await status(request, o.id, { to: 'new' }, String(1000 + i), ip)).status()).toBe(401);
   expect((await status(request, o.id, { to: 'new' }, PIN, ip)).status()).toBe(429);
   expect((await request.post('/api/staff', { headers: { 'x-staff-pin': PIN, 'x-forwarded-for': ip } })).status()).toBe(429);
   expect((await status(request, o.id, { to: 'new' }, PIN, '203.0.113.8')).status()).toBe(200); // other devices unaffected
@@ -120,6 +120,15 @@ test('the bill QR only encodes this site\'s own bill links', async ({ request, b
   for (const u of [`https://evil.example/r/${NIL}`, `${baseURL}/kitchen`, 'javascript:alert(1)', '']) {
     expect((await request.get(`/api/qr?u=${encodeURIComponent(u)}`)).status(), u).toBe(400);
   }
+});
+
+test('the TV\'s collected feed carries order numbers only', async ({ request }) => {
+  const o = await (await place(request, { name: 'Private Name' })).json();
+  for (const [from, to] of [['awaiting_cash', 'new'], ['new', 'cooking'], ['cooking', 'ready'], ['ready', 'handed_over']]) await status(request, o.id, { to, from });
+  const list = await (await request.get('/api/orders?view=collected')).json();
+  expect(list.length).toBeLessThanOrEqual(8);
+  expect(list[0]).toEqual({ id: o.id, token: o.token });
+  expect(JSON.stringify(list)).not.toContain('Private Name');
 });
 
 test('health reports setup without leaking secrets', async ({ request }) => {
