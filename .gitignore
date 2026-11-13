@@ -1,4 +1,10 @@
 node_modules/
-.DS_Store
+.next/
 .env*
+!.env.example
+test-results/
+playwright-report/
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
 prototype/video/out/

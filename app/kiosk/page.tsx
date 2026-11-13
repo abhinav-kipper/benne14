@@ -1,0 +1,14 @@
+import { Fit } from '@/components/Fit';
+import Kiosk from './Kiosk';
+import './kiosk.css';
+import { isTestMode } from '@/lib/testmode';
+
+export const metadata = { title: 'Benne 14 — Order here' };
+
+export default function KioskPage() {
+  return (
+    <Fit w={800} h={1280}>
+      <Kiosk mock={process.env.PAYMENTS === 'mock'} testMode={isTestMode()} />
+    </Fit>
+  );
+}

@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390">
+<title>Benne 14 — Owner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@600;700;800;900&family=Familjen+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Owner dashboard mockups. One file, one screen per ?s=… (login, today, orders, order, menu, edit, reports, log). Phone: 390 wide. */
+@font-face{font-family:'Rupee';src:url('../public/fonts/rupee.woff2') format('woff2');unicode-range:U+20B9;font-weight:100 900}
+:root{
+  --bg:#FBF7EF;--s1:#FFFFFF;--s2:#F4EEE2;--s3:#E9E1D2;--line:#E2D8C7;
+  --cream:#1C1A15;--cream-2:#5C5649;--cream-3:#8C8473;
+  --benne:#F5C542;--benne-ink:#1A1608;--benne-fg:#9C6A00;--leaf:#3E7C51;--chilli:#D14F2B;
+  --display:'Rupee','Big Shoulders',sans-serif;--body:'Familjen Grotesk',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--cream);font-family:var(--body);-webkit-font-smoothing:antialiased}
+button{font-family:inherit;border:0;background:none;color:inherit}
+.app{width:390px;min-height:844px;position:relative;padding-bottom:96px}
+.screen{display:none}.screen.on{display:block}
+.disp{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.005em}
+.num{font-family:var(--display);font-weight:800}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3)}
+.muted{color:var(--cream-3)}
+
+/* top bar */
+.bar{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px}
+.logo{font-family:var(--display);font-weight:900;font-size:26px;text-transform:uppercase;line-height:1}
+.logo i{font-style:normal;color:var(--benne-fg)}
+.bar .when{font-size:13px;color:var(--cream-2);text-align:right;line-height:1.3}
+.bar .when b{display:block;color:var(--cream);font-size:14px}
+.h1{font-family:var(--display);font-weight:900;font-size:40px;text-transform:uppercase;line-height:.95;padding:6px 20px 14px}
+.sec{padding:0 20px;margin-top:22px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.sec-h h2{font-family:var(--display);font-weight:800;font-size:22px;text-transform:uppercase}
+.sec-h a{font-size:13px;font-weight:600;color:var(--benne-fg);text-decoration:none}
+
+/* bottom tabs */
+.tabs{position:absolute;left:0;bottom:0;width:390px;height:80px;background:var(--s1);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:14px}
+.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;color:var(--cream-3);text-decoration:none;position:relative}
+.tabs a svg{width:24px;height:24px}
+.tabs a.on{color:var(--cream)}
+.tabs a.on::before{content:"";position:absolute;top:0;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--benne)}
+.tabs .dot{position:absolute;top:10px;right:calc(50% - 20px);min-width:18px;height:18px;border-radius:9px;background:var(--chilli);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+
+/* TODAY: the day's slip */
+.slip{margin:4px 16px 0;background:var(--s1);padding:20px 20px 26px;position:relative;box-shadow:0 10px 30px -14px rgba(60,45,20,.35);
+  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/16px 100%;mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/16px 100%}
+.slip .top{display:flex;justify-content:space-between;align-items:flex-start}
+.slip .big{font-family:var(--display);font-weight:900;font-size:76px;line-height:.85;margin-top:8px;letter-spacing:-.01em}
+.slip .vs{font-size:13px;font-weight:600;color:var(--leaf);margin-top:8px}
+.slip .vs.down{color:var(--chilli)}
+.slip .live{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--cream-2)}
+.slip .live i{width:8px;height:8px;border-radius:50%;background:var(--leaf);box-shadow:0 0 0 4px rgba(62,124,81,.15)}
+.slip .three{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;padding-top:14px;border-top:1.5px dashed #D9CFBD}
+.slip .three div{font-size:12px;color:var(--cream-3)}
+.slip .three b{display:block;font-family:var(--display);font-weight:800;font-size:28px;color:var(--cream);line-height:1;margin-bottom:3px}
+.split{margin-top:18px}
+.split .track{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px}
+.split .track i{display:block}
+.split .legend{display:grid;grid-template-columns:repeat(3,1fr);margin-top:10px}
+.split .legend div{font-size:12px;color:var(--cream-2);display:flex;flex-direction:column;gap:2px}
+.split .legend span{display:flex;align-items:center;gap:6px;font-weight:600}
+.split .legend span::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c)}
+.split .legend b{font-family:var(--display);font-weight:800;font-size:20px;color:var(--cream)}
+
+/* needs-you chits */
+.need{display:flex;align-items:center;gap:12px;background:var(--s1);border:1px solid var(--line);border-left:5px solid var(--chilli);border-radius:12px;padding:12px 12px 12px 14px;margin-bottom:10px}
+.need .tok{font-family:var(--display);font-weight:900;font-size:36px;line-height:.9;min-width:40px}
+.need .what{flex:1;font-size:13px;color:var(--cream-2);line-height:1.35}
+.need .what b{display:block;color:var(--cream);font-size:15px}
+.need button{height:44px;padding:0 14px;border-radius:10px;background:var(--benne);color:var(--benne-ink);font-weight:700;font-size:14px}
+.kitchen-now{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kitchen-now div{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12px;color:var(--cream-3)}
+.kitchen-now b{display:block;font-family:var(--display);font-weight:900;font-size:32px;color:var(--cream);line-height:1}
+
+/* top dishes */
+.dish{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.dish img{width:44px;height:44px;border-radius:10px;object-fit:cover}
+.dish .ph{width:44px;height:44px;border-radius:10px;background:var(--s2);display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--benne-fg)}
+.dish b{font-size:15px;display:block}
+.dish small{font-size:12px;color:var(--cream-3)}
+.dish .r{text-align:right}
+.dish .r b{font-family:var(--display);font-weight:800;font-size:20px}
+.dish .meter{height:4px;border-radius:2px;background:var(--s2);margin-top:6px;overflow:hidden}
+.dish .meter i{display:block;height:100%;background:var(--benne)}
+
+/* hours chart */
+.hours{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:14px 12px 10px}
+.hours .bars{display:flex;align-items:flex-end;gap:5px;height:110px;padding:0 2px}
+.hours .bars i{flex:1;background:var(--s3);border-radius:4px 4px 0 0;position:relative}
+.hours .bars i.peak{background:var(--benne)}
+.hours .bars i.now{background:var(--cream)}
+.hours .bars i b{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--cream-2)}
+.hours .axis{display:flex;gap:5px;margin-top:6px;padding:0 2px}
+.hours .axis span{flex:1;text-align:center;font-size:10px;color:var(--cream-3)}
+.hours .note{font-size:12px;color:var(--cream-2);margin-top:10px}
+
+/* ORDERS */
+.filters{display:flex;gap:0;margin:0 20px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--s1)}
+.filters button{flex:1;height:44px;font-size:14px;font-weight:600;color:var(--cream-3);border-right:1px solid var(--line)}
+.filters button:last-child{border-right:0}
+.filters button.on{background:var(--cream);color:var(--bg)}
+.filters button em{font-style:normal;color:var(--chilli);margin-left:4px}
+.filters button.on em{color:var(--benne)}
+.olist{margin:14px 20px 0}
+.ord{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.ord .tok{font-family:var(--display);font-weight:900;font-size:34px;line-height:.9;text-align:center}
+.ord .mid{min-width:0}
+.ord .l1{font-size:13px;color:var(--cream-2);display:flex;gap:8px}
+.ord .l1 b{color:var(--cream)}
+.ord .l2{font-size:13px;color:var(--cream-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.ord .amt{text-align:right}
+.ord .amt b{display:block;font-family:var(--display);font-weight:800;font-size:22px;line-height:1}
+.ord .st{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.st.due{color:var(--chilli)}.st.cooking{color:var(--benne-fg)}.st.ready{color:var(--leaf)}.st.done{color:var(--cream-3)}.st.refund{color:var(--chilli)}
+.ord.void .tok,.ord.void .amt b{color:var(--cream-3);text-decoration:line-through}
+.daytot{margin:14px 20px 0;display:flex;justify-content:space-between;font-size:13px;color:var(--cream-3)}
+
+/* sheets */
+.scrim{position:fixed;inset:0;width:390px;background:rgba(40,30,15,.35)}
+.sheet{position:fixed;left:0;bottom:0;width:390px;max-height:92%;overflow:auto;background:var(--s1);border-radius:22px 22px 0 0;padding:10px 20px 24px;box-shadow:0 -20px 50px rgba(60,45,20,.25)}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--s3);margin:0 auto 14px}
+.sheet .hd{display:flex;align-items:flex-start;justify-content:space-between}
+.sheet .hd .tok{font-family:var(--display);font-weight:900;font-size:64px;line-height:.85}
+.sheet .hd .meta{text-align:right;font-size:13px;color:var(--cream-2);line-height:1.5}
+.sheet .hd .meta b{color:var(--cream)}
+.bill{margin-top:14px;border-top:1.5px dashed #D9CFBD;padding-top:10px}
+.bill .li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:14px}
+.bill .li small{display:block;font-size:12px;color:var(--cream-3)}
+.bill .row{display:flex;justify-content:space-between;font-size:13px;color:var(--cream-2);padding:3px 0}
+.bill .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--cream);margin-top:8px;padding-top:10px}
+.bill .tot span{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-2)}
+.bill .tot b{font-family:var(--display);font-weight:900;font-size:34px}
+.timeline{margin-top:16px;font-size:13px;color:var(--cream-2)}
+.timeline div{display:flex;gap:10px;padding:4px 0}
+.timeline time{width:44px;color:var(--cream);font-weight:600}
+.actions{display:grid;gap:10px;margin-top:18px}
+.btn{height:54px;border-radius:12px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.y{background:var(--benne);color:var(--benne-ink)}
+.btn.o{border:1.5px solid var(--line);color:var(--cream)}
+.btn.r{border:1.5px solid rgba(209,79,43,.45);color:var(--chilli)}
+.reason{margin-top:12px;background:var(--s2);border-radius:14px;padding:14px}
+.reason p{font-size:13px;color:var(--cream-2);margin-bottom:10px;line-height:1.4}
+.reason .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.reason .opts button{height:44px;border-radius:10px;background:var(--s1);border:1.5px solid var(--line);font-size:13px;font-weight:600}
+.reason .opts button.on{border-color:var(--cream);background:var(--cream);color:var(--bg)}
+
+/* MENU */
+.mcat{padding:0 20px;margin-top:18px}
+.mcat h3{font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;margin-bottom:4px}
+.mi{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.mi img,.mi .ph{width:52px;height:52px;border-radius:10px;object-fit:cover}
+.mi .ph{background:var(--s2);display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--benne-fg)}
+.mi b{font-size:15px;display:block}
+.mi .p{font-family:var(--display);font-weight:800;font-size:19px;color:var(--benne-fg)}
+.mi .p s{color:var(--cream-3);font-weight:700;font-size:15px;margin-right:4px}
+.mi.off img{filter:grayscale(1);opacity:.5}
+.mi.off b{color:var(--cream-3)}
+.mi .so{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--chilli);margin-left:6px}
+.sw{width:52px;height:32px;border-radius:16px;background:var(--leaf);position:relative}
+.sw::after{content:"";position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.sw.off{background:var(--s3)}.sw.off::after{right:auto;left:3px}
+.swlbl{font-size:10px;font-weight:700;color:var(--cream-3);text-align:center;margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
+.hint{margin:14px 20px 0;font-size:13px;color:var(--cream-2);background:var(--s2);border-radius:12px;padding:12px 14px;line-height:1.45}
+.histlink{display:block;margin:18px 20px 0;font-size:14px;font-weight:600;color:var(--benne-fg);text-decoration:none}
+
+/* edit sheet */
+.field{margin-top:14px}
+.field label{display:block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-3);margin-bottom:6px}
+.field .in{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;background:var(--bg)}
+.field .in.ta{min-height:76px;line-height:1.4;font-size:15px}
+.field .money{display:flex;align-items:center;gap:6px;font-family:var(--display);font-weight:800;font-size:30px}
+.field .was{font-size:12px;color:var(--cream-3);margin-top:6px}
+.field .preview{font-size:13px;color:var(--cream-2);margin-top:6px}
+.extras .x{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.extras .x .in{width:84px;text-align:right;padding:8px 10px;font-family:var(--display);font-weight:800;font-size:18px}
+
+/* REPORTS */
+.range{display:flex;margin:0 20px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--s1)}
+.range button{flex:1;height:44px;font-size:14px;font-weight:600;color:var(--cream-3);border-right:1px solid var(--line)}
+.range button:last-child{border-right:0}
+.range button.on{background:var(--cream);color:var(--bg)}
+.period{display:flex;justify-content:space-between;align-items:center;margin:12px 20px 0;font-size:14px;font-weight:600}
+.period button{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--line);font-size:18px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 20px 0}
+.kpi{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.kpi .eyebrow{font-size:10px}
+.kpi b{display:block;font-family:var(--display);font-weight:900;font-size:30px;line-height:1;margin-top:6px}
+.kpi small{font-size:12px;font-weight:600;color:var(--leaf)}
+.kpi small.down{color:var(--chilli)}
+.days .bars{display:flex;align-items:flex-end;gap:8px;height:120px}
+.days .bars i{flex:1;background:var(--s3);border-radius:5px 5px 0 0}
+.days .bars i.hi{background:var(--benne)}
+.days .axis{display:flex;gap:8px;margin-top:6px}
+.days .axis span{flex:1;text-align:center;font-size:11px;color:var(--cream-3)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.tbl th{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-3);text-align:right;padding:6px 0;border-bottom:1px solid var(--line)}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl td{text-align:right;padding:9px 0;border-bottom:1px solid var(--line)}
+.tbl td:first-child{font-weight:600}
+.tbl tr.sub td{font-weight:400;color:var(--cream-2);font-size:13px;padding-left:12px}
+.gst{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:6px 14px}
+.gst .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.gst .row:last-child{border-bottom:0;font-weight:700}
+.gst .row b{font-variant-numeric:tabular-nums}
+.dl{display:grid;gap:10px;margin:14px 20px 0}
+.dl a{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--s1);color:var(--cream);text-decoration:none;font-weight:600;font-size:15px}
+.dl a small{margin-left:auto;font-size:12px;color:var(--cream-3);font-weight:500}
+.dl svg{width:20px;height:20px;color:var(--benne-fg)}
+
+/* LOG */
+.log{margin:6px 20px 0}
+.log .day{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-3);margin:16px 0 4px}
+.log .e{display:grid;grid-template-columns:46px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.4}
+.log .e time{font-weight:600;color:var(--cream-2);font-size:13px}
+.log .e small{display:block;color:var(--cream-3);font-size:12px}
+.log .e .chg{font-variant-numeric:tabular-nums}
+.log .e .chg s{color:var(--cream-3)}
+
+/* LOGIN */
+.login{padding:90px 28px 0}
+.login .logo{font-size:56px;line-height:.85}
+.login .logo small{display:block;font-family:var(--body);font-size:12px;font-weight:600;letter-spacing:.16em;color:var(--cream-3);margin-top:10px}
+.login h1{font-family:var(--display);font-weight:900;font-size:34px;text-transform:uppercase;margin-top:70px}
+.login p{font-size:14px;color:var(--cream-2);margin-top:4px}
+.login .btn{margin-top:22px;width:100%}
+.login .forgot{display:block;text-align:center;margin-top:16px;font-size:14px;font-weight:600;color:var(--cream-2)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ============ LOGIN ============ -->
+<section class="screen" id="login">
+  <div class="login">
+    <div class="logo">Benne <i>14</i><small>OWNER</small></div>
+    <h1>Sign in</h1>
+    <p>Only for the owner. Staff use the kitchen PIN.</p>
+    <div class="field"><label>Email</label><div class="in">owner@benne14.in</div></div>
+    <div class="field"><label>Password</label><div class="in">••••••••••</div></div>
+    <button class="btn y">Sign in</button>
+    <a class="forgot">Forgot password?</a>
+  </div>
+</section>
+
+<!-- ============ TODAY ============ -->
+<section class="screen" id="today">
+  <div class="bar"><div class="logo">Benne <i>14</i></div><div class="when"><b>Thursday 13 Nov</b>Open since 8:00</div></div>
+  <div class="slip">
+    <div class="top"><span class="eyebrow">Today's takings</span><span class="live"><i></i>Live</span></div>
+    <div class="big">₹18,460</div>
+    <div class="vs">▲ ₹2,140 more than last Thursday</div>
+    <div class="three">
+      <div><b>74</b>orders</div>
+      <div><b>₹249</b>average bill</div>
+      <div><b>₹0</b>refunds</div>
+    </div>
+    <div class="split">
+      <div class="track"><i style="flex:62;background:var(--cream)"></i><i style="flex:23;background:var(--benne)"></i><i style="flex:15;background:var(--s3)"></i></div>
+      <div class="legend">
+        <div style="--c:var(--cream)"><span>UPI</span><b>₹11,440</b></div>
+        <div style="--c:var(--benne)"><span>Card</span><b>₹4,250</b></div>
+        <div style="--c:var(--s3)"><span>Cash</span><b>₹2,770</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Needs you</h2><a>All orders →</a></div>
+    <div class="need"><span class="tok">75</span><div class="what"><b>UPI ₹246 · says paid</b>Check the soundbox · 2 min ago</div><button>Paid</button></div>
+    <div class="need"><span class="tok">76</span><div class="what"><b>Cash ₹438 · at counter</b>Priya · 2 items · just now</div><button>Paid</button></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Kitchen now</h2></div>
+    <div class="kitchen-now"><div><b>3</b>waiting</div><div><b>5</b>on the tawa</div><div><b>2</b>ready</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Selling today</h2><a>Reports →</a></div>
+    <div class="dish"><img src="../public/food/ghee-podi-benne-dosa.jpg"><div><b>Ghee Podi Benne Dosa</b><small>₹6,766</small><div class="meter"><i style="width:100%"></i></div></div><div class="r"><b>34</b><small>sold</small></div></div>
+    <div class="dish"><img src="../public/food/masala-dosa.jpg"><div><b>Masala Dosa</b><small>₹4,180</small><div class="meter"><i style="width:59%"></i></div></div><div class="r"><b>20</b><small>sold</small></div></div>
+    <div class="dish"><div class="ph">COFFEE</div><div><b>Bengaluru Filter Coffee</b><small>₹2,070</small><div class="meter"><i style="width:88%"></i></div></div><div class="r"><b>30</b><small>sold</small></div></div>
+    <div class="dish"><img src="../public/food/medu-vada.jpg"><div><b>Udupi Medu Vada</b><small>₹1,602</small><div class="meter"><i style="width:53%"></i></div></div><div class="r"><b>18</b><small>sold</small></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><h2>Busy hours</h2></div>
+    <div class="hours">
+      <div class="bars">
+        <i style="height:30%"></i><i style="height:62%"></i><i class="peak" style="height:100%"><b>21</b></i><i style="height:74%"></i><i style="height:40%"></i><i style="height:52%"></i><i style="height:88%"></i><i class="now" style="height:34%"></i><i style="height:0"></i><i style="height:0"></i><i style="height:0"></i><i style="height:0"></i>
+      </div>
+      <div class="axis"><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
+      <div class="note">Busiest so far: <b>10–11 am</b>, 21 orders.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ORDERS ============ -->
+<section class="screen" id="orders">
+  <div class="bar"><div class="logo">Benne <i>14</i></div><div class="when"><b>Today</b>74 orders</div></div>
+  <div class="h1">Orders</div>
+  <div class="filters"><button class="on">All</button><button>To confirm<em>2</em></button><button>Cancelled</button></div>
+  <div class="olist">
+    <div class="ord"><span class="tok">76</span><div class="mid"><div class="l1"><b>11:42</b>Takeaway · Priya</div><div class="l2">2 × Masala Dosa, 1 × Masala Tea</div></div><div class="amt"><b>₹438</b><span class="st due">Cash due</span></div></div>
+    <div class="ord"><span class="tok">75</span><div class="mid"><div class="l1"><b>11:40</b>Dine-in</div><div class="l2">1 × Masala Dosa, extra benne</div></div><div class="amt"><b>₹246</b><span class="st due">UPI to check</span></div></div>
+    <div class="ord"><span class="tok">74</span><div class="mid"><div class="l1"><b>11:36</b>Dine-in · Rahul</div><div class="l2">2 × Ghee Podi Benne Dosa, 2 × Filter Coffee</div></div><div class="amt"><b>₹563</b><span class="st cooking">On the tawa</span></div></div>
+    <div class="ord"><span class="tok">73</span><div class="mid"><div class="l1"><b>11:31</b>Takeaway</div><div class="l2">3 × Thatte Idli</div></div><div class="amt"><b>₹280</b><span class="st ready">Ready</span></div></div>
+    <div class="ord"><span class="tok">72</span><div class="mid"><div class="l1"><b>11:27</b>Takeaway · Neha</div><div class="l2">1 × Plain Benne Dosa</div></div><div class="amt"><b>₹167</b><span class="st done">Collected · UPI</span></div></div>
+    <div class="ord void"><span class="tok">71</span><div class="mid"><div class="l1"><b>11:20</b>Dine-in · Aman</div><div class="l2">1 × Masala Dosa · Refunded: wrong order</div></div><div class="amt"><b>₹219</b><span class="st refund">Refunded</span></div></div>
+    <div class="ord"><span class="tok">70</span><div class="mid"><div class="l1"><b>11:18</b>Takeaway</div><div class="l2">2 × Udupi Medu Vada, 2 × Filter Coffee</div></div><div class="amt"><b>₹332</b><span class="st done">Collected · Card</span></div></div>
+    <div class="ord void"><span class="tok">69</span><div class="mid"><div class="l1"><b>11:15</b>Takeaway</div><div class="l2">1 × Mallige Idli · QR never paid</div></div><div class="amt"><b>₹93</b><span class="st done">Cancelled</span></div></div>
+  </div>
+</section>
+
+<!-- ============ ORDER DETAIL ============ -->
+<section class="screen" id="order">
+  <div class="bar"><div class="logo">Benne <i>14</i></div></div>
+  <div class="h1">Orders</div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="hd"><span class="tok">74</span><div class="meta"><b>Dine-in · Rahul</b><br>Today 11:36 · Paid by UPI<br><span style="color:var(--benne-fg);font-weight:700">On the tawa · 6 min</span></div></div>
+    <div class="bill">
+      <div class="li"><div>2 × Ghee Podi Benne Dosa<small>+ Extra benne (₹25) · Less oil</small></div><b>₹448.00</b></div>
+      <div class="li"><div>2 × Bengaluru Filter Coffee<small>Less sugar</small></div><b>₹138.00</b></div>
+      <div class="row"><span>Subtotal</span><span>₹586.00</span></div>
+      <div class="row"><span>CGST 2.5% + SGST 2.5%</span><span>₹29.00</span></div>
+      <div class="tot"><span>Total</span><b>₹615.00</b></div>
+    </div>
+    <div class="timeline">
+      <div><time>11:36</time>Ordered at the kiosk</div>
+      <div><time>11:37</time>UPI confirmed at the counter</div>
+      <div><time>11:38</time>Kitchen started</div>
+    </div>
+    <div class="actions">
+      <button class="btn r">Refund this order…</button>
+    </div>
+    <div class="reason">
+      <p><b>Refund ₹615 to Rahul?</b> Give the money back from the Paytm app or the cash drawer first. This only records it, so today's takings stay right.</p>
+      <div class="opts"><button class="on">Wrong order</button><button>Customer left</button><button>Food issue</button><button>Other…</button></div>
+      <button class="btn y" style="width:100%;margin-top:10px">Record refund</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MENU ============ -->
+<section class="screen" id="menu">
+  <div class="bar"><div class="logo">Benne <i>14</i></div><div class="when"><b>Menu</b>On the kiosk now</div></div>
+  <div class="h1">Menu</div>
+  <div class="hint">Switch a dish off when it runs out. It comes back on by itself tomorrow morning. Tap a dish to change its price, name or description.</div>
+  <div class="mcat"><h3>Dosas</h3>
+    <div class="mi"><img src="../public/food/ghee-podi-benne-dosa.jpg"><div><b>Ghee Podi Benne Dosa</b><span class="p">₹199</span></div><div><div class="sw"></div><div class="swlbl">On</div></div></div>
+    <div class="mi"><img src="../public/food/masala-dosa.jpg"><div><b>Masala Dosa</b><span class="p">₹209</span></div><div><div class="sw"></div><div class="swlbl">On</div></div></div>
+    <div class="mi off"><img src="../public/food/plain-benne-dosa.jpg"><div><b>Plain Benne Dosa<span class="so">Sold out</span></b><span class="p">₹159</span></div><div><div class="sw off"></div><div class="swlbl">Off</div></div></div>
+    <div class="mi"><img src="../public/food/plain-dosa.jpg"><div><b>Plain Dosa</b><span class="p">₹169</span></div><div><div class="sw"></div><div class="swlbl">On</div></div></div>
+  </div>
+  <div class="mcat"><h3>Idli &amp; Vada</h3>
+    <div class="mi"><img src="../public/food/mallige-idli.jpg"><div><b>Mallige Idli</b><span class="p">₹89</span></div><div><div class="sw"></div><div class="swlbl">On</div></div></div>
+    <div class="mi"><img src="../public/food/thatte-idli.jpg"><div><b>Thatte Idli</b><span class="p">₹89</span></div><div><div class="sw"></div><div class="swlbl">On</div></div></div>
+    <div class="mi"><img src="../public/food/medu-vada.jpg"><div><b>Udupi Medu Vada</b><span class="p">₹89</span></div><div><div class="sw"></div><div class="swlbl">On</div></div></div>
+  </div>
+  <div class="mcat"><h3>Coffee &amp; Tea</h3>
+    <div class="mi"><div class="ph">COFFEE</div><div><b>Bengaluru Filter Coffee</b><span class="p">₹69</span></div><div><div class="sw"></div><div class="swlbl">On</div></div></div>
+  </div>
+  <a class="histlink">Change history →</a>
+</section>
+
+<!-- ============ EDIT DISH ============ -->
+<section class="screen" id="edit">
+  <div class="bar"><div class="logo">Benne <i>14</i></div></div>
+  <div class="h1">Menu</div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="hd"><div><span class="eyebrow">Edit dish</span><div class="disp" style="font-size:30px;margin-top:4px">Masala Dosa</div></div><div class="sw"></div></div>
+    <div class="field"><label>Price</label><div class="in money">₹ 219</div><div class="was">Was ₹209 · customers pay ₹230 with GST</div></div>
+    <div class="field"><label>Name on the kiosk</label><div class="in">Masala Dosa</div></div>
+    <div class="field"><label>Description</label><div class="in ta">Crisp outside, warm spiced potato inside. Just like home.</div><div class="preview">Shown under the name on the kiosk. Keep it to one or two short lines.</div></div>
+    <div class="field extras"><label>Extras for dosas</label>
+      <div class="x"><span>Extra benne</span><span class="in">₹25</span></div>
+      <div class="x"><span>Extra podi</span><span class="in">₹15</span></div>
+      <div class="x"><span>Extra stuffing</span><span class="in">₹30</span></div>
+      <div class="x"><span>Extra sambhar</span><span class="in">₹20</span></div>
+    </div>
+    <div class="actions"><button class="btn y">Save · shows on the next order</button><button class="btn o">Cancel</button></div>
+  </div>
+</section>
+
+<!-- ============ REPORTS ============ -->
+<section class="screen" id="reports">
+  <div class="bar"><div class="logo">Benne <i>14</i></div></div>
+  <div class="h1">Reports</div>
+  <div class="range"><button>Day</button><button class="on">Week</button><button>Month</button><button>Custom</button></div>
+  <div class="period"><button>‹</button><span>7 – 13 Nov 2026</span><button>›</button></div>
+  <div class="kpis">
+    <div class="kpi"><span class="eyebrow">Takings</span><b>₹1,12,840</b><small>▲ 9% vs last week</small></div>
+    <div class="kpi"><span class="eyebrow">Orders</span><b>468</b><small>▲ 6%</small></div>
+    <div class="kpi"><span class="eyebrow">Average bill</span><b>₹241</b><small>▲ ₹7</small></div>
+    <div class="kpi"><span class="eyebrow">Refunds</span><b>₹657</b><small class="down">3 orders</small></div>
+  </div>
+  <div class="sec days">
+    <div class="sec-h"><h2>By day</h2></div>
+    <div class="bars"><i style="height:62%"></i><i style="height:55%"></i><i style="height:70%"></i><i style="height:66%"></i><i style="height:58%"></i><i class="hi" style="height:100%"></i><i style="height:84%"></i></div>
+    <div class="axis"><span>Fri</span><span>Sat</span><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span></div>
+  </div>
+  <div class="sec">
+    <div class="sec-h"><h2>Dishes</h2><a>All 10 →</a></div>
+    <table class="tbl">
+      <tr><th>Dish</th><th>Sold</th><th>Takings</th></tr>
+      <tr><td>Ghee Podi Benne Dosa</td><td>198</td><td>₹39,402</td></tr>
+      <tr><td>Bengaluru Filter Coffee</td><td>176</td><td>₹12,144</td></tr>
+      <tr><td>Masala Dosa</td><td>121</td><td>₹25,289</td></tr>
+      <tr><td>Udupi Medu Vada</td><td>94</td><td>₹8,366</td></tr>
+      <tr class="sub"><td>Extras</td><td>143</td><td>₹3,420</td></tr>
+    </table>
+  </div>
+  <div class="sec">
+    <div class="sec-h"><h2>Busy hours</h2></div>
+    <div class="hours">
+      <div class="bars">
+        <i style="height:24%"></i><i style="height:58%"></i><i class="peak" style="height:100%"><b>19</b></i><i style="height:70%"></i><i style="height:36%"></i><i style="height:48%"></i><i style="height:80%"></i><i style="height:44%"></i><i style="height:30%"></i><i style="height:26%"></i><i style="height:50%"></i><i style="height:38%"></i>
+      </div>
+      <div class="axis"><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
+      <div class="note">Average orders per hour this week. Busiest: <b>10–11 am</b>.</div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-h"><h2>GST for the CA</h2></div>
+    <div class="gst">
+      <div class="row"><span>Taxable value</span><b>₹1,07,467.00</b></div>
+      <div class="row"><span>CGST @ 2.5%</span><b>₹2,686.50</b></div>
+      <div class="row"><span>SGST @ 2.5%</span><b>₹2,686.50</b></div>
+      <div class="row"><span>Total billed</span><b>₹1,12,840.00</b></div>
+    </div>
+  </div>
+  <div class="dl">
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>Every bill (CSV)<small>468 rows</small></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>GST by day (CSV)<small>7 rows</small></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>Dish-wise sales (CSV)<small>10 rows</small></a>
+  </div>
+</section>
+
+<!-- ============ CHANGE HISTORY ============ -->
+<section class="screen" id="log">
+  <div class="bar"><div class="logo">Benne <i>14</i></div><div class="when"><b>Change history</b>Menu &amp; refunds</div></div>
+  <div class="h1">History</div>
+  <div class="log">
+    <div class="day">Today</div>
+    <div class="e"><time>11:52</time><div>Refunded <b>order 71</b> · ₹219<small>Wrong order</small></div></div>
+    <div class="e"><time>11:05</time><div><b>Plain Benne Dosa</b> switched off<small>Sold out · back on tomorrow</small></div></div>
+    <div class="e"><time>08:14</time><div><b>Masala Dosa</b> price <span class="chg"><s>₹209</s> → ₹219</span></div></div>
+    <div class="day">Yesterday</div>
+    <div class="e"><time>18:40</time><div><b>Thatte Idli</b> description changed<small>“Big as a plate, soft as a cloud. With two chutneys.”</small></div></div>
+    <div class="e"><time>14:02</time><div>Extra benne price <span class="chg"><s>₹20</s> → ₹25</span></div></div>
+  </div>
+</section>
+
+<nav class="tabs" id="tabs">
+  <a data-t="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16l-2.3-1.5L14.3 20 12 18.5 9.7 20l-2.4-1.5L5 20z"/><path d="M9 9h6M9 13h4"/></svg>Today</a>
+  <a data-t="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>Orders<span class="dot">2</span></a>
+  <a data-t="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="7"/><circle cx="12" cy="13" r="3.5"/><path d="M12 3v3"/></svg>Menu</a>
+  <a data-t="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/></svg>Reports</a>
+</nav>
+</div>
+<script>
+  var s = new URLSearchParams(location.search).get('s') || 'today';
+  document.getElementById(s).classList.add('on');
+  var tab = { order: 'orders', edit: 'menu', log: 'menu' }[s] || s;
+  document.querySelectorAll('#tabs a').forEach(function (a) { if (a.dataset.t === tab) a.classList.add('on'); });
+  if (s === 'login') document.getElementById('tabs').style.display = 'none';
+</script>
+</body>
+</html>

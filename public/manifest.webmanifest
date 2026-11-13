@@ -1,0 +1,13 @@
+{
+  "name": "Benne 14",
+  "short_name": "Benne 14",
+  "description": "Authentic Bangalore Dosa — order here",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#FBF7EF",
+  "theme_color": "#FBF7EF",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

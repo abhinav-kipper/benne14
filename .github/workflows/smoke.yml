@@ -1,0 +1,35 @@
+name: Smoke (deployed site)
+# After Vercel finishes a deployment (preview or production), check the live site still works.
+# Read-only: it never places or changes an order (tests/smoke/smoke.spec.ts).
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Deployment URL to check
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-24.04 # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run smoke
+        env:
+          CI: '1'
+          SMOKE_URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+          # Set the repo variable SMOKE_EXPECT_LIVE=1 at launch: production must then have test mode off.
+          SMOKE_EXPECT_LIVE: ${{ github.event.deployment.environment == 'Production' && vars.SMOKE_EXPECT_LIVE || '0' }}

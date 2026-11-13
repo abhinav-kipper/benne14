@@ -4,7 +4,19 @@ Self-order kiosk, kitchen display, order board and owner admin for **Benne 14 �
 
 ## Status
 
-Design prototype. Static HTML screens in `prototype/`, no backend yet. Payments will be mocked.
+v1 app (Next.js 15 + Supabase + Vercel) — see `docs/state.md`. Design prototype in `prototype/`.
+
+## Run it
+
+```bash
+npm install
+npm run dev          # http://localhost:3000 — /kiosk, /kitchen (PIN 1414 locally), /board
+npm test             # unit tests (pricing, tokens, status rules)
+npm run e2e          # kiosk → kitchen → board → phone bill, on a production build
+```
+
+Without Supabase env vars the app uses an in-memory store (fine locally, not on Vercel). Env vars: `.env.example`.
+Database: run `supabase/migrations/0001_orders.sql` once in the Supabase SQL editor.
 
 ## Prototype
 
