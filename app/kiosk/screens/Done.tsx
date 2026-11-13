@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { useOrder } from '@/lib/client';
 import type { Order } from '@/lib/orders';
 import { orderedSentence } from '@/lib/wording';
-import { DONE_RESET_S } from './shared';
+import { DONE_GRACE_S, DONE_MORE_S, DONE_STAY_S } from './shared';
 
 export function Done({ orderId, first, onDone }: { orderId: string; first: Order | null; onDone: () => void }) {
   const live = useOrder(orderId, 2000);
   const o = live ?? first;
-  const [left, setLeft] = useState(DONE_RESET_S);
+  const [left, setLeft] = useState(DONE_STAY_S + DONE_GRACE_S);
   useEffect(() => {
     const t = setInterval(() => setLeft((s) => s - 1), 1000);
     return () => clearInterval(t);
@@ -26,7 +26,7 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
     <div className="screen k-done">
       {atCounter && o.payMethod === 'upi' ? (
         <div className="paid due">
-          <i>₹</i>UPI payment of ₹{o.total} being checked at the counter
+          <i>₹</i>Checking your UPI payment of ₹{o.total} at the counter
         </div>
       ) : atCounter ? (
         <div className="paid due">
@@ -64,7 +64,8 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
             {o.itemCount} {o.itemCount === 1 ? 'item' : 'items'}
           </b>
           <span>
-            {atCounter ? (o.payMethod === 'upi' ? 'Show UPI screen if asked' : 'Show at counter') : 'Ready in ~8 min'}
+            {/* what to do next is the sentence above the ticket; the stub only carries a fact */}
+            {atCounter ? (o.payMethod === 'upi' ? `₹${o.total} · UPI` : `₹${o.total} to pay`) : 'Ready in ~8 min'}
           </span>
         </div>
       </div>
@@ -105,16 +106,32 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
         </div>
       </div>
       <div className="reset">
-        <div>
-          <span>Starting a fresh order in {Math.max(0, left)}s</span>
-          <div className="bar">
-            <i style={{ width: `${(Math.max(0, left) / DONE_RESET_S) * 100}%` }} />
-          </div>
-        </div>
+        <span>Take your time. This screen clears by itself for the next customer.</span>
         <button onClick={onDone} data-testid="new-order">
           New order
         </button>
       </div>
+      {/* The same "Still there?" box as on the menu, with a longer count and the order number repeated,
+          because it covers the ticket while it asks. */}
+      {left <= DONE_GRACE_S && (
+        <div className="k-idle" data-testid="done-ask">
+          <div className="box">
+            <h2 className="disp">Still there?</h2>
+            <p>
+              Your order number is <b>{o.token}</b>. We&apos;ll clear this screen for the next customer in{' '}
+              {Math.max(0, left)} seconds.
+            </p>
+            <div className="btns">
+              <button className="no" onClick={onDone} data-testid="done-now">
+                I&apos;m done
+              </button>
+              <button className="yes" onClick={() => setLeft(DONE_GRACE_S + DONE_MORE_S)} data-testid="more-time">
+                I need more time
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

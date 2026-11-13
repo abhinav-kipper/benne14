@@ -85,7 +85,15 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
         ? cur.map((x) => (x === same ? { ...x, qty: Math.min(20, x.qty + l.qty) } : x))
         : [...cur, { ...l, uid: newKey() }];
     });
-  const quickAdd = (itemId: string) => addLine({ itemId, qty: 1, choices: {}, notes: [] });
+  // The cart's suggestions add a dish as it comes: every pick-one choice at its default, no extras, no notes.
+  // Written out in full so it merges with the same dish added from the sheet without changes.
+  const quickAdd = (itemId: string) => {
+    const item = catalog.items.find((i) => i.id === itemId);
+    const choices: Record<string, string[]> = {};
+    for (const g of item?.groups ?? [])
+      if (catalog.groups[g].kind === 'one') choices[g] = [catalog.groups[g].defaultId!];
+    addLine({ itemId, qty: 1, choices, notes: [] });
+  };
   const setQty = (uid: string, qty: number) =>
     setLines((cur) =>
       qty <= 0
@@ -103,7 +111,6 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             testMode={testMode}
             qtyOf={qtyOf}
             onOpen={(id) => setSheet({ itemId: id })}
-            onQuick={quickAdd}
             lines={lines}
             setQty={setQty}
             count={count}

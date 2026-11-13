@@ -11,6 +11,8 @@ section A are open.
 
 ## Up next
 
+0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Owner wants the UI raised first; the launch blockers below are on hold until then, not dropped.
+
 1. **Launch blockers: `docs/audit.md` section A** (not yet discussed with the owner): device key + rate
    limit for placing orders, PIN on the order list, separate owner PIN, reword the "money comes back"
    line, hide "Paid" until the customer taps, move the server region next to Supabase (need the
@@ -29,7 +31,7 @@ section A are open.
 
 - English only. Full menu prices, no discount. Order numbers are plain daily numbers (old "A-042" rows show as "42").
 - GST 5% on top, rounded to the nearest rupee and split CGST/SGST: bills have no round-off line.
-- Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen returns to start after 2 minutes.
+- Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen asks "Still there?" after 90 s and returns to start 30 s later; an untouched order is cleared after 60 s + a 15 s prompt (no Start over button).
 - UPI goes straight to the shop's Paytm UPI ID; the customer taps "I've paid" and staff confirm on the soundbox. Card and cash wait on the kitchen's "Collect payment" shelf.
 - Test mode (on unless `TEST_MODE=0`): cash counts as paid, a ₹1 test item shows.
 - Owner dashboard is behind the kitchen's staff PIN for now (no separate login).

@@ -147,7 +147,7 @@ test("UPI: customer taps I've paid, counter confirms on the soundbox", async ({ 
   await expect(kitchen.getByTestId(`due-${token}`)).toContainText('QR still open', { timeout: 5000 });
 
   await kiosk.getByTestId('i-paid').click();
-  await expect(kiosk.locator('.paid.due')).toContainText('being checked');
+  await expect(kiosk.locator('.paid.due')).toContainText('Checking your UPI payment');
   await expect(kitchen.getByTestId(`due-${token}`)).toContainText('listen for the soundbox', { timeout: 5000 });
   await expect(kitchen.getByTestId(`chit-${token}`)).toHaveCount(0);
   await kitchen.getByTestId(`due-${token}`).getByRole('button', { name: 'Paid' }).click();
@@ -194,10 +194,16 @@ test('kiosk returns to the start screen by itself after the order number', async
   await expect(page.getByTestId('thanks')).toContainText(
     'Pay ₹93 at the counter and we’ll start your Udupi Medu Vada.',
   ); // matches what was ordered
-  await page.clock.runFor(100_000);
-  await expect(page.getByTestId('token')).toBeVisible(); // still there after 100 s
-  await page.clock.runFor(21_000);
-  await expect(page.getByTestId('start')).toBeVisible(); // back to the start screen after 2 minutes
+  await page.clock.runFor(85_000);
+  await expect(page.getByTestId('done-ask')).toHaveCount(0); // time to read the number and scan the bill
+  await page.clock.runFor(7_000);
+  await expect(page.getByTestId('done-ask')).toContainText('Still there?');
+  await expect(page.getByTestId('done-ask')).toContainText(/Your order number is \d+\./); // repeated: the box covers the ticket
+  await page.getByTestId('more-time').click();
+  await page.clock.runFor(55_000);
+  await expect(page.getByTestId('done-ask')).toHaveCount(0); // a minute more
+  await page.clock.runFor(37_000);
+  await expect(page.getByTestId('start')).toBeVisible(); // nobody answered: ready for the next customer
 });
 
 test('only choices that make sense: no fried-food notes on idli, no tag for a default', async ({ page }) => {
@@ -239,6 +245,50 @@ test('installable: the app icons and manifest are served', async ({ request }) =
   expect((await request.get('/icon.png')).status()).toBe(200); // the browser-tab icon
 });
 
+test('+ opens the dish so extras are offered; the price with GST is explained', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await expect(page.locator('.k-menu .sec .gst')).toHaveText('Prices + 5% GST');
+  const dosa = page.getByTestId('item-masala-dosa');
+  await dosa.getByRole('button', { name: 'Add Masala Dosa' }).click();
+  await expect(page.getByTestId('sheet')).toBeVisible(); // extras and notes are offered every time
+  await page.getByTestId('add-to-order').click();
+  await dosa.getByRole('button', { name: 'more' }).click();
+  // a third one with extra benne is its own line, the two plain ones stay as they are
+  await dosa.click();
+  await page.getByTestId('addon-benne').click();
+  await page.getByTestId('add-to-order').click();
+  await expect(page.getByTestId('cartbar')).toContainText('3');
+  await expect(page.getByTestId('cartbar')).toContainText('incl. GST');
+  await expect(page.getByTestId('start-over')).toHaveCount(0); // the timers clear the kiosk; no button to learn
+  await page.getByTestId('cartbar').click();
+  await expect(page.getByTestId('cart-line')).toHaveCount(2);
+  await expect(page.locator('.k-cart .rows')).toContainText('GST 5%');
+  await expect(page.locator('.k-cart .rows')).not.toContainText('CGST');
+});
+
+test('an abandoned order is cleared: "Still there?" after a minute, the start screen 15 s later', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.clock.install();
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-medu-vada').click();
+  await page.getByTestId('add-to-order').click();
+  await page.clock.runFor(55_000);
+  await expect(page.locator('.k-idle')).toHaveCount(0);
+  await page.clock.runFor(7_000);
+  await expect(page.locator('.k-idle')).toContainText('Still there?');
+  await page.getByRole('button', { name: /Yes, I.m here/ }).click();
+  await expect(page.getByTestId('cartbar')).toBeVisible(); // the order is kept
+  await page.clock.runFor(62_000);
+  await expect(page.locator('.k-idle')).toBeVisible();
+  await page.clock.runFor(16_000);
+  await expect(page.getByTestId('start')).toBeVisible();
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('cartbar')).toHaveCount(0); // nothing left for the next customer
+});
+
 test('the cart asks dine in or takeaway before paying', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.goto('/kiosk');
@@ -247,6 +297,7 @@ test('the cart asks dine in or takeaway before paying', async ({ page }) => {
   await page.getByTestId('add-to-order').click();
   await page.getByTestId('cartbar').click();
   await expect(page.getByTestId('continue-to-pay')).toBeDisabled();
+  await expect(page.locator('.k-cart .more')).toContainText('Goes well with your order'); // no dosa in this order
   await page.getByTestId('takeaway').click();
   await expect(page.getByTestId('continue-to-pay')).toBeEnabled();
 });

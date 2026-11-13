@@ -118,7 +118,7 @@ test('kitchen: a tap that fails offline says so, and the chit stays where it was
 test('kiosk: a customer who walks away mid-order is asked, then the kiosk starts fresh', async ({ page }) => {
   await page.clock.install();
   await kioskTo(page);
-  await page.clock.runFor(76_000);
+  await page.clock.runFor(62_000);
   await expect(page.getByText('Still there?')).toBeVisible();
   await page.clock.runFor(16_000);
   await expect(page.getByTestId('start')).toBeVisible();

@@ -389,6 +389,18 @@
   font-family: var(--display);
   font-weight: 900;
   font-size: 44px;
+  line-height: 0.9;
+  text-align: right;
+}
+.k-menu .cartbar .tot small {
+  display: block;
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-top: 4px;
 }
 .k-menu .cartbar .arrow {
   width: 62px;
@@ -1459,13 +1471,15 @@
   font-weight: 800;
   font-size: 20px;
 }
+/* Waiting for the counter is a normal step, not an error: neutral paper, butter-yellow mark. */
 .k-done .paid.due {
-  background: rgba(209, 79, 43, 0.08);
-  border-color: rgba(209, 79, 43, 0.35);
-  color: var(--chilli);
+  background: var(--s1);
+  border-color: var(--line);
+  color: var(--cream);
 }
 .k-done .paid.due i {
-  background: var(--chilli);
+  background: var(--benne);
+  color: var(--benne-ink);
 }
 .k-done .thanks {
   margin-top: 44px;
@@ -1683,8 +1697,9 @@
   align-items: center;
 }
 .k-done .reset span {
-  font-size: 15px;
-  color: var(--cream-3);
+  font-size: 17px;
+  color: var(--cream-2);
+  max-width: 520px;
 }
 .k-done .reset button {
   height: 80px;
@@ -1695,21 +1710,6 @@
   font-size: 20px;
   font-weight: 700;
 }
-.k-done .bar {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--line);
-  margin-top: 10px;
-  width: 300px;
-  overflow: hidden;
-}
-.k-done .bar i {
-  display: block;
-  height: 100%;
-  background: var(--cream-2);
-  transition: width 1s linear;
-}
-
 /* ---------- Still there? ---------- */
 .k-idle {
   position: absolute;
@@ -1805,4 +1805,12 @@
   font-weight: 700;
   color: var(--chilli);
   margin: 2px 0 6px;
+}
+
+/* ---------- Round 1 (docs/ui-audit.md): GST note ---------- */
+.k-menu .sec .gst {
+  margin-left: auto;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cream-2);
 }
