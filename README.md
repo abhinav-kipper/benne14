@@ -1,44 +1,45 @@
 # Benne 14
 
-Self-order kiosk, kitchen display, order board and owner admin for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram).
+Self-order kiosk, kitchen display, TV order board, phone bill and owner dashboard for
+**Benne 14 — Authentic Bangalore Dosa** (Indirapuram). One Next.js app, deployed on Vercel, data in Supabase.
 
-## Status
+| Screen | Route | Device |
+|---|---|---|
+| Kiosk | `/kiosk` | Android tablet, portrait (designed at 800×1280) |
+| Kitchen | `/kitchen` | Tablet, landscape (1280×800), staff PIN |
+| Order board | `/board` | TV, 1920×1080 |
+| Phone bill + live status | `/r/<order id>` | Customer's phone (QR on the kiosk) |
+| Owner dashboard | `/admin` | Owner's phone, staff PIN |
 
-v1 app (Next.js 15 + Supabase + Vercel) — see `docs/state.md`. Design prototype in `prototype/`.
+Production: <https://benne14-git-main-abhinav-mudgal-s-projects.vercel.app> · setup check: `/api/health`.
+
+## Where to read
+
+- `docs/state.md` — where things stand, what's next, gotchas (read first)
+- `docs/ARCHITECTURE.md` — how the app works
+- `docs/audit.md` — open issues and what's been fixed (launch blockers are section A)
+- `docs/testing.md` — the test layers and what each proves
+- `docs/payments.md` — how payments work today and the route to automatic confirmation
+- `CLAUDE.md` — working rules for Claude Code sessions
 
 ## Run it
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000 — /kiosk, /kitchen (PIN 1414 locally), /board
-npm test             # unit tests (pricing, tokens, status rules)
-npm run e2e          # kiosk → kitchen → board → phone bill, on a production build
+npm run dev          # http://localhost:3000 — PIN 1414 locally
+npm run check        # typecheck + lint + format check + unit/database tests
+npm run e2e          # browser tests on a production build (in-memory store, never the real database)
+npm run format       # fix formatting
 ```
 
-Without Supabase env vars the app uses an in-memory store (fine locally, not on Vercel). Env vars: `.env.example`.
-Database: run `supabase/migrations/0001_orders.sql` once in the Supabase SQL editor.
+Without Supabase env vars the app uses an in-memory store (fine locally, refused on Vercel). Env vars: `.env.example`.
 
-## Prototype
+Database changes are SQL files in `supabase/migrations/`, pasted into the Supabase SQL editor in order.
+`/api/health` lists any that still need running.
 
-- `prototype/theme.css` — design tokens, dark and light (`?theme=light` on any screen; `light.css` covers fixed-colour spots)
-- `prototype/shots/light/` — light-theme renders (`THEME=light node prototype/shots-all.js`)
-- previously: `prototype/theme.css` — design tokens ("Tawa" direction: cast-iron dark, benne-butter accent; Big Shoulders Display + Familjen Grotesk + Tiro Devanagari Hindi)
-- `prototype/menu.js` — menu data (real launch prices, Hindi names + descriptions)
-- `prototype/kiosk-*.html` — kiosk screens, 800×1280 portrait: home → menu → item → cart → pay → pay-upi → done
-- `prototype/kitchen.html` — kitchen display, 1280×800 landscape (`node prototype/shot.js prototype/kitchen.html out.png 1280 800`)
-- `prototype/board.html` — TV order board, 1920×1080
-- `prototype/shots/` — rendered screenshots
-- `prototype/_explore/` — rejected directions, kept for reference
+## Design history
 
-Render a screenshot (needs Playwright): `node prototype/shot.js prototype/kiosk-menu.html out.png`
-
-Food photos are placeholders from Wikimedia Commons (CC BY / CC BY-SA, see `prototype/assets/food/CREDITS.tsv`) until the restaurant's own photos are shot.
-
-## Walkthrough video
-
-`prototype/video/benne14-walkthrough.mp4` — ~100 s, 1080p, Hindi voiceover with sound effects and a soft music bed: home → menu → customise → cart → pay → token → kitchen → TV board.
-
-- `prototype/video/stage.html` frames each screen, shows the taps and captions; screens expose small `window.demo` hooks for state changes.
-- `prototype/video/vo/script.json` is the Hindi voiceover script (one line per scene). `ELEVENLABS_API_KEY=… node prototype/video/vo/generate.js` regenerates the clips (`ELEVENLABS_VOICE_ID` to pin a voice; current: Nitya, see `durations.json`).
-- `prototype/video/vo/sfx/` holds the sound effects and music bed (ElevenLabs sound generation, prompts in `vo/sfx.json`).
-- `node prototype/video/record.js` re-records the video; each scene waits for its voice line, then voice, effects and the ducked music are mixed in with ffmpeg.
+`prototype/` holds the original static HTML screens and the walkthrough video from before the app was
+built (dark theme, Hindi text, old "A-001" numbers). The app has moved on from it; the running app is
+the design reference now. Food photos are placeholders from Wikimedia Commons (credits in
+`public/food/CREDITS.tsv`) until the restaurant's own photos are shot.

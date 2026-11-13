@@ -4,40 +4,38 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Now
 
-**v1 live on the Vercel preview, connected to Supabase** (`feat/v1-skeleton`). Full flow verified on the live link: kiosk order → kitchen (PIN) → TV board → phone bill, plus cash via the counter. Check setup any time at `/api/health`.
+**Live on `main`** (production: https://benne14-git-main-abhinav-mudgal-s-projects.vercel.app, check
+`/api/health`). Kiosk, kitchen, TV board, phone bill and owner dashboard all work end to end on
+Supabase. Not launched to customers yet: test mode is on, and the launch blockers in `docs/audit.md`
+section A are open.
 
 ## Up next
 
-- **Audit checklist: `docs/audit.md`** (2026-11-13). Working through B (reliability), C (ease of use), D (code) with the owner choosing fixes; A (security/speed/hosting) is still open and blocks launch.
+1. **Launch blockers: `docs/audit.md` section A** (not yet discussed with the owner): device key + rate
+   limit for placing orders, PIN on the order list, separate owner PIN, reword the "money comes back"
+   line, hide "Paid" until the customer taps, move the server region next to Supabase (need the
+   Supabase region), check hosting plans, `TEST_MODE=0`.
+2. **Owner to do**: run `supabase/migrations/0004_menu_edit_and_migration_log.sql`; rotate the Supabase
+   secret key and choose a new `STAFF_PIN` (both were shared in chat); delete merged branches on GitHub;
+   ₹1 UPI test from GPay, PhonePe and Paytm; try everything on the real tablet, TV and phone.
+3. **Add / remove dishes from the dashboard** (owner asked; questions pending: photo upload, new extras,
+   new sections, ordering). Moves the dish list into the database.
+4. **Automatic payment confirmation**: `docs/payments.md` (Paytm card-machine cloud integration is the
+   likeliest route; waiting on Paytm credentials).
+5. Discount codes (a code field in the cart, server-validated, a line on the bill).
+6. Real dish photos; real opening hours in `lib/shop.ts` (charts assume 8–23).
 
-- **Payments: read `docs/payments.md`** (live setup, test mode, Paytm card-machine cloud integration = next, Paytm gateway blocked by their maintenance, Razorpay parked).
+## How things are (decisions worth knowing)
 
-- **Before launch: set `TEST_MODE=0` in Vercel** (test mode: cash counts as paid, ₹1 test item, red ribbon on the kiosk).
-
-0. Test real UPI with a ₹44 masala tea from GPay, PhonePe and Paytm; check the soundbox announces and the payee shows correctly.
-
-1. Owner tries the preview on the real devices: kiosk tablet (portrait), kitchen tablet, TV.
-2. Rotate the Supabase secret key (it was pasted in chat) and pick a new STAFF_PIN before real use.
-3. Feedback round, then merge to `main` (production URL).
-4. **M4 owner dashboard built** on `feat/owner-admin` (`/admin`, staff PIN). Before using it on the live preview: **run `supabase/migrations/0003_owner_dashboard.sql` in Supabase** (until then the kiosk keeps selling from the menu in code, and dashboard menu edits fail). Then owner tries it on his phone. Design + decisions: `docs/designs/owner-dashboard.md`.
-5. Discount codes (owner asked for "discount applied" codes later): a code field in the cart, server-validated, shown as a line on the bill. The `savings` column is already there.
-
-## v1 shortcuts (deliberate, see docs/BUILD_PLAN.md)
-
-- Menu in code (`lib/menu.ts`); a price change is a one-line edit + deploy.
-- Live updates by polling every 1.5 s (no Supabase Realtime yet).
-- UPI goes straight to the shop's Paytm UPI ID (`lib/shop.ts`); the customer taps "I've paid" and staff confirm on the soundbox ("Paid"). No automatic confirmation until the Paytm API (needs API access + merchant key). `PAYMENTS=mock` for tests/demos.
-- Card and cash both wait on the kitchen's "Collect payment" shelf until staff confirm.
-- Kitchen protected by one shared 4-digit `STAFF_PIN`.
-- English only everywhere (owner's call, 2026-11-12). The `prototype/` HTML and the video still have the old Hindi.
-- Order numbers are plain daily numbers (1, 2, 3…). Old "A-042" rows are shown as "42" by the app; `supabase/migrations/0002_plain_tokens.sql` makes new rows store plain numbers (optional to run).
-- No discount: full menu prices (launch 14% off removed 2026-11-12). Dosas have no podi-spice choice; kitchen notes are Less oil, Extra crisp, and Potato stuffing on the side (masala dosa only).
-- Start screen has one "Tap to order" button; dine in / takeaway is asked in the cart. The order-number screen returns to start after 2 minutes.
-- Kitchen "Ready at counter" shelf shrinks its cards (3 steps) when they don't fit, so old ready orders stay visible.
-- ₹ comes from a one-glyph font (`public/fonts/rupee.woff2`, cut from Roboto Condensed) first in the display stack: Big Shoulders' ₹ looked like a 7.
-- GST (5%, on top) is rounded to the nearest rupee and split into CGST/SGST, so bills have no round-off line.
-- History: kitchen "Today's orders" panel (with "Back to counter" for collected orders) and a "Collected" row on the TV board, from `GET /api/orders?view=today`.
-- Order lines stored as a JSON snapshot on `orders` (no `order_items` table yet).
+- English only. Full menu prices, no discount. Order numbers are plain daily numbers (old "A-042" rows show as "42").
+- GST 5% on top, rounded to the nearest rupee and split CGST/SGST: bills have no round-off line.
+- Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen returns to start after 2 minutes.
+- UPI goes straight to the shop's Paytm UPI ID; the customer taps "I've paid" and staff confirm on the soundbox. Card and cash wait on the kitchen's "Collect payment" shelf.
+- Test mode (on unless `TEST_MODE=0`): cash counts as paid, a ₹1 test item shows.
+- Owner dashboard is behind the kitchen's staff PIN for now (no separate login).
+- Menu = dishes in `lib/menu.ts` + the owner's overrides in the database. Sold out lasts for the day.
+- Screens poll (no Realtime), pause when hidden, and reload themselves after a deploy.
+- Design rule: never flatten an approved design; compare against `main` side by side before pushing visual changes (see `CLAUDE.md`).
 
 ## Open questions (owner)
 
@@ -49,13 +47,18 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 - The Claude environment has the live Supabase keys: anything run locally can hit the real DB. For local runs blank them (`NEXT_PUBLIC_SUPABASE_URL= SUPABASE_SECRET_KEY=`); e2e already does and refuses otherwise.
 - Don't stop servers with `pkill -f next…` / a loop whose pattern appears in the same command line: it kills the shell. Put the loop in a script file and run the file.
-- Live preview (stable branch link): https://benne14-git-feat-v1-skeleton-abhinav-mudgal-s-projects.vercel.app — check `/api/health`.
+- Every branch gets a preview at `https://benne14-git-<branch-with-dashes>-abhinav-mudgal-s-projects.vercel.app`; previews share the production database.
+- This session can't delete GitHub branches or run downloaded binaries; database integration tests run only in CI (the `db` job).
 
 - Free-tier Supabase pauses after inactivity; `/api/health` then shows a 521/522. Restore it in the dashboard.
 - e2e tests blank the Supabase vars and refuse to run unless the store is `memory`, so they never write to the real DB.
 - Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
 
 ## Done
+
+- 2026-11-13 — Code upkeep (audit D): kiosk and dashboard split per screen, menu state via context, ESLint + Prettier in CI, Supabase store tested on a real Postgres in CI, migration log, docs rewritten, Dependabot.
+
+- 2026-11-13 — Audit (`docs/audit.md`) and fixes for reliability and ease of use: TV shows every ready order as scaled tickets, busy kitchen rail, auto-reload, orders past midnight, lighter polling, atomic menu edits, uptime check, wording, readable text, app icons.
 
 - 2026-11-13 — Owner dashboard v1 (`/admin`): today vs yesterday, needs-you payments, orders with paid/cancel/refund, menu sold-out (back on next morning) + price/name/description/extras, reports (day/week/month/custom, dishes, busy hours, GST) + CSV, change history. Menu changes stored as overrides on the menu in code.
 
