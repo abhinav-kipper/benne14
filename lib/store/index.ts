@@ -11,7 +11,9 @@ export interface Store {
   getOrder(id: string): Promise<Order | null>;
   listLive(): Promise<Order[]>; // today's orders the kitchen/board show, plus recently handed over
   listToday(): Promise<Order[]>; // every order placed today, newest first (history on the kitchen and board)
-  setStatus(id: string, to: OrderStatus): Promise<Order>;
+  // `from`: the status the caller last saw. If the order has moved on since (another tablet), the
+  // change is refused with 409 instead of silently undoing the other tablet's tap.
+  setStatus(id: string, to: OrderStatus, from?: OrderStatus): Promise<Order>;
 }
 
 let store: Store | undefined;

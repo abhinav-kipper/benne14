@@ -1,5 +1,5 @@
 import { getStore } from '@/lib/store';
-import { fail, json } from '@/lib/server';
+import { fail, isOrderId, json, notFound } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
+    if (!isOrderId(id)) return notFound();
     const order = await getStore().getOrder(id);
     return order ? json(order) : json({ error: 'Order not found' }, 404);
   } catch (e) {

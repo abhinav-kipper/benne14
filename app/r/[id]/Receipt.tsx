@@ -1,6 +1,6 @@
 'use client';
 import type React from 'react';
-import { useOrder } from '@/lib/client';
+import { useOrderState } from '@/lib/client';
 
 const HEAD: Record<string, React.ReactNode> = {
   pending_payment: 'Waiting for your payment.',
@@ -16,7 +16,8 @@ const PAY = { upi: 'UPI', card: 'Card', cash: 'Cash' } as const;
 const money = (n: number) => `₹${n.toFixed(2)}`;
 
 export default function Receipt({ id }: { id: string }) {
-  const o = useOrder(id, 3000);
+  const { order: o, missing } = useOrderState(id, 3000);
+  if (!o && missing) return <div className="rcpt"><div className="missing" data-testid="bill-missing">We couldn&apos;t find this bill. Please check the link, or ask at the counter.</div></div>;
   if (!o) return <div className="rcpt"><div className="missing">Loading your bill…</div></div>;
   const stage = o.status === 'ready' || o.status === 'handed_over' ? 2 : o.status === 'cooking' ? 1 : 0;
   const when = new Date(o.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });

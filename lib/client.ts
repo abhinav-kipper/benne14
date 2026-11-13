@@ -24,8 +24,9 @@ export const api = {
   checkPin: (pin: string) => call<{ ok: true }>('/api/staff', { method: 'POST', headers: { 'x-staff-pin': pin } }),
   claim: (id: string, action: 'paid' | 'cancel') => call<Order>(`/api/orders/${id}/claim`, { method: 'POST', body: JSON.stringify({ action }) }),
   mockPay: (id: string) => call<Order>(`/api/orders/${id}/pay`, { method: 'POST' }),
-  setStatus: (id: string, to: OrderStatus, pin: string) =>
-    call<Order>(`/api/orders/${id}/status`, { method: 'POST', body: JSON.stringify({ to }), headers: { 'x-staff-pin': pin } }),
+  // `from` = the status this screen shows; the server refuses (409) if another screen changed it first.
+  setStatus: (id: string, to: OrderStatus, pin: string, from?: OrderStatus) =>
+    call<Order>(`/api/orders/${id}/status`, { method: 'POST', body: JSON.stringify({ to, from }), headers: { 'x-staff-pin': pin } }),
 };
 
 // Polls live orders. v1 uses polling (1.5 s) instead of Supabase Realtime: simple, and fast enough
@@ -70,17 +71,27 @@ export function useTodayOrders(on: boolean, intervalMs = 5000) {
   return orders;
 }
 
+// One order, polled. `missing` turns true when the server says it doesn't exist (a mistyped bill link);
+// network errors keep the last known order instead.
 export function useOrder(id: string | null, intervalMs = 1500) {
+  return useOrderState(id, intervalMs).order;
+}
+
+export function useOrderState(id: string | null, intervalMs = 1500) {
   const [order, setOrder] = useState<Order | null>(null);
+  const [missing, setMissing] = useState(false);
   useEffect(() => {
     if (!id) { setOrder(null); return; }
     let stop = false;
-    const tick = async () => { try { const o = await api.order(id); if (!stop) setOrder(o); } catch { /* keep last known */ } };
+    const tick = async () => {
+      try { const o = await api.order(id); if (!stop) { setOrder(o); setMissing(false); } }
+      catch (e) { if (!stop && e instanceof ApiError && e.status === 404) setMissing(true); }
+    };
     tick();
     const t = setInterval(tick, intervalMs);
     return () => { stop = true; clearInterval(t); };
   }, [id, intervalMs]);
-  return order;
+  return { order, missing };
 }
 
 // A short two-note chime made in the browser (no audio files). Browsers only allow sound after a tap.

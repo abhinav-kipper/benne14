@@ -71,3 +71,10 @@ export const formatToken = (n: number) => String(n);
 export const plainToken = (t: string) => t.replace(/^[A-Z]-0*(?=\d)/, '');
 
 export const minutesSince = (iso: string, now = Date.now()) => Math.max(0, Math.floor((now - Date.parse(iso)) / 60000));
+
+// The name is shown on the TV and called out: keep printable characters only (no control or
+// direction-override characters that could garble the board), 24 at most.
+export function cleanName(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  return v.replace(/[\p{Cc}\p{Cf}]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24).trim() || null;
+}

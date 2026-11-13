@@ -54,7 +54,7 @@ export default function Kitchen() {
     noteLocalChange();
     setOrders((cur) => cur?.map((x) => (x.id === o.id ? { ...x, status: to, readyAt: to === 'ready' ? new Date().toISOString() : x.readyAt } : x)) ?? cur);
     try {
-      await api.setStatus(o.id, to, pin);
+      await api.setStatus(o.id, to, pin, from);
       noteLocalChange();
       setToast(undoable && UNDO_TEXT[to] ? { text: `Order ${o.token} ${UNDO_TEXT[to]}`, undo: { id: o.id, to: from } } : null);
     } catch (e) {
@@ -212,7 +212,7 @@ function PinGate({ onPin, note }: { onPin: (p: string) => void; note: string | n
   const check = async (p: string) => {
     setBusy(true);
     try { await api.checkPin(p); onPin(p); }
-    catch (e) { setMsg(e instanceof ApiError && e.status === 401 ? 'Wrong PIN. Try again.' : 'No internet. Try again.'); setV(''); }
+    catch (e) { setMsg(e instanceof ApiError && e.status === 401 ? 'Wrong PIN. Try again.' : e instanceof ApiError && e.status === 429 ? e.message : 'No internet. Try again.'); setV(''); }
     finally { setBusy(false); }
   };
   const press = (d: string) => {

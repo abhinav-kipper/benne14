@@ -1,5 +1,5 @@
 import { getStore } from '@/lib/store';
-import { fail, json } from '@/lib/server';
+import { fail, isOrderId, json, notFound, readJson } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
-    const { action } = (await req.json()) as { action?: string };
+    if (!isOrderId(id)) return notFound();
+    const { action } = await readJson(req);
     if (action !== 'paid' && action !== 'cancel') return json({ error: 'Bad action' }, 400);
     const store = getStore();
     const order = await store.getOrder(id);

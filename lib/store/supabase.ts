@@ -57,10 +57,11 @@ export class SupabaseStore {
     return (data as Row[]).map(toOrder);
   }
 
-  async setStatus(id: string, to: OrderStatus) {
+  async setStatus(id: string, to: OrderStatus, from?: OrderStatus) {
     const cur = await this.getOrder(id);
     if (!cur) throw new StoreError('Order not found', 404);
     if (cur.status === to) return cur;
+    if (from && cur.status !== from) throw new StoreError(`Order ${cur.token} was just changed on another screen`, 409);
     if (!canMove(cur.status, to)) throw new StoreError(`Can't move ${cur.token} from ${cur.status} to ${to}`, 409);
     const now = new Date().toISOString();
     const patch: Record<string, unknown> = { status: to, updated_at: now };
@@ -70,7 +71,7 @@ export class SupabaseStore {
     // Conditional on the status we read, so two taps on two tablets can't both win.
     const { data, error } = await this.db.from('orders').update(patch).eq('id', id).eq('status', cur.status).select('*').maybeSingle();
     if (error) throw new StoreError(error.message, 500);
-    if (!data) throw new StoreError(`${cur.token} was just changed on another screen`, 409);
+    if (!data) throw new StoreError(`Order ${cur.token} was just changed on another screen`, 409);
     return toOrder(data as Row);
   }
 }

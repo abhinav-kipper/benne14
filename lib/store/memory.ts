@@ -62,10 +62,11 @@ export class MemoryStore {
     return [...this.orders.values()].reverse().filter((o) => o.tokenDay === day).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, HISTORY_MAX);
   }
 
-  async setStatus(id: string, to: OrderStatus) {
+  async setStatus(id: string, to: OrderStatus, from?: OrderStatus) {
     const o = this.orders.get(id);
     if (!o) throw new StoreError('Order not found', 404);
     if (o.status === to) return o;
+    if (from && o.status !== from) throw new StoreError(`Order ${o.token} was just changed on another screen`, 409);
     if (!canMove(o.status, to)) throw new StoreError(`Can't move ${o.token} from ${o.status} to ${to}`, 409);
     const now = new Date().toISOString();
     const next: Order = {

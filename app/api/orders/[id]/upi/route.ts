@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import { DirectUpiProvider, MockProvider } from '@/lib/payments';
 import { getStore } from '@/lib/store';
-import { fail, json, paymentsAreMock } from '@/lib/server';
+import { fail, isOrderId, json, notFound, paymentsAreMock } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
+    if (!isOrderId(id)) return notFound();
     const order = await getStore().getOrder(id);
     if (!order) return json({ error: 'Order not found' }, 404);
     if (order.status !== 'pending_payment') return json({ error: 'This order is no longer waiting for UPI' }, 409);

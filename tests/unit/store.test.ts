@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryStore, StoreError } from '@/lib/store/memory';
 import { priceOrder } from '@/lib/pricing';
 import type { PlaceOrderInput } from '@/lib/orders';
@@ -56,5 +56,36 @@ describe('memory store', () => {
     expect(ready.readyAt).not.toBeNull();
     const undone = await s.setStatus(o.id, 'cooking');
     expect(undone.readyAt).toBeNull();
+  });
+
+  describe('what the kitchen and board see over time', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('keeps an unpaid UPI QR on the shelf for 15 minutes, a collected order for 10', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-13T06:00:00Z'));
+      const upi = await s.placeOrder(input('window-upi'));
+      const done = await s.placeOrder(input('window-done', 'cash'));
+      for (const to of ['new', 'cooking', 'ready', 'handed_over'] as const) await s.setStatus(done.id, to);
+      const live = async () => (await s.listLive()).map((o) => o.id);
+      expect(await live()).toEqual([upi.id, done.id]);
+      vi.setSystemTime(new Date('2026-11-13T06:10:01Z'));
+      expect(await live()).toEqual([upi.id]);
+      vi.setSystemTime(new Date('2026-11-13T06:15:01Z'));
+      expect(await live()).toEqual([]);
+      expect(await s.listToday()).toHaveLength(2); // still in today's history
+    });
+
+    it("starts numbering again at 1 after midnight IST and hides yesterday's orders", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-13T18:00:00Z')); // 23:30 IST
+      const late = await s.placeOrder(input('day-1', 'cash'));
+      await s.setStatus(late.id, 'new');
+      vi.setSystemTime(new Date('2026-11-13T18:31:00Z')); // 00:01 IST next day
+      const early = await s.placeOrder(input('day-2', 'cash'));
+      expect([late.token, early.token]).toEqual(['1', '1']);
+      expect((await s.listLive()).map((o) => o.id)).toEqual([early.id]);
+      expect((await s.listToday()).map((o) => o.id)).toEqual([early.id]);
+    });
   });
 });

@@ -46,7 +46,13 @@ export class OrderError extends Error {}
 const paise = (r: number) => Math.round(r * 100);
 const rupees = (p: number) => p / 100;
 
+const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
+
 export function priceLine(line: CartLine, items: MenuItem[] = ITEMS): PricedLine {
+  // The cart comes from the network: check its shape before trusting any field.
+  if (!line || typeof line !== 'object') throw new OrderError('Bad cart line');
+  if (line.choices != null && (typeof line.choices !== 'object' || Array.isArray(line.choices) || !Object.values(line.choices).every(isStrings))) throw new OrderError('Bad choices');
+  if (line.notes != null && !isStrings(line.notes)) throw new OrderError('Bad notes');
   const item = items.find((i) => i.id === line.itemId);
   if (!item) throw new OrderError(`Unknown item ${line.itemId}`);
   if (!Number.isInteger(line.qty) || line.qty < 1 || line.qty > MAX_QTY) throw new OrderError(`Bad quantity for ${item.name}`);
@@ -64,6 +70,7 @@ export function priceLine(line: CartLine, items: MenuItem[] = ITEMS): PricedLine
     }
   }
   for (const gid of Object.keys(line.choices ?? {})) {
+    if (!Object.hasOwn(GROUPS, gid)) throw new OrderError(`${item.name} has no ${gid}`);
     if (!item.groups.includes(gid)) throw new OrderError(`${item.name} has no ${gid}`);
   }
 

@@ -55,6 +55,8 @@ Live "where are we". Keep it skimmable; history goes in the Done log.
 
 ## Done
 
+- 2026-11-13 — Hardening: 111 unit/DB tests (incl. real migrations in PGlite), 32 browser tests incl. API abuse and network failures, read-only smoke checks after each Vercel deploy. Fixed 500s on bad input, PIN guessing, stale-tablet undo, endless bill loading. See `docs/testing.md`.
+
 - 2026-11-12 — Second owner round: no discount (full prices), podi spice removed, options/notes renamed, clearer ₹, thank-you line matches the order, dine in/takeaway moved to the cart, 2-minute return to start, kitchen shelf shrinks to fit.
 
 - 2026-11-12 — Owner feedback round: English only, no 14% sticker on the start screen, ₹ drawn by the brand fonts, green +/red − tags on kitchen chits, today's history on kitchen and board, plain order numbers, no round-off on bills, start screen returns 15 s after the order number.

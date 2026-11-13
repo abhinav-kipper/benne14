@@ -17,7 +17,7 @@ supabase/migrations/                            SQL to run in Supabase
 tests/unit  tests/e2e                           Vitest, Playwright
 ```
 
-Commands: `npm run dev` · `npm run typecheck` · `npm test` · `npm run e2e`.
+Commands: `npm run dev` · `npm run typecheck` · `npm test` · `npm run e2e` · `SMOKE_URL=… npm run smoke`. Test layers and what each proves: `docs/testing.md`.
 
 ## Design source of truth
 
@@ -34,7 +34,7 @@ Commands: `npm run dev` · `npm run typecheck` · `npm test` · `npm run e2e`.
 - Snapshot names and prices into `order_items`.
 - Kitchen/board must recover by themselves: Realtime reconnect + polling fallback, visible offline state.
 - Secrets only from env (`.env.local`, Vercel, cloud environment settings). Never commit or paste keys.
-- Every feature: at least one unit test (logic) and one Playwright test (user-visible flow).
+- Every feature: at least one unit test (logic) and one Playwright test (user-visible flow). API inputs also get a bad-input case in `tests/e2e/api.spec.ts`; anything that talks to the network gets a failure case in `tests/e2e/resilience.spec.ts`.
 - No new dependency without a one-line reason in the PR.
 
 ## Workflow
