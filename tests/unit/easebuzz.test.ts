@@ -208,3 +208,25 @@ describe('Easebuzz: starting a payment and asking its status (network stubbed)',
     await expect(fetchStatus(cfg, ORDER)).rejects.toBeInstanceOf(EasebuzzError);
   });
 });
+
+describe('payments still open are re-checked by the screens that are always on', () => {
+  it('picks UPI orders still waiting, each at most once per 15 seconds, and nothing without a gateway', async () => {
+    vi.stubEnv('EASEBUZZ_KEY', 'KEY123');
+    vi.stubEnv('EASEBUZZ_SALT', 'SALT456');
+    const { ordersToRecheck } = await import('@/lib/gateway');
+    const orders = [
+      { id: 'a', status: 'pending_payment', payMethod: 'upi' },
+      { id: 'b', status: 'awaiting_cash', payMethod: 'cash' }, // paid at the counter: not the gateway's
+      { id: 'c', status: 'new', payMethod: 'upi' }, // already paid
+      { id: 'd', status: 'pending_payment', payMethod: 'upi' },
+    ] as const;
+    const t0 = 1_000_000;
+    expect(ordersToRecheck([...orders], t0)).toEqual(['a', 'd']);
+    expect(ordersToRecheck([...orders], t0 + 5_000)).toEqual([]); // the kitchen polls every 1.5 s: don't hammer the gateway
+    expect(ordersToRecheck([...orders], t0 + 15_000)).toEqual(['a', 'd']);
+    vi.unstubAllEnvs();
+    vi.stubEnv('EASEBUZZ_KEY', '');
+    expect(ordersToRecheck([{ id: 'z', status: 'pending_payment', payMethod: 'upi' }], t0)).toEqual([]);
+    vi.unstubAllEnvs();
+  });
+});

@@ -1,9 +1,13 @@
 'use client';
-// The UPI QR for this order, with a 5-minute timer. With a payment gateway (Easebuzz) the payment
-// confirms itself and the screen moves on; without one the customer taps "I've paid" and staff confirm.
-import { useEffect, useState } from 'react';
+// Paying by UPI. With a payment gateway (Easebuzz) there is no countdown: the kiosk waits for the
+// payment and moves on by itself; if nothing happens for a long while it asks "Still there?" and, if
+// nobody answers, goes back to the start WITHOUT cancelling, so a late payment still becomes the order.
+// Without a gateway: the shop's own QR with a 5-minute timer, "I've paid", and staff confirm.
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, useOrder, usePoll, type GatewayView } from '@/lib/client';
 import type { Order } from '@/lib/orders';
+import { Idle } from './Idle';
+import { PAY_GRACE_S, PAY_QUIET_MS } from './shared';
 
 export function Upi({
   order,
@@ -37,18 +41,48 @@ export function Upi({
   }, [order.id]);
   const auto = view !== null && view.kind !== 'direct'; // the gateway tells us when it is paid
   // Ask the gateway every few seconds; when it says paid, the order changes and the effect below moves on.
+  // Has a QR that can be paid been shown? Ours is at once; on the gateway's page only after the
+  // customer's two taps, which the gateway reports as "pending".
+  const [qrShown, setQrShown] = useState(false);
+  const quietSince = useRef(Date.now());
+  const [asking, setAsking] = useState(false);
+  useEffect(() => {
+    if (view?.kind === 'qr') setQrShown(true);
+  }, [view]);
   usePoll(
     async () => {
       const r = await api.gatewayCheck(order.id);
       setTrouble(r.state === 'failed' || r.state === 'problem' ? r.state : null);
+      if (r.gatewayStatus === 'pending')
+        setQrShown((was) => {
+          if (!was) quietSince.current = Date.now(); // the QR just appeared: the customer is here
+          return true;
+        });
     },
     3000,
     auto,
   );
+  // No countdown with the gateway. Only a long silence asks "Still there?".
   useEffect(() => {
+    if (!auto) return;
+    const touch = () => {
+      quietSince.current = Date.now();
+    };
+    window.addEventListener('pointerdown', touch);
+    const t = setInterval(() => {
+      if (Date.now() - quietSince.current > PAY_QUIET_MS) setAsking(true);
+    }, 1000);
+    return () => {
+      window.removeEventListener('pointerdown', touch);
+      clearInterval(t);
+    };
+  }, [auto]);
+  // The shop's own QR keeps its 5-minute timer (staff confirm those by hand).
+  useEffect(() => {
+    if (view?.kind !== 'direct') return;
     const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [view]);
   // Staff may confirm on the soundbox before the customer taps: move on as soon as the order leaves pending.
   useEffect(() => {
     if (!live || live.status === 'pending_payment') return;
@@ -63,6 +97,13 @@ export function Upi({
   useEffect(() => {
     if (left === 0) drop(onCancel);
   }, [left]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Nobody answered "Still there?". If a QR was on screen it may yet be paid: leave the order waiting
+  // (the kitchen screen keeps checking it) and just free the kiosk. If no QR ever appeared, nothing can
+  // be paid, so the order is cancelled.
+  const walkedAway = useCallback(() => {
+    if (qrShown) onCancel();
+    else drop(onCancel);
+  }, [qrShown]); // eslint-disable-line react-hooks/exhaustive-deps
   const paid = async () => {
     if (claiming) return;
     setClaiming(true);
@@ -80,7 +121,7 @@ export function Upi({
         <button className="back" onClick={() => drop(onOther)}>
           <span>←</span>Other ways to pay
         </button>
-        <div className="timer">
+        <div className="timer" hidden={view?.kind !== 'direct'}>
           QR valid for
           <div className="ring">
             <svg viewBox="0 0 64 64">
@@ -178,6 +219,21 @@ export function Upi({
         )}
         <button onClick={() => drop(onCancel)}>Cancel order</button>
       </div>
+      {asking && (
+        <Idle
+          seconds={PAY_GRACE_S}
+          text={(n) =>
+            `Waiting for your payment of ₹${order.total}. This screen clears for the next customer in ${n} seconds. If you have already paid, your order is safe.`
+          }
+          stay="I'm still paying"
+          leave="I'm done here"
+          onStay={() => {
+            quietSince.current = Date.now();
+            setAsking(false);
+          }}
+          onReset={walkedAway}
+        />
+      )}
     </div>
   );
 }

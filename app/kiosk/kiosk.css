@@ -1980,3 +1980,7 @@
   background: rgba(209, 79, 43, 0.1);
   color: var(--chilli);
 }
+
+.k-upi .timer[hidden] {
+  display: none;
+}

@@ -214,3 +214,68 @@ test('gateway API: bad input, cash orders and unknown orders', async ({ request 
   expect(first.kind).toBe('page');
   expect(await gateway(request, upi.id, 'start')).toEqual(first);
 });
+
+const toUpiScreen = async (page: import('@playwright/test').Page, itemId = 'masala-tea') => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId(`item-${itemId}`).click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('continue-to-pay').click();
+  await page.getByTestId('pay-upi').click();
+  await expect(page.getByTestId('gateway-page')).toBeVisible();
+};
+
+test('kiosk waits for the payment with no countdown; a customer who walks off and pays later still gets the order', async ({
+  page,
+  request,
+}) => {
+  await page.clock.install();
+  await toUpiScreen(page);
+  await expect(page.locator('.k-upi .timer')).toBeHidden(); // no "QR valid for 5:00" pressure
+  const o = (await (await request.get('/api/orders?view=today')).json())[0];
+  await customer(request, o.id, 'pending'); // tapped "Pay by QR" and "Pay": the QR is on screen
+  await page.clock.runFor(3 * 60_000 + 50_000); // just under four quiet minutes since the QR appeared
+  await expect(page.getByTestId('still-there')).toHaveCount(0);
+  await page.clock.runFor(10_000);
+  // a long silence: ask, don't cancel
+  await expect(page.getByTestId('still-there')).toContainText('If you have already paid, your order is safe');
+  await page.getByRole('button', { name: /still paying/ }).click();
+  await expect(page.getByTestId('still-there')).toHaveCount(0);
+  await expect(page.getByTestId('gateway-page')).toBeVisible();
+  // silence again, and this time nobody answers: the kiosk is freed for the next customer…
+  await page.clock.runFor(4 * 60_000 + 5_000);
+  await expect(page.getByTestId('still-there')).toBeVisible();
+  await page.clock.runFor(31_000);
+  await expect(page.getByTestId('start')).toBeVisible();
+  // …but the order is not cancelled, because its QR could still be paid
+  expect((await order(request, o.id)).status).toBe('pending_payment');
+  await customer(request, o.id, 'success'); // the customer finishes in their UPI app after walking off
+  // nobody at the kiosk and no webhook: the kitchen screen's own polling notices the payment
+  await expect
+    .poll(
+      async () => {
+        await request.get('/api/orders');
+        return (await order(request, o.id)).status;
+      },
+      { timeout: 45_000, intervals: [1000, 2000, 5000] },
+    )
+    .toBe('new');
+  expect((await order(request, o.id)).payRef).toMatch(/^E26FAKE/);
+});
+
+test('kiosk: walking off before any QR appeared cancels the order, since nothing could be paid', async ({
+  page,
+  request,
+}) => {
+  await page.clock.install();
+  await toUpiScreen(page);
+  const o = (await (await request.get('/api/orders?view=today')).json())[0];
+  await page.clock.runFor(4 * 60_000 + 5_000);
+  await expect(page.getByTestId('still-there')).toBeVisible();
+  await page.clock.runFor(31_000);
+  await expect(page.getByTestId('start')).toBeVisible();
+  expect((await order(request, o.id)).status).toBe('cancelled');
+});

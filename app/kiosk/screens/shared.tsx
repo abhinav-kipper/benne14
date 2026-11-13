@@ -10,6 +10,10 @@ export interface Line extends CartLine {
 
 export const IDLE_MS = 60_000; // "Still there?" after this long without a touch
 export const IDLE_GRACE_S = 15;
+// Paying through the gateway has no countdown: the kiosk waits. Only if nothing happens for this long
+// does it ask "Still there?", so a customer who walked off doesn't leave their QR for the next one.
+export const PAY_QUIET_MS = 4 * 60_000;
+export const PAY_GRACE_S = 30;
 // The order-number screen: time to read the number and scan the bill, then it asks before clearing for the
 // next customer.
 export const DONE_STAY_S = 90;

@@ -3,8 +3,10 @@ import { priceOrder, type CartLine } from '@/lib/pricing';
 import { itemById, mergeCatalog } from '@/lib/menu';
 import { createHash } from 'node:crypto';
 import { cleanName, isCheckoutKey, isPaid, istDay, storedKey, type OrderType, type PayMethod } from '@/lib/orders';
+import { after } from 'next/server';
+import { ordersToRecheck, recheck } from '@/lib/gateway';
 import { getStore } from '@/lib/store';
-import { fail, json, readJson } from '@/lib/server';
+import { fail, json, paymentMode, readJson } from '@/lib/server';
 import { isTestMode } from '@/lib/testmode';
 
 export const dynamic = 'force-dynamic';
@@ -113,7 +115,14 @@ export async function GET(req: Request) {
     const view = new URL(req.url).searchParams.get('view');
     if (view === 'today') return json(await store.listToday());
     if (view === 'collected') return json(await store.listCollected(8));
-    return json(await store.listLive());
+    const live = await store.listLive();
+    // Payments still open are re-checked with the gateway after this answer is sent, so a customer who
+    // pays after the kiosk moved on still gets their order (see lib/gateway.ts).
+    if (paymentMode() === 'easebuzz') {
+      const due = ordersToRecheck(live);
+      if (due.length) after(() => recheck(due));
+    }
+    return json(live);
   } catch (e) {
     return fail(e);
   }
