@@ -11,7 +11,7 @@ section A are open.
 
 ## Up next
 
-- **Owner to do now: run `supabase/migrations/0005_discount_codes_and_phone.sql`, then `0006_order_integrity.sql`** in Supabase. Without 0005 the kiosk shows neither the code box nor the phone box and the Offers tab can't save. Without 0006 the database doesn't yet guard saved bills or log status changes (the app still works).
+- **Owner to do now: run `supabase/migrations/0005_discount_codes_and_phone.sql`, then `0006_order_integrity.sql`, then `0007_gateway_payments.sql`** in Supabase. Without 0005 the kiosk shows neither the code box nor the phone box and the Offers tab can't save. Without 0006 the database doesn't yet guard saved bills or log status changes (the app still works).
 
 0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Round 1 (flow) is merged; round 2 (feel) is on `feat/ui-round-2`. Left: round 3 needs the owner (photos, veg marks, invoice numbers, keyboard check on the tablet), round 4 is the staff screens. The launch blockers below are on hold until then, not dropped.
 
@@ -59,6 +59,8 @@ section A are open.
 - Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
 
 ## Done
+
+- 2026-11-14 — Automatic UPI confirmation through Easebuzz (the shop's own gateway account), built and off by default: the kiosk shows Easebuzz's payment page, the order goes to the kitchen by itself once Easebuzz confirms, with fallbacks. Tried end to end on Easebuzz's sandbox. Steps to switch on: `docs/payments.md`.
 
 - 2026-11-14 — Accuracy audit, database safeguards (migration 0006): bills must add up, saved bills can't be edited, only allowed status moves, every change of state logged and shown on the order, no skipped numbers on a double submit.
 

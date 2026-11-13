@@ -62,4 +62,11 @@ export const staffDenied = (r: 'bad' | 'locked') =>
 
 // PAYMENTS=mock (tests, demos): fake payee + "Simulate payment". Default is upi-direct: real QR to the shop's UPI ID.
 export const paymentsAreMock = () => paymentMode() === 'mock';
-export const paymentMode = (): 'mock' | 'upi-direct' => (process.env.PAYMENTS === 'mock' ? 'mock' : 'upi-direct');
+// PAYMENTS=easebuzz: UPI goes through the Easebuzz gateway and confirms itself (needs EASEBUZZ_KEY and
+// EASEBUZZ_SALT; without them it quietly stays on the shop's own QR).
+export const paymentMode = (): 'mock' | 'upi-direct' | 'easebuzz' =>
+  process.env.PAYMENTS === 'mock'
+    ? 'mock'
+    : process.env.PAYMENTS === 'easebuzz' && process.env.EASEBUZZ_KEY && process.env.EASEBUZZ_SALT
+      ? 'easebuzz'
+      : 'upi-direct';

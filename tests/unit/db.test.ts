@@ -293,6 +293,31 @@ describe('database (supabase/migrations)', () => {
       ).rejects.toThrow(/already recorded/);
     });
 
+    it('keeps a gateway payment reference with the order: written once, only on a paid order (0007)', async () => {
+      const o = await place('gateway-ref-1', 'upi');
+      const ref = "pay_gateway = 'easebuzz', pay_ref = 'E26TEST000001', pay_bank_ref = '053462897602'";
+      await expect(db.query('update orders set ' + ref + ' where id = $1', [o.id])).rejects.toThrow(
+        /belongs to a paid order/,
+      );
+      await db.query("update orders set status = 'new', paid_at = now(), " + ref + ' where id = $1', [o.id]);
+      await expect(db.query("update orders set pay_ref = 'E26OTHER' where id = $1", [o.id])).rejects.toThrow(
+        /payment reference cannot be changed/,
+      );
+      await expect(
+        db.query('update orders set pay_ref = null, pay_gateway = null where id = $1', [o.id]),
+      ).rejects.toThrow(/payment reference cannot be changed/);
+      const note = (
+        await db.query<{ note: string }>(
+          "select note from order_events where order_id = $1 and kind = 'status' order by id",
+          [o.id],
+        )
+      ).rows[0].note;
+      expect(note).toBe('Easebuzz E26TEST000001 · UPI ref 053462897602');
+      await db.query(
+        "insert into admin_events (kind, subject, note) values ('payment', 'Order 9', 'paid after cancel')",
+      );
+    });
+
     it('logs every change of state by itself, in order', async () => {
       const o = await place('log-order-1', 'upi');
       for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'])

@@ -11,6 +11,7 @@ import {
   LIVE_HOURS,
   UPI_OPEN_MIN,
   type AdminEvent,
+  type GatewayPayment,
   type Order,
   type OrderEvent,
   type OrderStatus,
@@ -151,6 +152,24 @@ export class MemoryStore {
     };
     this.orders.set(id, next);
     this.log(id, { kind: 'status', from: o.status, to, note: null });
+    return next;
+  }
+
+  async confirmPayment(id: string, p: GatewayPayment) {
+    const o = this.orders.get(id);
+    if (!o) throw new StoreError('Order not found', 404);
+    if (isPaid(o)) return o; // already paid (this payment again, or staff got there first)
+    if (o.status === 'cancelled') throw new StoreError(`Order ${o.token} is cancelled and can't take a payment`, 409);
+    const now = new Date().toISOString();
+    const next: Order = { ...o, status: 'new', updatedAt: now, paidAt: now, payGateway: p.gateway, payRef: p.ref };
+    this.orders.set(id, next);
+    const name = p.gateway[0].toUpperCase() + p.gateway.slice(1);
+    this.log(id, {
+      kind: 'status',
+      from: o.status,
+      to: 'new',
+      note: `${name} ${p.ref}${p.bankRef ? ` · UPI ref ${p.bankRef}` : ''}`,
+    });
     return next;
   }
 

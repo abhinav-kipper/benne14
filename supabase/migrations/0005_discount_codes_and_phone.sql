@@ -34,9 +34,17 @@ alter table public.orders add column if not exists customer_phone text
 create index if not exists orders_customer_phone on public.orders (customer_phone) where customer_phone is not null;
 
 -- The change history also records codes and the kiosk switches.
-alter table public.admin_events drop constraint if exists admin_events_kind_check;
-alter table public.admin_events add constraint admin_events_kind_check
-  check (kind in ('price', 'name', 'desc', 'sold_out', 'back_on', 'option_price', 'refund', 'discount', 'setting'));
+-- (Skipped when the rule already knows these kinds, so re-running this file after a later migration
+-- never narrows it again.)
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                 where conname = 'admin_events_kind_check' and pg_get_constraintdef(oid) like '%discount%') then
+    alter table public.admin_events drop constraint if exists admin_events_kind_check;
+    alter table public.admin_events add constraint admin_events_kind_check
+      check (kind in ('price', 'name', 'desc', 'sold_out', 'back_on', 'option_price', 'refund', 'discount', 'setting'));
+  end if;
+end $$;
 
 -- place_order gains p_phone and stores the code's name. The 5-argument version is replaced.
 drop function if exists public.place_order(text, text, text, text, jsonb);

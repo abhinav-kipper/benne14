@@ -116,3 +116,14 @@ site after Vercel deploys it; an uptime check runs during shop hours.
 - **Tests that hold it together:** `tests/unit/money.test.ts` (GST exhaustively against a BigInt
   reference; dashboard = bills CSV = GST CSV = dish CSV over random orders), `tests/unit/db.test.ts`
   (the SQL rules in PGlite), `tests/support/store-contract.ts` (both stores, incl. 30 orders at once).
+
+## Payment gateway (Easebuzz)
+
+Off unless `PAYMENTS=easebuzz` and the keys are set (`docs/payments.md` has the switch-on steps).
+One order is one Easebuzz transaction whose id is the order id without dashes, so nothing extra is
+stored to match a payment to its order. The kiosk's UPI screen asks `POST /api/orders/[id]/gateway`
+how to show the payment (`start`) and whether it is paid (`check`, every 3 s); Easebuzz also calls
+`/api/payments/easebuzz/webhook`. Both paths end in `settle()` in `lib/gateway.ts`, which asks
+Easebuzz's status API and only then calls `Store.confirmPayment` (one conditional update: paid, with
+the gateway's reference; migration 0007 keeps it on the order and in `order_events`). A message alone,
+even a correctly signed one, never marks an order paid.

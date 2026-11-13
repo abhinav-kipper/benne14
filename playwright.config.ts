@@ -12,6 +12,9 @@ const safeEnv = {
   SUPABASE_SERVICE_ROLE_KEY: '',
 };
 
+// Made-up credentials shared by the stand-in Easebuzz and the server that talks to it. Not real keys.
+const fakeGateway = { EASEBUZZ_KEY: 'FAKEKEY01', EASEBUZZ_SALT: 'FAKESALT01', FAKE_EASEBUZZ_PORT: '3199' };
+
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 60_000,
@@ -33,6 +36,8 @@ export default defineConfig({
     },
     // Owner dashboard: changes prices and sold-out state, so it gets a server of its own.
     { name: 'admin', testMatch: 'admin.spec.ts', use: { baseURL: 'http://localhost:3103' } },
+    // UPI through the payment gateway: a server with PAYMENTS=easebuzz, talking to a stand-in Easebuzz.
+    { name: 'gateway', testMatch: 'gateway.spec.ts', use: { baseURL: 'http://localhost:3104' } },
   ],
   // Servers start in order, so the second reuses the first one's build. reuseExistingServer: false keeps
   // every run on a fresh in-memory store, so leftover orders never leak between runs.
@@ -57,6 +62,27 @@ export default defineConfig({
       timeout: 60_000,
       reuseExistingServer: false,
       env: { ...safeEnv, TEST_MODE: '0' },
+    },
+    {
+      command: 'node tests/support/fake-easebuzz.mjs',
+      url: 'http://localhost:3199/__txns',
+      timeout: 30_000,
+      reuseExistingServer: false,
+      env: fakeGateway,
+    },
+    {
+      command: 'npx next start -p 3104',
+      url: 'http://localhost:3104',
+      timeout: 60_000,
+      reuseExistingServer: false,
+      env: {
+        ...safeEnv,
+        ...fakeGateway,
+        TEST_MODE: '0',
+        PAYMENTS: 'easebuzz',
+        EASEBUZZ_PAY_URL: 'http://localhost:3199',
+        EASEBUZZ_DASH_URL: 'http://localhost:3199',
+      },
     },
     {
       command: 'npx next start -p 3102',

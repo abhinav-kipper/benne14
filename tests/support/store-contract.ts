@@ -121,6 +121,34 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       await expect(s.setStatus(paid.id, 'cancelled')).rejects.toMatchObject({ status: 409 });
     });
 
+    it('a gateway payment marks the order paid once, with its reference, and never revives a cancelled order', async () => {
+      const o = await s.placeOrder(input('upi'));
+      const pay = { gateway: 'easebuzz', ref: 'E26TEST000001', bankRef: '053462897602' };
+      const paid = await s.confirmPayment(o.id, pay);
+      expect(paid).toMatchObject({ status: 'new', payGateway: 'easebuzz', payRef: 'E26TEST000001' });
+      expect(paid.paidAt).toBeTruthy();
+      // the same news again (webhook retry, kiosk check) changes nothing; nor does a different reference
+      const again = await s.confirmPayment(o.id, pay);
+      const other = await s.confirmPayment(o.id, { gateway: 'easebuzz', ref: 'E26OTHER' });
+      expect([again.paidAt, again.payRef, other.payRef]).toEqual([paid.paidAt, 'E26TEST000001', 'E26TEST000001']);
+      const log = await s.listOrderEvents(o.id);
+      expect(log.map((e) => e.kind)).toEqual(['placed', 'status']);
+      expect(log[1]).toMatchObject({ from: 'pending_payment', to: 'new' });
+      expect(log[1].note).toBe('Easebuzz E26TEST000001 · UPI ref 053462897602');
+      // an order staff already confirmed keeps no gateway reference it didn't get
+      const byStaff = await s.placeOrder(input('upi'));
+      await s.setStatus(byStaff.id, 'new');
+      expect((await s.confirmPayment(byStaff.id, pay)).payRef ?? null).toBeNull();
+      // cancelled stays cancelled: the caller flags the money for a refund
+      const gone = await s.placeOrder(input('upi'));
+      await s.setStatus(gone.id, 'cancelled');
+      await expect(s.confirmPayment(gone.id, pay)).rejects.toMatchObject({ status: 409 });
+      expect((await s.getOrder(gone.id))!.status).toBe('cancelled');
+      await expect(s.confirmPayment('00000000-0000-0000-0000-000000000000', pay)).rejects.toMatchObject({
+        status: 404,
+      });
+    });
+
     it('records a refund once, for paid orders only', async () => {
       const unpaid = await s.placeOrder(input());
       await expect(s.refund(unpaid.id, 'x')).rejects.toMatchObject({ status: 409 });
