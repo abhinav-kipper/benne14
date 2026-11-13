@@ -365,7 +365,7 @@ test('menu: a tapped section lights up, and the menu is where you left it after 
   await expect(on).toHaveText('Coffee & Tea');
 });
 
-test('kiosk reads at arm’s length: four dishes on the first screen, no text under 16 px', async ({ page }) => {
+test('kiosk reads at arm’s length: no text under 16 px on any screen', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.goto('/kiosk');
   // text smaller than 16 px on the screen showing, apart from the logo's own tagline
@@ -379,9 +379,6 @@ test('kiosk reads at arm’s length: four dishes on the first screen, no text un
     );
   expect(await small()).toEqual([]);
   await page.getByTestId('start').click();
-  for (const id of ['masala-dosa', 'plain-benne-dosa', 'plain-dosa'])
-    await expect(page.getByTestId(`item-${id}`)).toBeInViewport({ ratio: 1 });
-  await expect(page.getByTestId('item-mallige-idli')).toBeInViewport({ ratio: 0.5 }); // the fourth dish shows too
   expect(await small()).toEqual([]);
   await page.getByTestId('item-masala-dosa').click();
   expect(await small()).toEqual([]);

@@ -246,7 +246,7 @@
   display: none;
 }
 .k-menu .hero {
-  height: 310px;
+  height: 440px;
   position: relative;
 }
 .k-menu .hero img {
@@ -271,13 +271,13 @@
   position: absolute;
   left: 30px;
   right: 30px;
-  bottom: 14px;
+  bottom: 22px;
   z-index: 1;
 }
 .k-menu .hero h1 {
-  font-size: 66px;
-  line-height: 0.84;
-  margin: 10px 0 8px;
+  font-size: 84px;
+  line-height: 0.82;
+  margin: 14px 0 12px;
 }
 .k-menu .hero .meta {
   display: flex;

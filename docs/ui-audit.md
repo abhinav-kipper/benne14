@@ -30,7 +30,7 @@ Measured: **10 taps** from the start screen to the QR for two dishes; **11** to 
 ## 3. Feel: what makes good apps feel finished
 
 - [x] U12 **Taps barely respond.** Few buttons have a pressed state, adding a dish gives no confirmation (no bump of the cart bar, no "added"), and screens swap with a plain fade. Fix: pressed states everywhere, a small motion when something is added, sheet and screen transitions with direction.
-- [x] U13 **The menu wastes its first screen.** The left rail takes 21% of the width and is two-thirds empty with three sections; the special takes 440 px. Only three dishes show before scrolling. Fix: slimmer rail or top tabs, shorter special, so four or five dishes show.
+- [-] U13 (owner 2026-11-13: keep the special as big as it is) **The menu wastes its first screen.** The left rail takes 21% of the width and is two-thirds empty with three sections; the special takes 440 px. Only three dishes show before scrolling. Fix: slimmer rail or top tabs, shorter special, so four or five dishes show.
 - [x] U14 **Small text on the kiosk.** Eleven different places use 11–15 px (section labels, "Optional", "View order", helper lines). At arm's length the floor should be 16 px.
 - [x] U15 **Cart bill is accountant-speak.** "CGST 2.5% / SGST 2.5%" as two lines; customers need "GST 5% ₹15" (the split belongs on the bill). The label "Eating" after choosing dine-in is odd.
 - [x] U16 **Start screen is a still poster.** No motion to catch the eye from the queue, no hint of prices or bestsellers.
@@ -81,7 +81,7 @@ number is unmissable; sold-out and offline states are handled; the kitchen rail 
 
 2026-11-13 · round 2, owner's choices:
 - U12: every kiosk button reacts while pressed; the order bar bumps when a dish is added.
-- U13: shorter house special (440 → 310 px, name 84 → 66 px) so four dishes show before scrolling. Rail unchanged.
+- U13: tried a shorter house special; the owner prefers it as big as before. Not changed.
 - U14: 16 px minimum for kiosk text (26 labels raised). Exceptions: the logo's tagline, the test-mode tag.
 - U16: the start screen's photo columns drift slowly.
 - U17: UPI screen: the three step boxes are gone; one line under the QR ("The amount is filled in. Pay in your app, then tap below.").
