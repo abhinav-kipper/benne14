@@ -1,26 +1,52 @@
 name: Smoke (deployed site)
-# After Vercel finishes a deployment (preview or production), check the live site still works.
-# Read-only: it never places or changes an order (tests/smoke/smoke.spec.ts).
+# After each push to main, wait for Vercel to finish deploying that commit, then check the live
+# production site still works. Read-only: it never places or changes an order (tests/smoke).
+# (Vercel reports deploys to GitHub as a commit status named "Vercel", not as a GitHub deployment,
+# so this waits on that status instead of a deployment event.)
 on:
-  deployment_status:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       url:
-        description: Deployment URL to check
-        required: true
+        description: "Deployment URL to check (default: production)"
+        required: false
 
 permissions:
   contents: read
+  statuses: read
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The stable production link (Vercel's alias for the main branch). Override with the repo
+  # variable PRODUCTION_URL if a custom domain is added.
+  PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://benne14-git-main-abhinav-mudgal-s-projects.vercel.app' }}
 
 jobs:
   smoke:
-    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
     runs-on: ubuntu-24.04 # pinned: Playwright 1.56 has no browsers for ubuntu-latest (26.04)
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.deployment.sha || github.sha }}
+      - name: Wait for Vercel to deploy this commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 60); do
+            state=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/statuses" \
+              --jq '[.[] | select(.context == "Vercel")][0].state // "missing"')
+            echo "Vercel: $state"
+            case "$state" in
+              success) exit 0 ;;
+              failure|error) echo "::error::Vercel could not deploy this commit"; exit 1 ;;
+            esac
+            sleep 15
+          done
+          echo "::error::Vercel did not finish deploying within 15 minutes"; exit 1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -30,6 +56,6 @@ jobs:
       - run: npm run smoke
         env:
           CI: '1'
-          SMOKE_URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+          SMOKE_URL: ${{ github.event.inputs.url || env.PRODUCTION_URL }}
           # Set the repo variable SMOKE_EXPECT_LIVE=1 at launch: production must then have test mode off.
-          SMOKE_EXPECT_LIVE: ${{ github.event.deployment.environment == 'Production' && vars.SMOKE_EXPECT_LIVE || '0' }}
+          SMOKE_EXPECT_LIVE: ${{ vars.SMOKE_EXPECT_LIVE || '0' }}
