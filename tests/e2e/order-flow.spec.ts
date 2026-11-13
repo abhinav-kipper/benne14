@@ -344,3 +344,23 @@ test('the ₹1 payment test item is refused when test mode is off', async ({ req
   });
   expect(r.status()).toBe(400);
 });
+
+test('menu: a tapped section lights up, and the menu is where you left it after the cart', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  const on = page.locator('.k-menu .cat.on');
+  for (const name of ['Coffee & Tea', 'Idli & Vada', 'Coffee & Tea', 'Dosas']) {
+    await page.locator('.k-menu .cat', { hasText: name }).click();
+    await expect(on).toHaveText(name);
+    await page.waitForTimeout(900); // still lit once the list has stopped moving
+    await expect(on).toHaveText(name);
+  }
+  await page.locator('.k-menu .cat', { hasText: 'Coffee & Tea' }).click();
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await page.locator('.k-cart .back').click();
+  await expect(page.getByTestId('item-masala-tea')).toBeInViewport(); // not back at the top
+  await expect(on).toHaveText('Coffee & Tea');
+});
