@@ -14,8 +14,15 @@ export async function POST(req: Request) {
   if (denied) return denied;
   try {
     const b = await readJson(req);
-    const base = typeof b.itemId === 'string' ? itemById(b.itemId, BASE_CATALOG) : undefined;
-    if (!base) return json({ error: 'Unknown dish' }, 400);
+    const store = getStore();
+    const overrides = await store.getOverrides();
+    // A dish from the code, or one the owner added. An added dish's name, price and description are
+    // edited as the dish itself (/api/admin/dishes); here it only takes the sold-out switch.
+    const own = typeof b.itemId === 'string' ? itemById(b.itemId, mergeCatalog(overrides, true)) : undefined;
+    const base = typeof b.itemId === 'string' ? (itemById(b.itemId, BASE_CATALOG) ?? own) : undefined;
+    if (!base || !own) return json({ error: 'Unknown dish' }, 400);
+    if (base.custom && (b.name !== undefined || b.desc !== undefined || b.price !== undefined))
+      return json({ error: 'Edit this dish from its own sheet' }, 400);
     if (b.soldOut !== undefined && typeof b.soldOut !== 'boolean')
       return json({ error: 'Sold out must be true or false' }, 400);
     const patch = {
@@ -38,9 +45,8 @@ export async function POST(req: Request) {
       return { groupId: g.id, optionId: op.id, name: op.name, price };
     });
 
-    const store = getStore();
-    const cat = mergeCatalog(await store.getOverrides());
-    const before = itemById(base.id, cat)!;
+    const cat = mergeCatalog(overrides, true);
+    const before = own;
     const after = {
       name: patch.name === undefined ? before.name : (patch.name ?? base.name),
       desc: patch.desc === undefined ? before.desc : (patch.desc ?? base.desc),

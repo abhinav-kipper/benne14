@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { itemById, noteTone, optionTone, photoOf, placeholderOf, type Tone } from '@/lib/menu';
+import { mergeCatalog, noteTone, optionTone, photoFor, placeholderFor, type MenuItem, type Tone } from '@/lib/menu';
 import { allGiven, counts, givenOf, minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { PinGate } from '@/components/PinGate';
 import { api, ApiError, chime, useAutoReload, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
@@ -281,6 +281,18 @@ export default function Kitchen() {
     railRef.current?.scrollBy({ left: dir * railRef.current.clientWidth * 0.8, behavior: 'smooth' });
   const fresh = useFreshIds(list.map((o) => `${o.id}:${o.status === 'cooking' ? 'new' : o.status}`));
   const isFresh = (o: Order) => fresh.has(`${o.id}:${o.status === 'cooking' ? 'new' : o.status}`);
+  // The whole menu, hidden dishes included: an order placed before a dish was hidden still shows its photo.
+  const [dishes, setDishes] = useState<Map<string, MenuItem>>(new Map());
+  useEffect(() => {
+    const load = () =>
+      api
+        .menu()
+        .then((o) => setDishes(new Map(mergeCatalog(o, true).items.map((i) => [i.id, i]))))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 60_000);
+    return () => clearInterval(t);
+  }, []);
   const tray = useMemo(() => {
     const m = new Map<string, number>();
     // what is still to be made: dishes already given (ticked) are off the tray
@@ -290,8 +302,8 @@ export default function Kitchen() {
     }
     return [...m.entries()]
       .filter(([, n]) => n > 0)
-      .sort((a, b) => (itemById(a[0])?.cat ?? '').localeCompare(itemById(b[0])?.cat ?? ''));
-  }, [rail]);
+      .sort((a, b) => (dishes.get(a[0])?.cat ?? '').localeCompare(dishes.get(b[0])?.cat ?? ''));
+  }, [rail, dishes]);
   const clock = !now
     ? ''
     : new Date(now).toLocaleTimeString('en-IN', {
@@ -473,10 +485,11 @@ export default function Kitchen() {
         </div>
         {tray.length === 0 && <span className="quiet">Nothing on the tawa</span>}
         {tray.map(([id, n]) => {
-          const src = photoOf(id);
+          const dish = dishes.get(id);
+          const src = photoFor(dish);
           return (
-            <div className="dish" key={id} title={itemById(id)?.name}>
-              {src ? <img src={src} alt="" /> : <div className="ph">{placeholderOf(id)}</div>}
+            <div className="dish" key={id} title={dish?.name}>
+              {src ? <img src={src} alt="" /> : <div className="ph">{placeholderFor(dish)}</div>}
               <b>{n}</b>
             </div>
           );

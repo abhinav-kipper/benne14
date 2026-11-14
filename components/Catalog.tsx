@@ -12,15 +12,16 @@ export const useCatalog = () => useContext(CatalogContext);
 
 // Starts from the menu in code and replaces it each time `reload` succeeds. If the request fails
 // the screen keeps the last menu it had, so a network blip never empties the kiosk.
-export function useMenu() {
+// `all`: hidden dishes too (the kitchen and the dashboard still show orders and sales of them).
+export function useMenu(all = false) {
   const [catalog, setCatalog] = useState<Catalog>(BASE_CATALOG);
   const reload = useCallback(
     () =>
       api
         .menu()
-        .then((o) => setCatalog(mergeCatalog(o)))
+        .then((o) => setCatalog(mergeCatalog(o, all)))
         .catch(() => {}),
-    [],
+    [all],
   );
   return { catalog, reload };
 }

@@ -549,3 +549,187 @@ test('orders list: a long order is shown in full, not cut off', async ({ page, r
   await expect(l2).toContainText('2 × Masala Tea'); // the last dish
   expect(await l2.evaluate((el) => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight)).toBe(true);
 });
+
+// ---- The owner's own dishes: add (with a photo), check, publish, reorder, hide, bring back ----
+const dishes = (r: APIRequestContext, data: object, headers: Record<string, string> = H) =>
+  r.post('/api/admin/dishes', { data, headers });
+const publicMenu = async (r: APIRequestContext) => (await r.get('/api/menu')).json();
+const orderIt = (r: APIRequestContext, itemId: string) => order(r, itemId);
+
+test('owner adds a dish with a photo, checks it, publishes it; customers can then order it', async ({
+  page,
+  request,
+  browser,
+}) => {
+  await owner(page);
+  await page.getByTestId('tab-menu').click();
+  await page.getByTestId('add-dish').click();
+  await page.getByTestId('dish-save').click();
+  await expect(page.getByTestId('dish-err')).toContainText('needs a name'); // nothing half-made is saved
+  await page.getByTestId('dish-name').fill('Onion Benne Dosa');
+  await page.getByTestId('dish-price').fill('179');
+  await page.getByTestId('dish-desc').fill('Crisp benne dosa with caramelised onion inside.');
+  await page.getByTestId('dish-file').setInputFiles('public/food/plain-benne-dosa.jpg');
+  await expect(page.getByTestId('dish-photo')).toBeVisible({ timeout: 10_000 });
+  await page.getByTestId('dish-save').click();
+
+  // the check page: how customers will see it, and it is not on the kiosk yet
+  const check = page.getByTestId('dish-check');
+  await expect(check).toContainText('How customers will see it');
+  await expect(check).toContainText('₹179');
+  await expect(check).toContainText('about ₹188');
+  await expect(check).toContainText('Less oil');
+  const draft = (await (await request.get('/api/admin/dishes', { headers: H })).json()).custom[0];
+  expect(draft).toMatchObject({
+    name: 'Onion Benne Dosa',
+    price: 179,
+    live: false,
+    cat: 'dosa',
+    groups: ['dosaExtras'],
+  });
+  expect((await publicMenu(request)).custom).toEqual([]); // a draft is the owner's own business
+  expect((await orderIt(request, draft.id)).status()).toBe(400); // and can't be ordered
+
+  await page.getByTestId('dish-publish').click();
+  await expect(page.getByTestId(`mi-${draft.id}`)).toBeVisible();
+  await expect(page.getByTestId(`sw-${draft.id}`)).toBeVisible(); // a live dish has the sold-out switch
+  expect((await publicMenu(request)).custom[0]).toMatchObject({ id: draft.id, live: true });
+
+  // the kiosk shows it, photo and all, and the server prices it
+  const kiosk = await (await browser.newContext({ viewport: { width: 800, height: 1280 } })).newPage();
+  await kiosk.goto('/kiosk');
+  await kiosk.getByTestId('start').click();
+  await expect(kiosk.getByText('Onion Benne Dosa').first()).toBeVisible();
+  const o = await (
+    await request.post('/api/orders', {
+      data: {
+        key: `own-dish-${Date.now()}`,
+        type: 'takeaway',
+        name: null,
+        payMethod: 'cash',
+        lines: [{ itemId: draft.id, qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['less-oil'] }],
+      },
+    })
+  ).json();
+  expect(o.lines[0]).toMatchObject({ name: 'Onion Benne Dosa', qty: 2 });
+  expect(o.subtotal).toBe(2 * (179 + 25));
+  await kiosk.context().close();
+
+  // history has the moment it went on the menu
+  await page.getByTestId('open-history').click();
+  await expect(page.getByTestId('history')).toContainText('Onion Benne Dosa');
+  await expect(page.getByTestId('history')).toContainText('Added to the menu');
+});
+
+test('owner drags a dish to a new place; the kiosk menu follows', async ({ page, request }) => {
+  const id = (await publicMenu(request)).custom[0].id as string;
+  await owner(page);
+  await page.getByTestId('tab-menu').click();
+  const names = () =>
+    page
+      .getByTestId('mcat-dosa')
+      .locator('.mi')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('data-dish')));
+  await expect.poll(async () => (await names()).at(-1)).toBe('Onion Benne Dosa'); // a new dish starts last in its section
+  const before = await names();
+  const grip = page.getByTestId(`grip-${id}`);
+  await grip.scrollIntoViewIfNeeded();
+  const box = (await grip.boundingBox())!;
+  const row = (await page.getByTestId(`mi-${id}`).boundingBox())!;
+  await page.mouse.move(box.x + 8, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 8, box.y + box.height / 2 - row.height * 2, { steps: 12 }); // up two places
+  await page.mouse.up();
+  const want = [...before];
+  want.splice(want.length - 3, 0, want.pop()!);
+  await expect.poll(names).toEqual(want);
+  // saved: the public menu carries the order, and a reload shows the same
+  await expect.poll(async () => ((await publicMenu(request)).order as string[]).includes(id)).toBe(true);
+  await page.reload();
+  await page.getByTestId('tab-menu').click();
+  await expect.poll(names).toEqual(want);
+});
+
+test('owner hides a dish and brings it back; a hidden dish cannot be ordered', async ({ page, request }) => {
+  const id = (await publicMenu(request)).custom[0].id as string;
+  await owner(page);
+  await page.getByTestId('tab-menu').click();
+  // one the owner added
+  await page.getByTestId(`mi-${id}`).locator('.open').click();
+  await page.getByTestId('dish-hide').click();
+  await expect(page.getByTestId('dish-hide')).toContainText('Yes, hide Onion Benne Dosa'); // asks once more
+  await page.getByTestId('dish-hide').click();
+  await expect(page.getByTestId('mcat-hidden')).toContainText('Onion Benne Dosa');
+  expect((await orderIt(request, id)).status()).toBe(400);
+  // and one that came with the app
+  await page.getByTestId('mi-thatte-idli').locator('.open').click();
+  await page.getByTestId('dish-hide').click();
+  await page.getByTestId('dish-hide').click();
+  await expect(page.getByTestId('mcat-hidden')).toContainText('Thatte Idli');
+  expect((await publicMenu(request)).hidden.sort()).toEqual([id, 'thatte-idli'].sort());
+  expect((await orderIt(request, 'thatte-idli')).status()).toBe(400);
+
+  await page.getByTestId('show-thatte-idli').click();
+  await page.getByTestId(`show-${id}`).click();
+  await expect(page.getByTestId('mcat-hidden')).toHaveCount(0);
+  expect((await publicMenu(request)).hidden).toEqual([]);
+  expect((await orderIt(request, 'thatte-idli')).ok()).toBe(true);
+});
+
+test('dishes API: PIN, bad input, drafts, photos', async ({ request }) => {
+  const good = { cat: 'idli', name: 'Rava Idli', desc: 'Soft.', price: 99, groups: ['idliExtras'], photo: null };
+  expect((await request.get('/api/admin/dishes')).status()).toBe(401);
+  expect((await dishes(request, { dish: good }, {})).status()).toBe(401);
+  expect((await request.post('/api/admin/photo', { data: Buffer.from([0xff, 0xd8, 0xff]) })).status()).toBe(401);
+  for (const bad of [
+    {},
+    { dish: null },
+    { dish: { ...good, name: '' } },
+    { dish: { ...good, name: 'x'.repeat(41) } },
+    { dish: { ...good, price: 0 } },
+    { dish: { ...good, price: 99.5 } },
+    { dish: { ...good, price: '99' } },
+    { dish: { ...good, cat: 'test' } },
+    { dish: { ...good, cat: 'sweets' } },
+    { dish: { ...good, groups: ['nope'] } },
+    { dish: { ...good, groups: 'idliExtras' } },
+    { dish: { ...good, groups: ['idliExtras', 'idliExtras'] } },
+    { dish: { ...good, photo: 'https://evil.example/x.jpg' } },
+    { dish: { ...good, photo: 'javascript:alert(1)' } },
+    { dish: { ...good, name: 'masala dosa' } }, // already on the menu
+    { order: ['masala-dosa', 'masala-dosa'] },
+    { order: ['no-such-dish'] },
+    { order: 'masala-dosa' },
+  ])
+    expect((await dishes(request, bad)).status(), JSON.stringify(bad).slice(0, 80)).toBe(400);
+  expect((await dishes(request, { dish: { ...good, id: 'c-nosuch0001' } })).status()).toBe(404);
+  for (const b of [{ publish: 'masala-dosa' }, { discard: 'x' }, { hide: 'nope' }, { show: 'test-1' }])
+    expect((await dishes(request, b)).status(), JSON.stringify(b)).toBe(404);
+
+  // a photo must be a real JPEG, and small
+  const photo = (body: Buffer) => request.post('/api/admin/photo', { data: body, headers: H });
+  expect((await photo(Buffer.from('<svg onload=alert(1)>'.repeat(10)))).status()).toBe(400);
+  expect((await photo(Buffer.alloc(1024 * 1024 + 10, 0xff))).status()).toBe(413);
+
+  // a draft: only the owner sees it; it can be thrown away; a live dish can't
+  const d = (await (await dishes(request, { dish: good })).json()).dish;
+  expect(d).toMatchObject({ name: 'Rava Idli', live: false });
+  expect(((await publicMenu(request)).custom as { id: string }[]).some((c) => c.id === d.id)).toBe(false);
+  expect((await dishes(request, { hide: d.id })).status()).toBe(409); // not on the menu yet
+  // the old menu route can switch an added dish off for today, but not rename or reprice it
+  expect((await request.post('/api/admin/menu', { data: { itemId: d.id, price: 5 }, headers: H })).status()).toBe(400);
+  expect((await dishes(request, { discard: d.id })).ok()).toBe(true);
+  expect((await dishes(request, { discard: d.id })).status()).toBe(404);
+  const live = (await publicMenu(request)).custom[0];
+  expect((await dishes(request, { discard: live.id })).status()).toBe(409);
+  expect((await request.post('/api/admin/menu', { data: { itemId: live.id, soldOut: true }, headers: H })).ok()).toBe(
+    true,
+  );
+  expect((await request.post('/api/admin/menu', { data: { itemId: live.id, soldOut: false }, headers: H })).ok()).toBe(
+    true,
+  );
+
+  // leave the menu as the other tests expect it
+  await dishes(request, { hide: live.id });
+  await dishes(request, { order: [] });
+});

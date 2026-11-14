@@ -52,6 +52,13 @@ export function History(p: Ctx & { back: () => void }) {
             <b>{e.subject}</b> switched back on
           </>
         );
+      case 'menu':
+        return (
+          <>
+            <b>{e.subject}</b> · {e.after}
+            {e.note && <small>{e.note}</small>}
+          </>
+        );
       case 'refund':
         return (
           <>

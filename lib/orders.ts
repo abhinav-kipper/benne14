@@ -72,7 +72,17 @@ export interface GatewayPayment {
 export interface AdminEvent {
   at: string;
   kind:
-    'price' | 'name' | 'desc' | 'sold_out' | 'back_on' | 'option_price' | 'refund' | 'discount' | 'setting' | 'payment';
+    | 'price'
+    | 'name'
+    | 'desc'
+    | 'sold_out'
+    | 'back_on'
+    | 'option_price'
+    | 'refund'
+    | 'discount'
+    | 'setting'
+    | 'payment'
+    | 'menu';
   subject: string;
   before?: string | null;
   after?: string | null;

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useMenu } from '@/components/Catalog';
-import { itemById, photoOf } from '@/lib/menu';
+import { itemById, photoFor, type MenuItem } from '@/lib/menu';
 import { minutesSince } from '@/lib/orders';
 import { useAutoReload, useCollected, useLiveOrders } from '@/lib/client';
 
@@ -56,7 +56,7 @@ export default function Board() {
   const rest = ready.slice(1);
   const tier = rest.length <= 2 ? 0 : rest.length <= 6 ? 1 : rest.length <= 12 ? 2 : 3;
   const shown = rest.length > MINI_MAX ? rest.slice(0, MINI_MAX - 1) : rest;
-  const promos = PROMOS.map((id) => itemById(id, catalog)!).filter((i) => !i.soldOut);
+  const promos = PROMOS.map((id) => itemById(id, catalog)).filter((i): i is MenuItem => !!i && !i.soldOut); // hidden dishes drop out
   const p = promos.length ? promos[promo % promos.length] : null;
   const clock = !now
     ? ''
@@ -171,7 +171,7 @@ export default function Board() {
 
       {p && (
         <div className="promo" key={p.id}>
-          <img src={photoOf(p.id)} alt="" />
+          <img src={photoFor(p)} alt="" />
           <div>
             <div className="t">{p.name}</div>
             <div className="sub">{p.desc}</div>

@@ -61,7 +61,7 @@ export function Pay({
           {lines.slice(0, 4).map((l) => (
             <div className="li" key={l.uid}>
               <b>{l.qty}×</b>
-              {itemById(l.itemId, catalog)!.name}
+              {itemById(l.itemId, catalog)?.name}
             </div>
           ))}
           {lines.length > 4 && (

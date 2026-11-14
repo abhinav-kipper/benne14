@@ -2,6 +2,7 @@
 // Owner dashboard (phone). Design: prototype/admin.html. Behind the staff PIN until the owner gets a
 // login. This file holds the PIN gate and the tabs; each tab's screen lives in ./screens.
 import { useCallback, useEffect, useState } from 'react';
+import { CatalogProvider, useMenu } from '@/components/Catalog';
 import { PinGate, PIN_KEY } from '@/components/PinGate';
 import { ApiError, useLiveOrders } from '@/lib/client';
 import { History } from './screens/History';
@@ -30,6 +31,11 @@ export default function Admin() {
     }
   }, []);
   const live = useLiveOrders(5000);
+  // Dish photos for the reports, owner-made dishes included. Refreshed when the owner changes tab.
+  const { catalog, reload } = useMenu(true);
+  useEffect(() => {
+    reload();
+  }, [reload, tab]);
   const toConfirm = (live.orders ?? []).filter((o) => o.status === 'awaiting_cash').length;
 
   if (!ready) return null;
@@ -49,28 +55,30 @@ export default function Admin() {
     );
   const ctx = { pin, onAuthError };
   return (
-    <div className="adm">
-      {tab === 'today' && <Today {...ctx} live={live.orders ?? []} refreshLive={live.refresh} go={setTab} />}
-      {tab === 'orders' && <Orders {...ctx} refreshLive={live.refresh} />}
-      {tab === 'menu' && <Menu {...ctx} openHistory={() => setTab('history')} />}
-      {tab === 'offers' && <Offers {...ctx} />}
-      {tab === 'reports' && <Reports {...ctx} />}
-      {tab === 'history' && <History {...ctx} back={() => setTab('menu')} />}
-      <nav className="tabs">
-        {(['today', 'orders', 'menu', 'offers', 'reports'] as const).map((t) => (
-          <button
-            key={t}
-            className={tab === t || (t === 'menu' && tab === 'history') ? 'on' : ''}
-            onClick={() => setTab(t)}
-            data-testid={`tab-${t}`}
-          >
-            {ICONS[t]}
-            {t[0].toUpperCase() + t.slice(1)}
-            {t === 'orders' && toConfirm > 0 && <span className="dot">{toConfirm}</span>}
-          </button>
-        ))}
-      </nav>
-    </div>
+    <CatalogProvider value={catalog}>
+      <div className="adm">
+        {tab === 'today' && <Today {...ctx} live={live.orders ?? []} refreshLive={live.refresh} go={setTab} />}
+        {tab === 'orders' && <Orders {...ctx} refreshLive={live.refresh} />}
+        {tab === 'menu' && <Menu {...ctx} openHistory={() => setTab('history')} />}
+        {tab === 'offers' && <Offers {...ctx} />}
+        {tab === 'reports' && <Reports {...ctx} />}
+        {tab === 'history' && <History {...ctx} back={() => setTab('menu')} />}
+        <nav className="tabs">
+          {(['today', 'orders', 'menu', 'offers', 'reports'] as const).map((t) => (
+            <button
+              key={t}
+              className={tab === t || (t === 'menu' && tab === 'history') ? 'on' : ''}
+              onClick={() => setTab(t)}
+              data-testid={`tab-${t}`}
+            >
+              {ICONS[t]}
+              {t[0].toUpperCase() + t.slice(1)}
+              {t === 'orders' && toConfirm > 0 && <span className="dot">{toConfirm}</span>}
+            </button>
+          ))}
+        </nav>
+      </div>
+    </CatalogProvider>
   );
 }
 

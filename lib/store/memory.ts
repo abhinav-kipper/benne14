@@ -20,7 +20,7 @@ import {
   type PlaceOrderInput,
 } from '../orders';
 import { DEFAULT_SETTINGS, type Customer, type DiscountCode, type KioskSettings } from '../discounts';
-import { optionKey, type Overrides } from '../menu';
+import { optionKey, type CustomItem, type Overrides } from '../menu';
 import type { MenuEdit } from './index';
 import { MIGRATIONS } from '../migrations';
 
@@ -46,6 +46,8 @@ export class MemoryStore {
   private byKey = new Map<string, string>();
   private counters = new Map<string, number>();
   private items = new Map<string, ItemRow>();
+  private dishes = new Map<string, CustomItem>();
+  private layout = { hidden: [] as string[], order: [] as string[] };
   private options = new Map<string, number>();
   private events: AdminEvent[] = [];
   private history = new Map<string, OrderEvent[]>(); // per order, as the database's trigger writes it
@@ -221,7 +223,33 @@ export class MemoryStore {
     const items: Overrides['items'] = {};
     for (const [id, r] of this.items)
       items[id] = { name: r.name, desc: r.desc, price: r.price, soldOut: r.soldOutOn === today };
-    return { items, options: Object.fromEntries(this.options) };
+    return {
+      items,
+      options: Object.fromEntries(this.options),
+      custom: [...this.dishes.values()].map((d) => ({ ...d, groups: [...d.groups] })),
+      hidden: [...this.layout.hidden],
+      order: [...this.layout.order],
+    };
+  }
+
+  async saveDish(d: CustomItem, event: Omit<AdminEvent, 'at'> | null) {
+    this.dishes.set(d.id, { ...d, groups: [...d.groups] });
+    if (event) await this.addEvent(event);
+  }
+
+  async deleteDish(id: string, event: Omit<AdminEvent, 'at'>) {
+    if (!this.dishes.delete(id)) throw new StoreError('No such dish', 404);
+    await this.addEvent(event);
+  }
+
+  async saveLayout(patch: { hidden?: string[]; order?: string[] }, event: Omit<AdminEvent, 'at'> | null) {
+    if (patch.hidden) this.layout.hidden = [...patch.hidden];
+    if (patch.order) this.layout.order = [...patch.order];
+    if (event) await this.addEvent(event);
+  }
+
+  async savePhoto(jpeg: Uint8Array) {
+    return `data:image/jpeg;base64,${Buffer.from(jpeg).toString('base64')}`; // no file store in memory
   }
 
   async saveMenuEdit(e: MenuEdit) {

@@ -1,37 +1,127 @@
 'use client';
 // The menu as the kiosk shows it: sold-out switches, and a sheet to edit price, name, description and extras.
-import { useCallback, useEffect, useState } from 'react';
-import { admin, api, ApiError } from '@/lib/client';
-import { CATEGORIES, mergeCatalog, photoOf, placeholderOf, type Catalog, type MenuItem } from '@/lib/menu';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { admin, ApiError } from '@/lib/client';
+import { CATEGORIES, mergeCatalog, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
+import { Check, DishSheet, HideButton } from './Dish';
 import { Bar, type Ctx } from './shared';
 
 export function Menu(p: Ctx & { openHistory: () => void }) {
+  const [items, setItems] = useState<MenuItem[] | null>(null); // the owner's whole menu, in order
   const [cat, setCat] = useState<Catalog | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [edit, setEdit] = useState<string | null>(null);
+  // What is open on top of the list: a dish's sheet, a new dish, or a draft's check page.
+  const [view, setView] = useState<{ edit: string } | { add: true } | { check: string } | null>(null);
+  const dragging = useRef(false);
+  const { pin, onAuthError } = p;
   const load = useCallback(
     () =>
-      api
-        .menu()
-        .then((o) => setCat(mergeCatalog(o)))
-        .catch(() => setErr('Could not load the menu. Check the internet.')),
-    [],
+      admin
+        .dishes(pin)
+        .then((o) => {
+          if (dragging.current) return; // don't pull the row out from under the owner's finger
+          const c = mergeCatalog(o, true);
+          setCat(c);
+          setItems(c.items.filter((i) => !i.testOnly));
+        })
+        .catch((e) => {
+          onAuthError(e);
+          setErr('Could not load the menu. Check the internet.');
+        }),
+    [pin, onAuthError],
   );
   useEffect(() => {
     load();
   }, [load]);
+  const failed = (e: unknown, what: string) => {
+    p.onAuthError(e);
+    setErr(e instanceof ApiError ? e.message : `${what}: no internet.`);
+  };
   const toggle = async (i: MenuItem) => {
-    setCat((c) => c && { ...c, items: c.items.map((x) => (x.id === i.id ? { ...x, soldOut: !i.soldOut } : x)) });
+    setItems((c) => c && c.map((x) => (x.id === i.id ? { ...x, soldOut: !i.soldOut } : x)));
     try {
       await admin.saveItem(p.pin, { itemId: i.id, soldOut: !i.soldOut });
     } catch (e) {
-      p.onAuthError(e);
-      setErr(e instanceof ApiError ? e.message : 'Not saved: no internet.');
+      failed(e, 'Not saved');
     }
     load();
   };
-  const items = (cat?.items ?? []).filter((i) => !i.testOnly);
-  const sel = items.find((i) => i.id === edit);
+  const show = async (i: MenuItem) => {
+    try {
+      await admin.menuChange(p.pin, { show: i.id });
+    } catch (e) {
+      failed(e, 'Not brought back');
+    }
+    load();
+  };
+
+  // Reorder: hold a row's grip and drag it up or down inside its section. The row follows the finger
+  // one place at a time; letting go saves the new order.
+  const grip = useRef<{ id: string; y: number; h: number } | null>(null);
+  const [held, setHeld] = useState<string | null>(null);
+  const dragStart = (e: React.PointerEvent<HTMLElement>, i: MenuItem) => {
+    const row = e.currentTarget.closest('.mi') as HTMLElement | null;
+    if (!row) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    grip.current = { id: i.id, y: e.clientY, h: row.offsetHeight };
+    dragging.current = true;
+    setHeld(i.id);
+  };
+  const dragMove = (e: React.PointerEvent<HTMLElement>) => {
+    const g = grip.current;
+    if (!g) return;
+    const step = Math.trunc((e.clientY - g.y) / (g.h * 0.6));
+    if (!step) return;
+    const dir = step > 0 ? 1 : -1;
+    setItems((cur) => {
+      if (!cur) return cur;
+      const at = cur.findIndex((x) => x.id === g.id);
+      const me = cur[at];
+      // the next visible dish of the same section in that direction
+      let to = at + dir;
+      while (cur[to] && (cur[to].cat !== me.cat || cur[to].hidden)) to += dir;
+      if (!cur[to]) return cur;
+      const next = [...cur];
+      next.splice(at, 1);
+      next.splice(to, 0, me);
+      return next;
+    });
+    g.y += dir * g.h;
+  };
+  const dragEnd = async () => {
+    if (!grip.current) return;
+    grip.current = null;
+    setHeld(null);
+    try {
+      if (items) await admin.menuChange(p.pin, { order: items.map((i) => i.id) });
+    } catch (e) {
+      failed(e, 'Order not saved');
+    }
+    dragging.current = false;
+    load();
+  };
+
+  const all = items ?? [];
+  const sel = view && 'edit' in view ? all.find((i) => i.id === view.edit) : undefined;
+  const checking = view && 'check' in view ? all.find((i) => i.id === view.check) : undefined;
+  const done = () => {
+    setView(null);
+    load();
+  };
+  if (checking && cat)
+    return (
+      <section>
+        <Bar
+          right={
+            <>
+              <b>Draft</b>Not on the kiosk yet
+            </>
+          }
+        />
+        <Check {...p} item={checking} cat={cat} back={done} edit={() => setView({ edit: checking.id })} />
+      </section>
+    );
+  const hidden = all.filter((i) => i.hidden);
   return (
     <section>
       <Bar
@@ -43,59 +133,130 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
       />
       <div className="h1">Menu</div>
       <div className="hint">
-        Switch a dish off when it runs out. It comes back on by itself tomorrow morning. Tap a dish to change its price,
-        name or description. The kiosk shows changes from the next customer.
+        Switch a dish off when it runs out. It comes back on by itself tomorrow morning. Tap a dish to change it or hide
+        it. Hold the dots to move a dish up or down. The kiosk shows changes from the next customer.
+      </div>
+      <div className="addrow">
+        <button className="btn y" onClick={() => setView({ add: true })} data-testid="add-dish">
+          Add a dish
+        </button>
       </div>
       {err && <div className="err pad">{err}</div>}
-      {CATEGORIES.filter((c) => items.some((i) => i.cat === c.id)).map((c) => (
-        <div className="mcat" key={c.id}>
+      {CATEGORIES.filter((c) => all.some((i) => i.cat === c.id && !i.hidden)).map((c) => (
+        <div className="mcat" key={c.id} data-testid={`mcat-${c.id}`}>
           <h3>{c.name}</h3>
-          {items
-            .filter((i) => i.cat === c.id)
+          {all
+            .filter((i) => i.cat === c.id && !i.hidden)
             .map((i) => {
-              const src = photoOf(i.id);
+              const src = photoFor(i);
               return (
-                <div className={`mi ${i.soldOut ? 'off' : ''}`} key={i.id} data-testid={`mi-${i.id}`}>
-                  <button className="open" onClick={() => setEdit(i.id)}>
-                    {src ? <img src={src} alt="" /> : <div className="ph">{placeholderOf(i.id)}</div>}
+                <div
+                  className={`mi mv ${i.soldOut ? 'off' : ''} ${i.draft ? 'draft' : ''} ${held === i.id ? 'held' : ''}`}
+                  key={i.id}
+                  data-testid={`mi-${i.id}`}
+                  data-dish={i.name}
+                >
+                  <span
+                    className="grip"
+                    role="button"
+                    aria-label={`Move ${i.name}`}
+                    onPointerDown={(e) => dragStart(e, i)}
+                    onPointerMove={dragMove}
+                    onPointerUp={dragEnd}
+                    onPointerCancel={dragEnd}
+                    data-testid={`grip-${i.id}`}
+                  >
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <button className="open" onClick={() => setView({ edit: i.id })}>
+                    {src ? <img src={src} alt="" /> : <div className="ph">{placeholderFor(i)}</div>}
                     <div>
                       <b>
                         {i.name}
+                        {i.draft && <span className="tag">Draft</span>}
                         {i.soldOut && <span className="so">Sold out</span>}
                       </b>
                       <span className="p">₹{i.price}</span>
                     </div>
                   </button>
-                  <button
-                    className={`sw ${i.soldOut ? 'off' : ''}`}
-                    role="switch"
-                    aria-checked={!i.soldOut}
-                    aria-label={`${i.name} on the kiosk`}
-                    onClick={() => toggle(i)}
-                    data-testid={`sw-${i.id}`}
-                  >
-                    <span className="swlbl">{i.soldOut ? 'Off' : 'On'}</span>
-                  </button>
+                  {i.draft ? (
+                    <button className="pub" onClick={() => setView({ check: i.id })} data-testid={`pub-${i.id}`}>
+                      Publish
+                    </button>
+                  ) : (
+                    <button
+                      className={`sw ${i.soldOut ? 'off' : ''}`}
+                      role="switch"
+                      aria-checked={!i.soldOut}
+                      aria-label={`${i.name} on the kiosk`}
+                      onClick={() => toggle(i)}
+                      data-testid={`sw-${i.id}`}
+                    >
+                      <span className="swlbl">{i.soldOut ? 'Off' : 'On'}</span>
+                    </button>
+                  )}
                 </div>
               );
             })}
         </div>
       ))}
+      {hidden.length > 0 && (
+        <div className="mcat" data-testid="mcat-hidden">
+          <div className="hidden-h">
+            <h3>Hidden</h3>
+            <span>Not on the kiosk. Sales history is kept.</span>
+          </div>
+          {hidden.map((i) => {
+            const src = photoFor(i);
+            return (
+              <div className="mi gone" key={i.id} data-testid={`mi-${i.id}`}>
+                <div className="open">
+                  {src ? <img src={src} alt="" /> : <div className="ph">{placeholderFor(i)}</div>}
+                  <div>
+                    <b>{i.name}</b>
+                    <span className="p">₹{i.price}</span>
+                  </div>
+                </div>
+                <button className="back" onClick={() => show(i)} data-testid={`show-${i.id}`}>
+                  Bring back
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <button className="histlink" onClick={p.openHistory} data-testid="open-history">
         Change history →
       </button>
-      {sel && cat && (
-        <EditSheet
+      {view && 'add' in view && cat && (
+        <DishSheet
           {...p}
-          item={sel}
           cat={cat}
-          close={() => setEdit(null)}
-          saved={() => {
-            setEdit(null);
+          close={() => setView(null)}
+          saved={(id) => {
+            setView({ check: id });
             load();
           }}
         />
       )}
+      {sel && cat && sel.custom && (
+        <DishSheet
+          {...p}
+          item={sel}
+          cat={cat}
+          close={() => setView(null)}
+          saved={(id, live) => {
+            setView(live ? null : { check: id });
+            load();
+          }}
+        />
+      )}
+      {sel && cat && !sel.custom && <EditSheet {...p} item={sel} cat={cat} close={() => setView(null)} saved={done} />}
     </section>
   );
 }
@@ -230,6 +391,7 @@ export function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => 
           <button className="btn o" onClick={p.close}>
             Cancel
           </button>
+          <HideButton {...p} item={item} done={p.saved} onError={setErr} />
         </div>
       </div>
     </>

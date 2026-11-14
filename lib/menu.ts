@@ -40,6 +40,10 @@ export interface MenuItem {
   groups: string[]; // ModGroup ids
   notes: boolean; // kitchen notes allowed
   soldOut?: boolean; // set from the owner's dashboard for today only (see Catalog)
+  custom?: boolean; // added by the owner from the dashboard (not in this file)
+  // Only in the owner's full catalog (mergeCatalog(o, true)); the kiosk's catalog never contains these.
+  hidden?: boolean; // taken off the menu by the owner; can be brought back
+  draft?: boolean; // an owner-made dish that hasn't been published yet
 }
 
 export interface KitchenNote {
@@ -212,6 +216,11 @@ export const ITEMS: MenuItem[] = [
 // Items with a real photo in /public/food. Filter coffee is waiting for the restaurant's own photo.
 const PHOTOS = new Set(ITEMS.map((i) => i.id).filter((id) => id !== 'filter-coffee' && id !== 'test-1'));
 export const placeholderOf = (id: string) => ITEMS.find((i) => i.id === id)?.placeholder ?? 'Coffee';
+// The same two for a dish from a catalog, which may be one the owner added (its photo is a URL).
+export const photoFor = (item: Pick<MenuItem, 'id' | 'photo'> | undefined) =>
+  item ? (item.photo ?? photoOf(item.id)) : undefined;
+export const placeholderFor = (item: Pick<MenuItem, 'id' | 'name' | 'placeholder' | 'custom'> | undefined) =>
+  !item ? '' : item.custom ? item.name.split(' ').slice(0, 2).join(' ') : (item.placeholder ?? 'Coffee');
 // Items the kiosk shows: test-only ones appear only in test mode.
 export const visibleItems = (testMode: boolean, cat: Catalog) => cat.items.filter((i) => testMode || !i.testOnly);
 export const photoOf = (id: string) => (PHOTOS.has(id) ? `/food/${id}.jpg` : undefined);
@@ -226,10 +235,27 @@ export interface ItemOverride {
   price?: number | null;
   soldOut?: boolean;
 }
+// A dish the owner added from the dashboard. It lives in the database (menu_dishes), not in this file.
+export const CUSTOM_CATS = ['dosa', 'idli', 'drinks'] as const;
+export interface CustomItem {
+  id: string; // "c-" + random letters and digits
+  cat: (typeof CUSTOM_CATS)[number];
+  name: string;
+  desc: string;
+  price: number;
+  groups: string[]; // ModGroup ids from GROUPS
+  photo: string | null; // URL of the uploaded photo
+  live: boolean; // false = draft, only the owner sees it
+}
+export const isCustomId = (id: unknown): id is string => typeof id === 'string' && /^c-[a-z0-9]{6,12}$/.test(id);
+
 export interface Overrides {
   items: Record<string, ItemOverride>;
-  options: Record<string, number>;
-} // options: "group:option" → price
+  options: Record<string, number>; // "group:option" → price
+  custom?: CustomItem[]; // the owner's own dishes
+  hidden?: string[]; // dish ids taken off the menu
+  order?: string[]; // dish ids in the order the owner arranged them; the rest follow in their usual order
+}
 export interface Catalog {
   items: MenuItem[];
   groups: Record<string, ModGroup>;
@@ -238,12 +264,37 @@ export interface Catalog {
 export const BASE_CATALOG: Catalog = { items: ITEMS, groups: GROUPS };
 export const optionKey = (groupId: string, optionId: string) => `${groupId}:${optionId}`;
 
-export function mergeCatalog(o: Overrides): Catalog {
-  const items = ITEMS.map((i) => {
-    const x = o.items[i.id];
-    if (!x) return i;
-    return { ...i, name: x.name || i.name, desc: x.desc || i.desc, price: x.price ?? i.price, soldOut: !!x.soldOut };
-  });
+// What customers can order: hidden dishes and drafts are left out, so the kiosk can't show them and
+// the server can't price them. `all` = the owner's view, with those included and marked.
+export function mergeCatalog(o: Overrides, all = false): Catalog {
+  const own: MenuItem[] = (o.custom ?? []).map((c) => ({
+    id: c.id,
+    cat: c.cat,
+    name: c.name,
+    desc: c.desc,
+    price: c.price,
+    photo: c.photo ?? undefined,
+    groups: c.groups.filter((g) => Object.hasOwn(GROUPS, g)),
+    notes: c.cat !== 'drinks',
+    custom: true,
+    draft: !c.live,
+  }));
+  const hidden = new Set(o.hidden ?? []);
+  const place = new Map((o.order ?? []).map((id, n) => [id, n]));
+  const items = [...ITEMS, ...own]
+    .map((i, n) => {
+      const x = o.items[i.id];
+      const it: MenuItem = { ...i };
+      if (hidden.has(i.id)) it.hidden = true;
+      if (x) {
+        it.soldOut = !!x.soldOut;
+        if (!i.custom) Object.assign(it, { name: x.name || i.name, desc: x.desc || i.desc, price: x.price ?? i.price });
+      }
+      return { it, at: place.get(i.id) ?? 1e6 + n };
+    })
+    .sort((a, b) => a.at - b.at)
+    .map((x) => x.it)
+    .filter((i) => all || (!i.hidden && !i.draft));
   const groups: Record<string, ModGroup> = {};
   for (const [gid, g] of Object.entries(GROUPS)) {
     groups[gid] = {
@@ -260,7 +311,12 @@ export const itemById = (id: string, cat: Catalog = BASE_CATALOG) => cat.items.f
 
 // Kitchen notes the item sheet offers for an item.
 export const notesFor = (item: MenuItem) =>
-  item.notes ? NOTES.filter((n) => !n.items || n.items.includes(item.id)) : [];
+  item.notes
+    ? NOTES.filter(
+        // a dosa the owner added is made on the tawa like the others: it takes the same two notes
+        (n) => !n.items || n.items.includes(item.id) || (item.custom && item.cat === 'dosa' && n.items === FRIED),
+      )
+    : [];
 
 // Tone of a choice on an order, looked up by id so orders saved before tones existed still colour correctly.
 export const optionTone = (groupId: string, id: string): Tone | undefined =>

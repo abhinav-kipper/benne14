@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Customer, DiscountCode, DiscountRule, KioskSettings } from './discounts';
 import type { CartLine } from './pricing';
-import type { Overrides } from './menu';
+import type { CustomItem, Overrides } from './menu';
 import type { AdminEvent, Order, OrderEvent, OrderStatus, OrderType, PayMethod } from './orders';
 import type { Summary } from './reports';
 import { BUILD_ID } from './version';
@@ -318,6 +318,29 @@ export const admin = {
       options?: { groupId: string; optionId: string; price: number }[];
     },
   ) => call('/api/admin/menu', { method: 'POST', body: JSON.stringify(b), headers: pinHeader(pin) }),
+  // The owner's whole menu (drafts and hidden dishes included) and one change to it at a time.
+  dishes: (pin: string) => call<Overrides>('/api/admin/dishes', { headers: pinHeader(pin) }),
+  menuChange: (
+    pin: string,
+    b:
+      | { dish: Omit<CustomItem, 'id' | 'live'> & { id?: string } }
+      | { publish: string }
+      | { discard: string }
+      | { hide: string }
+      | { show: string }
+      | { order: string[] },
+  ) =>
+    call<{ dish?: CustomItem }>('/api/admin/dishes', {
+      method: 'POST',
+      body: JSON.stringify(b),
+      headers: pinHeader(pin),
+    }),
+  photo: (pin: string, jpeg: Blob) =>
+    call<{ url: string }>('/api/admin/photo', {
+      method: 'POST',
+      body: jpeg,
+      headers: { ...pinHeader(pin), 'Content-Type': 'image/jpeg' },
+    }),
   refund: (pin: string, id: string, reason: string) =>
     call<Order>(`/api/admin/orders/${id}/refund`, {
       method: 'POST',

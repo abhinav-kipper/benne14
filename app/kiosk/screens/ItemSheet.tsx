@@ -31,10 +31,10 @@ export function ItemSheet({
   const [notes, setNotes] = useState<string[]>(editing?.notes ?? []);
   const [pair, setPair] = useState(false);
   const line: CartLine = { itemId, qty, choices, notes };
-  const total = priceLine(line, catalog).lineTotal + (pair ? itemById(PAIRING, catalog)!.price : 0);
+  const total = priceLine(line, catalog).lineTotal + (pair ? (itemById(PAIRING, catalog)?.price ?? 0) : 0);
+  const pairing = itemById(PAIRING, catalog); // undefined when the owner has hidden it
   const showPair =
-    item.id !== PAIRING && item.cat !== 'drinks' && !pairingInCart && !editing && !itemById(PAIRING, catalog)?.soldOut;
-  const pairing = itemById(PAIRING, catalog)!;
+    !!pairing && item.id !== PAIRING && item.cat !== 'drinks' && !pairingInCart && !editing && !pairing.soldOut;
 
   const pick = (g: string, id: string) =>
     setChoices((c) => {
@@ -161,7 +161,7 @@ export function ItemSheet({
             <span>{qty}</span>
             <button onClick={() => setQty((q) => Math.min(20, q + 1))}>+</button>
           </div>
-          <button className="btn-benne" onClick={() => onAdd(line, pair)} data-testid="add-to-order">
+          <button className="btn-benne" onClick={() => onAdd(line, pair && showPair)} data-testid="add-to-order">
             <span>{editing ? 'Update order' : 'Add to order'}</span>
             <span className="amt">₹{total}</span>
           </button>

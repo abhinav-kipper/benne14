@@ -1,7 +1,7 @@
 // Supabase-backed store. Server only: uses the service role key; tables have RLS with no public policies.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
-import { optionKey, type Overrides } from '../menu';
+import { CUSTOM_CATS, optionKey, type CustomItem, type Overrides } from '../menu';
 import type { MenuEdit } from './index';
 import {
   canMove,
@@ -49,6 +49,18 @@ interface Row {
   refunded_at?: string | null;
   refund_reason?: string | null;
   refund_amount?: string | number | null;
+}
+
+export const PHOTO_BUCKET = 'dish-photos';
+interface DishRow {
+  id: string;
+  cat: string;
+  name: string;
+  description: string;
+  price: number;
+  groups: unknown;
+  photo: string | null;
+  live: boolean;
 }
 
 // A table or function from a migration that hasn't been run yet.
@@ -370,7 +382,83 @@ export class SupabaseStore {
     }
     for (const r of options.data as { group_id: string; option_id: string; price: number }[])
       out.options[optionKey(r.group_id, r.option_id)] = r.price;
+
+    // The owner's own dishes and the layout (migration 0009). Before it is run: none.
+    const [dishes, layout] = await Promise.all([
+      this.db.from('menu_dishes').select('id,cat,name,description,price,groups,photo,live').order('created_at'),
+      this.db.from('menu_layout').select('hidden,item_order').eq('id', 1).maybeSingle(),
+    ]);
+    if (missing(dishes.error) || missing(layout.error)) return out;
+    if (dishes.error) throw new StoreError(dishes.error.message, 500);
+    if (layout.error) throw new StoreError(layout.error.message, 500);
+    const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+    out.custom = (dishes.data as DishRow[])
+      .filter((r) => (CUSTOM_CATS as readonly string[]).includes(r.cat))
+      .map((r) => ({
+        id: r.id,
+        cat: r.cat as CustomItem['cat'],
+        name: r.name,
+        desc: r.description,
+        price: r.price,
+        groups: strings(r.groups),
+        photo: r.photo,
+        live: r.live,
+      }));
+    out.hidden = strings((layout.data as { hidden: unknown } | null)?.hidden);
+    out.order = strings((layout.data as { item_order: unknown } | null)?.item_order);
     return out;
+  }
+
+  private needs0009(error: { code?: string } | null) {
+    if (!missing(error)) return;
+    console.error('menu_dishes/menu_layout missing: run supabase/migrations/0009_owner_dishes.sql');
+    throw new StoreError('Adding dishes needs a database update (migration 0009)', 503);
+  }
+
+  async saveDish(d: CustomItem, event: Omit<AdminEvent, 'at'> | null) {
+    const { error } = await this.db.from('menu_dishes').upsert({
+      id: d.id,
+      cat: d.cat,
+      name: d.name,
+      description: d.desc,
+      price: d.price,
+      groups: d.groups,
+      photo: d.photo,
+      live: d.live,
+      updated_at: new Date().toISOString(),
+    });
+    this.needs0009(error);
+    if (error) throw storeError(error);
+    if (event) await this.addEvent(event);
+  }
+
+  async deleteDish(id: string, event: Omit<AdminEvent, 'at'>) {
+    const { data, error } = await this.db.from('menu_dishes').delete().eq('id', id).select('id');
+    this.needs0009(error);
+    if (error) throw new StoreError(error.message, 500);
+    if (!(data as unknown[]).length) throw new StoreError('No such dish', 404);
+    await this.addEvent(event);
+  }
+
+  async saveLayout(patch: { hidden?: string[]; order?: string[] }, event: Omit<AdminEvent, 'at'> | null) {
+    const row: Record<string, unknown> = { id: 1, updated_at: new Date().toISOString() };
+    if (patch.hidden) row.hidden = patch.hidden;
+    if (patch.order) row.item_order = patch.order;
+    const { error } = await this.db.from('menu_layout').upsert(row);
+    this.needs0009(error);
+    if (error) throw storeError(error);
+    if (event) await this.addEvent(event);
+  }
+
+  async savePhoto(jpeg: Uint8Array) {
+    const path = `${istDay()}/${crypto.randomUUID()}.jpg`;
+    const bucket = this.db.storage.from(PHOTO_BUCKET);
+    const { error } = await bucket.upload(path, jpeg, { contentType: 'image/jpeg', cacheControl: '31536000' });
+    if (error) {
+      console.error('dish photo upload failed', error.message);
+      throw new StoreError('The photo could not be stored (has migration 0009 been run?)', 503);
+    }
+    return bucket.getPublicUrl(path).data.publicUrl;
   }
 
   async saveMenuEdit(e: MenuEdit) {

@@ -25,7 +25,7 @@ const sameChoices = (a: CartLine, b: CartLine) =>
 export default function Kiosk({ mock = false, testMode = false }: { mock?: boolean; testMode?: boolean }) {
   const [screen, setScreen] = useState<Screen>('home');
   const [type, setType] = useState<OrderType | null>(null); // asked at the end, in the cart
-  const [lines, setLines] = useState<Line[]>([]);
+  const [cartLines, setLines] = useState<Line[]>([]);
   const [sheet, setSheet] = useState<{ itemId: string; editing?: string } | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -42,6 +42,11 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   // The owner's changes (prices, names, sold out) are picked up each time the kiosk shows the start
   // screen, i.e. for every new customer. If it can't load, the kiosk keeps the last menu it had.
   const { catalog, reload: loadMenu } = useMenu();
+  // A dish the owner takes off the menu while it sits in a cart simply leaves the cart.
+  const lines = useMemo(
+    () => cartLines.filter((l) => catalog.items.some((i) => i.id === l.itemId)),
+    [cartLines, catalog],
+  );
   useEffect(() => {
     if (screen !== 'home') return;
     loadMenu();
@@ -225,7 +230,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
         )}
         {screen === 'done' && orderId && <Done orderId={orderId} first={placed} onDone={reset} />}
 
-        {sheet && (
+        {sheet && catalog.items.some((i) => i.id === sheet.itemId) && (
           <ItemSheet
             key={sheet.itemId + (sheet.editing ?? '')}
             itemId={sheet.itemId}
