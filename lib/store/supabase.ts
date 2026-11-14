@@ -1,8 +1,8 @@
 // Supabase-backed store. Server only: uses the service role key; tables have RLS with no public policies.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
-import { CUSTOM_CATS, optionKey, type CustomItem, type Overrides } from '../menu';
-import type { MenuEdit } from './index';
+import { optionKey, type CustomItem, type Overrides, type SectionsLayout } from '../menu';
+import type { LayoutPatch, MenuEdit } from './index';
 import {
   canMove,
   tickProblem,
@@ -92,6 +92,9 @@ const eventRow = (v: Omit<AdminEvent, 'at'>) => ({
   after: v.after ?? null,
   note: v.note ?? null,
 });
+
+// A column from a migration that hasn't been run yet (Postgres, or PostgREST's own check of the request).
+const noColumn = (e: { code?: string } | null) => e?.code === '42703' || e?.code === 'PGRST204';
 
 // The database's own guard (migration 0006) refused the change: it is a conflict, not a crash.
 const storeError = (e: { message: string; code?: string }) =>
@@ -384,28 +387,32 @@ export class SupabaseStore {
       out.options[optionKey(r.group_id, r.option_id)] = r.price;
 
     // The owner's own dishes and the layout (migration 0009). Before it is run: none.
-    const [dishes, layout] = await Promise.all([
+    const [dishes, first] = await Promise.all([
       this.db.from('menu_dishes').select('id,cat,name,description,price,groups,photo,live').order('created_at'),
-      this.db.from('menu_layout').select('hidden,item_order').eq('id', 1).maybeSingle(),
+      this.db.from('menu_layout').select('hidden,item_order,sections').eq('id', 1).maybeSingle(),
     ]);
+    // Before migration 0010 the layout has no sections column: read the rest.
+    const layout: { data: unknown; error: typeof first.error } = noColumn(first.error)
+      ? await this.db.from('menu_layout').select('hidden,item_order').eq('id', 1).maybeSingle()
+      : first;
     if (missing(dishes.error) || missing(layout.error)) return out;
     if (dishes.error) throw new StoreError(dishes.error.message, 500);
     if (layout.error) throw new StoreError(layout.error.message, 500);
     const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
-    out.custom = (dishes.data as DishRow[])
-      .filter((r) => (CUSTOM_CATS as readonly string[]).includes(r.cat))
-      .map((r) => ({
-        id: r.id,
-        cat: r.cat as CustomItem['cat'],
-        name: r.name,
-        desc: r.description,
-        price: r.price,
-        groups: strings(r.groups),
-        photo: r.photo,
-        live: r.live,
-      }));
+    out.custom = (dishes.data as DishRow[]).map((r) => ({
+      id: r.id,
+      cat: r.cat,
+      name: r.name,
+      desc: r.description,
+      price: r.price,
+      groups: strings(r.groups),
+      photo: r.photo,
+      live: r.live,
+    }));
     out.hidden = strings((layout.data as { hidden: unknown } | null)?.hidden);
     out.order = strings((layout.data as { item_order: unknown } | null)?.item_order);
+    const sec = (layout.data as { sections?: unknown } | null)?.sections;
+    out.sections = sec && typeof sec === 'object' && !Array.isArray(sec) ? (sec as SectionsLayout) : {};
     return out;
   }
 
@@ -440,11 +447,16 @@ export class SupabaseStore {
     await this.addEvent(event);
   }
 
-  async saveLayout(patch: { hidden?: string[]; order?: string[] }, event: Omit<AdminEvent, 'at'> | null) {
+  async saveLayout(patch: LayoutPatch, event: Omit<AdminEvent, 'at'> | null) {
     const row: Record<string, unknown> = { id: 1, updated_at: new Date().toISOString() };
     if (patch.hidden) row.hidden = patch.hidden;
     if (patch.order) row.item_order = patch.order;
+    if (patch.sections) row.sections = patch.sections;
     const { error } = await this.db.from('menu_layout').upsert(row);
+    if (noColumn(error)) {
+      console.error('menu_layout.sections missing: run supabase/migrations/0010_owner_sections.sql');
+      throw new StoreError('Sections need a database update (migration 0010)', 503);
+    }
     this.needs0009(error);
     if (error) throw storeError(error);
     if (event) await this.addEvent(event);

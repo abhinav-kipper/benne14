@@ -733,3 +733,126 @@ test('dishes API: PIN, bad input, drafts, photos', async ({ request }) => {
   await dishes(request, { hide: live.id });
   await dishes(request, { order: [] });
 });
+
+// ---- The owner's sections: add, rename, reorder, hide; a dish in an owner-made section ----
+test('owner adds a section, puts a dish in it, renames, reorders and hides sections; the kiosk follows', async ({
+  page,
+  request,
+  browser,
+}) => {
+  await owner(page);
+  await page.getByTestId('tab-menu').click();
+  await page.getByTestId('open-sections').click();
+  const sheet = page.getByTestId('sections-sheet');
+  await page.getByTestId('sec-add').click();
+  await expect(page.getByTestId('sec-err')).toContainText('name'); // an empty name is not a section
+  await page.getByTestId('sec-new').fill('Sweets');
+  await page.getByTestId('sec-add').click();
+  await expect(sheet.locator('.sec')).toHaveCount(4);
+  const sections = async () =>
+    (await publicMenu(request)).sections as {
+      custom?: { id: string; name: string }[];
+      hidden?: string[];
+      order?: string[];
+      names?: Record<string, string>;
+    };
+  const sid = (await sections()).custom![0].id;
+  expect(sid).toMatch(/^s-[a-z0-9]{8}$/);
+
+  // rename one that came with the app
+  await page.getByTestId('sec-drinks').locator('.nm').click();
+  await page.getByTestId('sec-rename').fill('Coffee, Tea & More');
+  await page.getByTestId('sec-rename-save').click();
+  await expect(page.getByTestId('sec-drinks')).toContainText('Coffee, Tea & More');
+  expect((await sections()).names).toEqual({ drinks: 'Coffee, Tea & More' });
+
+  // drag the new section from last to first
+  const grip = page.getByTestId(`sec-grip-${sid}`);
+  const box = (await grip.boundingBox())!;
+  const row = (await page.getByTestId(`sec-${sid}`).boundingBox())!;
+  await page.mouse.move(box.x + 8, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 8, box.y + box.height / 2 - row.height * 3.2, { steps: 16 });
+  await page.mouse.up();
+  await expect.poll(async () => (await sections()).order?.[0]).toBe(sid);
+  await page.getByTestId('sec-done').click();
+
+  // the empty section waits on the owner's list with a way to add its first dish
+  await page.getByTestId(`add-to-${sid}`).click();
+  await page.getByTestId('dish-name').fill('Kesari Bath');
+  await page.getByTestId('dish-price').fill('79');
+  await expect(page.getByTestId(`dish-cat-${sid}`)).toHaveAttribute('aria-checked', 'true'); // starts in that section
+  await page.getByTestId('dish-save').click();
+  await expect(page.getByTestId('dish-check')).toContainText('Sweets');
+  await page.getByTestId('dish-publish').click();
+  await expect(page.getByTestId(`mcat-${sid}`)).toContainText('Kesari Bath');
+
+  // the kiosk: Sweets first with its dish, the renamed section under its new name
+  const kiosk = await (await browser.newContext({ viewport: { width: 800, height: 1280 } })).newPage();
+  await kiosk.goto('/kiosk');
+  await kiosk.getByTestId('start').click();
+  const bar = kiosk.locator('.cats .n');
+  await expect(bar.first()).toHaveText('Sweets');
+  await expect(bar).toContainText(['Sweets', 'Dosas', 'Idli & Vada', 'Coffee, Tea & More']);
+  await expect(kiosk.getByText('Kesari Bath').first()).toBeVisible();
+  await kiosk.context().close();
+  const dish = ((await publicMenu(request)).custom as { id: string; name: string }[]).find(
+    (c) => c.name === 'Kesari Bath',
+  )!;
+  expect((await orderIt(request, dish.id)).ok()).toBe(true);
+
+  // switch the section off: it and its dish leave the kiosk and can't be ordered
+  await page.getByTestId('open-sections').click();
+  await page.getByTestId(`sec-sw-${sid}`).click();
+  await expect(page.getByTestId(`sec-${sid}`)).toContainText('off the kiosk');
+  expect((await sections()).hidden).toEqual([sid]);
+  expect((await orderIt(request, dish.id)).status()).toBe(400);
+  await expect(page.getByTestId(`sec-remove-${sid}`)).toHaveCount(0); // it has a dish: not removable
+  await page.getByTestId('sec-done').click();
+  await expect(page.getByTestId(`mcat-${sid}`)).toContainText('Section is off the kiosk');
+});
+
+test('sections API: PIN, bad input, limits, and what can and cannot be removed', async ({ request }) => {
+  expect((await dishes(request, { section: { name: 'Rice' } }, {})).status()).toBe(401);
+  for (const bad of [
+    { section: null },
+    { section: { name: '' } },
+    { section: { name: 'x'.repeat(25) } },
+    { section: { name: 7 } },
+    { section: { name: 'dosas' } }, // already there
+    { sectionOrder: ['dosa', 'dosa'] },
+    { sectionOrder: ['test'] }, // the payment test is not the owner's to move
+    { sectionOrder: 'dosa' },
+    { dish: { cat: 's-nosuch01', name: 'Ghost', desc: '', price: 9, groups: [], photo: null } },
+  ])
+    expect((await dishes(request, bad)).status(), JSON.stringify(bad).slice(0, 80)).toBe(400);
+  for (const b of [
+    { section: { id: 's-nosuch01', name: 'X' } },
+    { hideSection: 'test' },
+    { showSection: 'nope' },
+    { removeSection: 's-nosuch01' },
+  ])
+    expect((await dishes(request, b)).status(), JSON.stringify(b)).toBe(404);
+  expect((await dishes(request, { removeSection: 'dosa' })).status()).toBe(409); // came with the app
+
+  const o = await (await request.get('/api/admin/dishes', { headers: H })).json();
+  const sid = o.sections.custom[0].id as string;
+  expect((await dishes(request, { removeSection: sid })).status()).toBe(409); // still has a dish
+  // an empty one can go
+  const rice = (await (await dishes(request, { section: { name: 'Rice' } })).json()).section;
+  expect((await dishes(request, { removeSection: rice.id })).ok()).toBe(true);
+  // the kiosk always keeps one section
+  for (const id of ['dosa', 'idli']) expect((await dishes(request, { hideSection: id })).ok()).toBe(true);
+  expect((await dishes(request, { hideSection: 'drinks' })).status()).toBe(409);
+  for (const id of ['dosa', 'idli']) expect((await dishes(request, { showSection: id })).ok()).toBe(true);
+  // at most ten
+  const made: string[] = [];
+  for (let n = 0; n < 6; n++)
+    made.push((await (await dishes(request, { section: { name: `Extra ${n}` } })).json()).section.id);
+  expect((await dishes(request, { section: { name: 'One too many' } })).status()).toBe(400);
+  for (const id of made) await dishes(request, { removeSection: id });
+
+  // leave the menu as the other tests expect it
+  await dishes(request, { section: { id: 'drinks', name: 'Coffee & Tea' } });
+  await dishes(request, { sectionOrder: [] });
+});

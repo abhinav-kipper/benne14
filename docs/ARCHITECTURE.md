@@ -31,6 +31,7 @@ supabase/migrations/                SQL, run by hand in order; logged in schema_
 - `token_counters`: last order number per IST day. `place_order()` is the only way orders are created:
   it is idempotent on the checkout key and hands out 1, 2, 3… per day.
 - `menu_dishes`, `menu_layout` (0009): dishes the owner added from the dashboard (drafts until published), which dishes are hidden, and the order of the menu. `mergeCatalog()` merges them with the dishes in code; hidden dishes and drafts are left out of the catalog the kiosk and the server price from. Photos go to the Supabase Storage bucket `dish-photos` through `/api/admin/photo`.
+- `menu_layout.sections` (0010): the owner's own sections, new names, the order of sections and which are hidden, as one JSON value. `mergeSections()` turns it into `catalog.cats`; a dish in a hidden section is left out of the menu like a hidden dish.
 - `menu_overrides`, `option_overrides`: the owner's changes on top of `lib/menu.ts` (price, name,
   description, sold out today; extras' prices). `save_menu_edit()` writes an edit and its history in one transaction.
 - `admin_events`: change history (menu edits, refunds). `schema_migrations`: which SQL files ran.

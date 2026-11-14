@@ -2,7 +2,7 @@
 // The menu: categories on the left, the house special, then every dish with its quick + / − stepper.
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useCatalog } from '@/components/Catalog';
-import { CATEGORIES, visibleItems, type MenuItem } from '@/lib/menu';
+import { visibleItems, type MenuItem } from '@/lib/menu';
 import { Chevron, Photo, type Line } from './shared';
 
 export function MenuScreen(p: {
@@ -19,14 +19,14 @@ export function MenuScreen(p: {
 }) {
   const catalog = useCatalog();
   const items = visibleItems(p.testMode, catalog);
-  const cats = CATEGORIES.filter((c) => items.some((i) => i.cat === c.id));
-  const [active, setActiveState] = useState(cats.find((c) => c.id === p.scrollMemo.current.cat)?.id ?? cats[0].id);
+  const cats = catalog.cats.filter((c) => items.some((i) => i.cat === c.id));
+  const [active, setActiveState] = useState(cats.find((c) => c.id === p.scrollMemo.current.cat)?.id ?? cats[0]?.id);
   const setActive = (id: typeof active) => {
     p.scrollMemo.current.cat = id;
     setActiveState(id);
   };
   const main = useRef<HTMLElement>(null);
-  const sp = items.find((i) => i.special)!;
+  const sp = items.find((i) => i.special); // none when the owner has hidden the house special
 
   // + opens the dish's sheet (extras, notes), so every dish is added the same way and each customised dish is
   // its own line. Once a dish is in the order, the − 1 + stepper adjusts its latest line.
@@ -82,6 +82,7 @@ export function MenuScreen(p: {
     if (!m) return;
     p.scrollMemo.current.top = m.scrollTop;
     if (tapped.current) return;
+    if (!cats.length) return;
     let cur = cats[0].id;
     for (const c of cats) {
       const el = m.querySelector<HTMLElement>(`#cat-${c.id}`);
@@ -96,7 +97,7 @@ export function MenuScreen(p: {
     tapped.current = true;
     setActive(id);
     // the first section starts at the very top, with the house special
-    if (id === cats[0].id) m.scrollTo({ top: 0, behavior: 'smooth' });
+    if (id === cats[0]?.id) m.scrollTo({ top: 0, behavior: 'smooth' });
     else m.querySelector(`#cat-${id}`)?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -129,28 +130,30 @@ export function MenuScreen(p: {
         onPointerDown={() => (tapped.current = false)}
         onWheel={() => (tapped.current = false)}
       >
-        <section
-          className={`hero ${sp.soldOut ? 'out' : ''}`}
-          onClick={() => {
-            if (!sp.soldOut) p.onOpen(sp.id);
-          }}
-          data-testid="hero"
-        >
-          <Photo item={sp} />
-          <div className="txt">
-            <span className="chip">House special</span>
-            <h1 className="disp">{sp.name}</h1>
-            <div className="meta">
-              <p className="hdesc">{sp.desc}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-                <div>
-                  <span className="price">₹{sp.price}</span>
+        {sp && (
+          <section
+            className={`hero ${sp.soldOut ? 'out' : ''}`}
+            onClick={() => {
+              if (!sp.soldOut) p.onOpen(sp.id);
+            }}
+            data-testid="hero"
+          >
+            <Photo item={sp} />
+            <div className="txt">
+              <span className="chip">House special</span>
+              <h1 className="disp">{sp.name}</h1>
+              <div className="meta">
+                <p className="hdesc">{sp.desc}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+                  <div>
+                    <span className="price">₹{sp.price}</span>
+                  </div>
+                  {stepper(sp)}
                 </div>
-                {stepper(sp)}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
         <section className="list">
           {cats.map((c, n) => (
             <div key={c.id}>

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { adminDenied, cleanPrice, cleanText } from '@/lib/admin';
-import { CUSTOM_CATS, GROUPS, mergeCatalog, type CustomItem } from '@/lib/menu';
+import { GROUPS, TEST_CAT, mergeCatalog, mergeSections, type CustomItem, type SectionsLayout } from '@/lib/menu';
 import type { AdminEvent } from '@/lib/orders';
 import { getStore, type Store } from '@/lib/store';
 import { BadRequest, fail, json, readJson } from '@/lib/server';
@@ -8,6 +8,7 @@ import { BadRequest, fail, json, readJson } from '@/lib/server';
 export const dynamic = 'force-dynamic';
 
 const MAX_DISHES = 100;
+const MAX_SECTIONS = 10; // what the kiosk's section bar holds comfortably
 type Event = Omit<AdminEvent, 'at'>;
 
 // The owner's whole menu, drafts and hidden dishes included (the public /api/menu leaves drafts out).
@@ -41,6 +42,9 @@ function cleanPhoto(v: unknown, store: Store): string | null {
 // { publish: id }   a draft goes on the menu          { discard: id }  a draft is thrown away
 // { hide: id }      off the menu, kept for later      { show: id }     back on the menu
 // { order: [ids] }  the dishes in the order the owner arranged them
+// { section: { id?, name } }  add a section, or rename one   { removeSection: id }  an empty one the owner added
+// { hideSection: id } / { showSection: id }  a section and its dishes off / back on the kiosk
+// { sectionOrder: [ids] }  the sections in the owner's order
 export async function POST(req: Request) {
   const denied = adminDenied(req);
   if (denied) return denied;
@@ -51,6 +55,9 @@ export async function POST(req: Request) {
     const custom = o.custom ?? [];
     const all = mergeCatalog(o, true).items.filter((i) => !i.testOnly);
     const find = (id: unknown) => custom.find((c) => c.id === id);
+    // every section the owner can put a dish in or change (never the payment test)
+    const sections = mergeSections(o.sections, true).filter((c) => c.id !== TEST_CAT);
+    const lay: SectionsLayout = o.sections ?? {};
 
     if (b.dish !== undefined) {
       const d = (b.dish ?? {}) as Record<string, unknown>;
@@ -61,7 +68,7 @@ export async function POST(req: Request) {
       if (!name) return json({ error: 'The dish needs a name' }, 400);
       const price = cleanPrice(d.price, 'Price');
       if (price == null) return json({ error: 'Price must be a whole number of rupees above 0' }, 400);
-      const cat = CUSTOM_CATS.find((c) => c === d.cat);
+      const cat = sections.find((c) => c.id === d.cat)?.id;
       if (!cat) return json({ error: 'Pick a section' }, 400);
       const groups = d.groups ?? [];
       if (
@@ -146,6 +153,84 @@ export async function POST(req: Request) {
       )
         return json({ error: 'Bad order' }, 400);
       await store.saveLayout({ order: ids as string[] }, null);
+      return json({ order: ids });
+    }
+
+    if (b.section !== undefined) {
+      const s = (b.section ?? {}) as Record<string, unknown>;
+      const was = s.id === undefined ? undefined : sections.find((c) => c.id === s.id);
+      if (s.id !== undefined && !was) return json({ error: 'No such section' }, 404);
+      const name = cleanText(s.name, 24, 'Name');
+      if (!name) return json({ error: 'The section needs a name' }, 400);
+      if (sections.some((c) => c.id !== was?.id && c.name.toLowerCase() === name.toLowerCase()))
+        return json({ error: `There is already a section called ${name}` }, 400);
+      if (!was && sections.length >= MAX_SECTIONS) return json({ error: `At most ${MAX_SECTIONS} sections` }, 400);
+      const id = was?.id ?? `s-${randomBytes(6).toString('hex').slice(0, 8)}`;
+      const next: SectionsLayout = was?.custom
+        ? { ...lay, custom: (lay.custom ?? []).map((c) => (c.id === id ? { id, name } : c)) }
+        : was
+          ? { ...lay, names: { ...lay.names, [id]: name } }
+          : { ...lay, custom: [...(lay.custom ?? []), { id, name }] };
+      if (was?.name !== name)
+        await store.saveLayout(
+          { sections: next },
+          was
+            ? { kind: 'name', subject: name, before: was.name, after: name }
+            : { kind: 'menu', subject: name, after: 'New section' },
+        );
+      return json({ section: { id, name } });
+    }
+
+    if (b.removeSection !== undefined) {
+      const s = sections.find((c) => c.id === b.removeSection);
+      if (!s) return json({ error: 'No such section' }, 404);
+      if (!s.custom) return json({ error: `${s.name} came with the app: hide it instead` }, 409);
+      if (mergeCatalog(o, true).items.some((i) => i.cat === s.id))
+        return json({ error: `Move or discard the dishes in ${s.name} first` }, 409);
+      const drop = (ids?: string[]) => (ids ?? []).filter((id) => id !== s.id);
+      await store.saveLayout(
+        {
+          sections: {
+            ...lay,
+            custom: (lay.custom ?? []).filter((c) => c.id !== s.id),
+            order: drop(lay.order),
+            hidden: drop(lay.hidden),
+          },
+        },
+        { kind: 'menu', subject: s.name, after: 'Section removed' },
+      );
+      return json({ removed: s.id });
+    }
+
+    if (b.hideSection !== undefined || b.showSection !== undefined) {
+      const hide = b.hideSection !== undefined;
+      const s = sections.find((c) => c.id === (hide ? b.hideSection : b.showSection));
+      if (!s) return json({ error: 'No such section' }, 404);
+      const hidden = new Set(lay.hidden ?? []);
+      if (hide && sections.filter((c) => !c.hidden).length <= 1 && !s.hidden)
+        return json({ error: 'The kiosk needs at least one section' }, 409);
+      if (hidden.has(s.id) !== hide) {
+        if (hide) hidden.add(s.id);
+        else hidden.delete(s.id);
+        await store.saveLayout(
+          { sections: { ...lay, hidden: [...hidden] } },
+          { kind: 'menu', subject: s.name, after: hide ? 'Section hidden from the menu' : 'Section back on the menu' },
+        );
+      }
+      return json({ hidden: [...hidden] });
+    }
+
+    if (b.sectionOrder !== undefined) {
+      const ids = b.sectionOrder;
+      const known = new Set(sections.map((c) => c.id));
+      if (
+        !Array.isArray(ids) ||
+        ids.length > MAX_SECTIONS ||
+        new Set(ids).size !== ids.length ||
+        !ids.every((id) => typeof id === 'string' && known.has(id))
+      )
+        return json({ error: 'Bad order' }, 400);
+      await store.saveLayout({ sections: { ...lay, order: ids as string[] } }, null);
       return json({ order: ids });
     }
 

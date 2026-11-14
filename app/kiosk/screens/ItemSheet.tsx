@@ -69,7 +69,9 @@ export function ItemSheet({
         <div className="body">
           <p className="desc hdesc">
             {item.desc}
-            {item.cat !== 'drinks' && <span className="incl">Comes with coconut chutney &amp; sambar</span>}
+            {(item.cat === 'dosa' || item.cat === 'idli') && (
+              <span className="incl">Comes with coconut chutney &amp; sambar</span>
+            )}
           </p>
           {item.groups.map((gid) => {
             const g = catalog.groups[gid];

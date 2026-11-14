@@ -344,6 +344,20 @@ describe('database (supabase/migrations)', () => {
       expect(log.rows.map((r) => r.to_status)).toEqual(['new', 'cooking']); // the start is in the order's history
     });
 
+    it("an owner's dish can sit in an owner's section, and nowhere made up (0010)", async () => {
+      const dish = (id: string, cat: string) =>
+        db.query("insert into menu_dishes (id, cat, name, price) values ($1, $2, 'Kesari Bath', 79)", [id, cat]);
+      await dish('c-kesari0001', 's-sweets01');
+      await dish('c-kesari0002', 'drinks');
+      await expect(dish('c-kesari0003', 'test')).rejects.toThrow();
+      await expect(dish('c-kesari0004', "x'; drop table orders; --")).rejects.toThrow();
+      await db.query(
+        'insert into menu_layout (id, sections) values (1, \'{"hidden": ["idli"]}\') on conflict (id) do update set sections = excluded.sections',
+      );
+      await expect(db.query("update menu_layout set sections = '[]' where id = 1")).rejects.toThrow();
+      await db.exec('delete from menu_dishes; delete from menu_layout');
+    });
+
     it('logs every change of state by itself, in order', async () => {
       const o = await place('log-order-1', 'upi');
       for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'])

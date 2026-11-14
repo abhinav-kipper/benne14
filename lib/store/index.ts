@@ -2,7 +2,7 @@
 // (and tests pass) with no database. Only server code imports this.
 import 'server-only';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
-import type { CustomItem, Overrides } from '../menu';
+import type { CustomItem, Overrides, SectionsLayout } from '../menu';
 import type { AdminEvent, GatewayPayment, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
 import { MemoryStore, StoreError } from './memory';
 import { SupabaseStore } from './supabase';
@@ -41,7 +41,8 @@ export interface Store {
   // custom (drafts included), hidden, order. Before 0009 is run there are none and these refuse (503).
   saveDish(d: CustomItem, event: Omit<AdminEvent, 'at'> | null): Promise<void>; // creates or replaces by id
   deleteDish(id: string, event: Omit<AdminEvent, 'at'>): Promise<void>; // 404 if there is no such dish
-  saveLayout(patch: { hidden?: string[]; order?: string[] }, event: Omit<AdminEvent, 'at'> | null): Promise<void>;
+  // `sections` (migration 0010) replaces the whole sections layout; the other two are left alone.
+  saveLayout(patch: LayoutPatch, event: Omit<AdminEvent, 'at'> | null): Promise<void>;
   savePhoto(jpeg: Uint8Array): Promise<string>; // stores a dish photo, returns the URL to show it from
   addEvent(e: Omit<AdminEvent, 'at'>): Promise<void>;
   listEvents(limit?: number): Promise<AdminEvent[]>; // newest first
@@ -56,6 +57,12 @@ export interface Store {
   saveSettings(patch: Partial<KioskSettings>, events: Omit<AdminEvent, 'at'>[]): Promise<KioskSettings>;
   listCustomers(): Promise<Customer[]>; // phone numbers on paid orders, latest order first
   appliedMigrations(): Promise<string[]>; // names recorded in schema_migrations ([] before 0004 is run)
+}
+
+export interface LayoutPatch {
+  hidden?: string[];
+  order?: string[];
+  sections?: SectionsLayout;
 }
 
 // undefined = leave as is; null = back to the menu in code.
