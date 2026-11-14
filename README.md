@@ -39,7 +39,4 @@ Database changes are SQL files in `supabase/migrations/`, pasted into the Supaba
 
 ## Design history
 
-`prototype/` holds the original static HTML screens and the walkthrough video from before the app was
-built (dark theme, Hindi text, old "A-001" numbers). The app has moved on from it; the running app is
-the design reference now. Food photos are placeholders from Wikimedia Commons (credits in
-`public/food/CREDITS.tsv`) until the restaurant's own photos are shot.
+Dish photos in `public/food` are free stock photos from Pexels and Unsplash, cropped to 1400×1400 (sources and licences: `public/food/CREDITS.tsv`), until the restaurant's own photos are shot.
