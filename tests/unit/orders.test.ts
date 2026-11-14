@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { cleanName, formatToken, istDay, plainToken } from '@/lib/orders';
+import { allGiven, cleanName, formatToken, givenOf, istDay, plainToken, tickProblem, type Order } from '@/lib/orders';
+
+describe('kitchen ticks', () => {
+  const order = (given: unknown, status: Order['status'] = 'cooking') =>
+    ({ token: '7', status, lines: [{ qty: 3 }, { qty: 1 }], given }) as unknown as Order;
+  it('reads one whole number per line, whatever was stored', () => {
+    expect(givenOf(order(undefined))).toEqual([0, 0]);
+    expect(givenOf(order([2]))).toEqual([2, 0]);
+    expect(givenOf(order([9, -4, 5]))).toEqual([3, 0]); // never more than ordered, never below zero
+    expect(givenOf(order(['x', 1.7]))).toEqual([0, 1]);
+  });
+  it('knows when the whole order has gone out', () => {
+    expect(allGiven(order([3, 0]))).toBe(false);
+    expect(allGiven(order([3, 1]))).toBe(true);
+  });
+  it('refuses a tick that makes no sense', () => {
+    expect(tickProblem(order([]), 0, 3)).toBeNull();
+    expect(tickProblem(order([], 'new'), 1, 1)).toBeNull();
+    expect(tickProblem(order([]), 0, 4)?.status).toBe(400);
+    expect(tickProblem(order([]), 2, 1)?.status).toBe(400);
+    expect(tickProblem(order([]), 0, 1.5)?.status).toBe(400);
+    expect(tickProblem(order([], 'ready'), 0, 1)?.status).toBe(409);
+    expect(tickProblem(order([], 'awaiting_cash'), 0, 1)?.status).toBe(409);
+  });
+});
 
 describe('order numbers', () => {
   it('are plain numbers', () => {

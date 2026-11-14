@@ -110,6 +110,22 @@ test('staff actions need the PIN; unknown or malformed ids are 404', async ({ re
     expect((await request.get(`/api/orders/${encodeURIComponent(id)}`)).status()).toBe(404);
     expect((await request.get(`/api/orders/${encodeURIComponent(id)}/upi`)).status()).toBe(404);
   }
+  // kitchen ticks: PIN, a real order, whole numbers within what was ordered, and only once it is paid
+  const given = (id: string, data: unknown, pin = PIN) =>
+    request.post(`/api/orders/${id}/given`, { data: data as object, headers: { 'x-staff-pin': pin } });
+  expect((await request.post(`/api/orders/${o.id}/given`, { data: { line: 0, count: 1 } })).status()).toBe(401);
+  expect((await given(NIL, { line: 0, count: 1 })).status()).toBe(404);
+  expect((await given('abc', { line: 0, count: 1 })).status()).toBe(404);
+  for (const bad of [
+    {},
+    { line: 0 },
+    { line: '0', count: 1 },
+    { line: 0, count: 1.5 },
+    { line: -1, count: 1 },
+    { line: 0, count: 1e9 },
+  ])
+    expect((await given(o.id, bad)).status(), JSON.stringify(bad)).toBe(400);
+  expect((await given(o.id, { line: 0, count: 1 })).status()).toBe(409); // not paid yet
   expect((await status(request, o.id, { to: 'pending_payment' })).status()).toBe(400); // staff can't "unpay"
   expect((await status(request, o.id, { to: 'cooking' })).status()).toBe(409); // must be paid first
 });

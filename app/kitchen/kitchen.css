@@ -255,6 +255,59 @@
   color: var(--ink);
   box-shadow: inset 0 0 0 2px var(--ink);
 }
+/* Ticks: a tap on a line marks one more of it as given; a hold takes one back. */
+.chit .ln {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.chit .ln:active .qty {
+  transform: scale(0.92);
+}
+.chit .ln .qty svg {
+  width: 26px;
+  height: 26px;
+}
+.chit .ln.given .qty,
+.chit .ln.given .qty.one {
+  background: var(--ok);
+  color: #fff;
+  box-shadow: none;
+}
+.chit .ln.given .nm {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  opacity: 0.45;
+}
+.chit .ln.given .tags {
+  opacity: 0.45;
+}
+.chit .gv {
+  margin-top: 5px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ok);
+}
+.chit .go.all {
+  animation: allgiven 1.4s ease-in-out infinite;
+}
+@keyframes allgiven {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(62, 124, 81, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(62, 124, 81, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chit .go.all {
+    animation: none;
+    box-shadow: 0 0 0 5px rgba(62, 124, 81, 0.35);
+  }
+}
 .chit .ln > div {
   min-width: 0;
 }

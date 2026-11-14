@@ -9,4 +9,5 @@ export const MIGRATIONS = [
   '0005_discount_codes_and_phone',
   '0006_order_integrity',
   '0007_gateway_payments',
+  '0008_given_ticks',
 ];

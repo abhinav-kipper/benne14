@@ -75,6 +75,27 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       await expect(s.setStatus('00000000-0000-0000-0000-000000000000', 'new')).rejects.toMatchObject({ status: 404 });
     });
 
+    it('keeps kitchen ticks per line, only for orders in the kitchen, and a tick starts the order', async () => {
+      const o = await s.placeOrder(input()); // one line: 2 × Masala Dosa
+      expect(o.given ?? []).toEqual([]);
+      await expect(s.setGiven(o.id, 0, 1)).rejects.toMatchObject({ status: 409 }); // not paid yet
+      await s.setStatus(o.id, 'new');
+      const one = await s.setGiven(o.id, 0, 1);
+      expect(one.given).toEqual([1]);
+      expect(one.status).toBe('cooking'); // something was given, so it is started
+      expect((await s.setGiven(o.id, 0, 2)).given).toEqual([2]);
+      expect((await s.setGiven(o.id, 0, 2)).given).toEqual([2]); // the same tick again changes nothing
+      expect((await s.setGiven(o.id, 0, 1)).given).toEqual([1]); // one taken back
+      await expect(s.setGiven(o.id, 0, 3)).rejects.toMatchObject({ status: 400 }); // more than ordered
+      await expect(s.setGiven(o.id, 1, 1)).rejects.toMatchObject({ status: 400 }); // no such line
+      await expect(s.setGiven(o.id, 0, -1)).rejects.toMatchObject({ status: 400 });
+      expect((await s.getOrder(o.id))!.given).toEqual([1]);
+      expect((await s.getOrder(o.id))!.total).toBe(o.total); // the bill is untouched
+      await s.setStatus(o.id, 'ready');
+      await expect(s.setGiven(o.id, 0, 2)).rejects.toMatchObject({ status: 409 }); // off the rail
+      await expect(s.setGiven('00000000-0000-0000-0000-000000000000', 0, 1)).rejects.toMatchObject({ status: 404 });
+    });
+
     it('lists live orders, the whole day, a date range and the last collected numbers', async () => {
       const unpaid = await s.placeOrder(input('upi'));
       const cooking = await s.placeOrder(input());

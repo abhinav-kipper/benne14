@@ -5,6 +5,7 @@ import { optionKey, type Overrides } from '../menu';
 import type { MenuEdit } from './index';
 import {
   canMove,
+  tickProblem,
   HANDED_MIN,
   isPaid,
   istDay,
@@ -40,6 +41,7 @@ interface Row {
   discount_code?: string | null;
   pay_gateway?: string | null;
   pay_ref?: string | null;
+  given?: number[] | null;
   created_at: string;
   updated_at: string;
   paid_at: string | null;
@@ -102,6 +104,7 @@ const toOrder = (r: Row): Order => ({
   discountCode: r.discount_code ?? null,
   payGateway: r.pay_gateway ?? null,
   payRef: r.pay_ref ?? null,
+  given: r.given ?? [],
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   paidAt: r.paid_at,
@@ -234,6 +237,21 @@ export class SupabaseStore {
       .maybeSingle();
     if (error) throw storeError(error);
     if (!data) throw new StoreError(`Order ${cur.token} was just changed on another screen`, 409);
+    return toOrder(data as Row);
+  }
+
+  async setGiven(id: string, line: number, count: number) {
+    const cur = await this.getOrder(id);
+    if (!cur) throw new StoreError('Order not found', 404);
+    const bad = tickProblem(cur, line, count);
+    if (bad) throw new StoreError(bad.message, bad.status);
+    // The database does the write under a lock on the order, so ticks from two tablets both count.
+    const { data, error } = await this.db.rpc('set_given', { p_id: id, p_line: line, p_count: count });
+    if (missing(error)) {
+      console.error('set_given missing: run supabase/migrations/0008_given_ticks.sql');
+      throw new StoreError('Ticks need a database update (migration 0008)', 503);
+    }
+    if (error) throw storeError(error);
     return toOrder(data as Row);
   }
 

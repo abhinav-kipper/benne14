@@ -11,7 +11,7 @@ section A are open.
 
 ## Up next
 
-- **Owner to do now: run `supabase/migrations/0005_discount_codes_and_phone.sql`, then `0006_order_integrity.sql`, then `0007_gateway_payments.sql`** in Supabase. Without 0005 the kiosk shows neither the code box nor the phone box and the Offers tab can't save. Without 0006 the database doesn't yet guard saved bills or log status changes (the app still works).
+- **Owner to do now: run `supabase/migrations/0008_given_ticks.sql`** in Supabase (0001 to 0007 are done). Until it is run, a tap on a kitchen chit line shows an error and nothing else changes.
 
 0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Round 1 (flow) is merged; round 2 (feel) is on `feat/ui-round-2`. Left: round 3 needs the owner (photos, veg marks, invoice numbers, keyboard check on the tablet), round 4 is the staff screens. The launch blockers below are on hold until then, not dropped.
 
@@ -60,6 +60,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-14 — Kitchen ticks: a tap on a chit line counts one more of that dish as given ("2 of 4 given", then a green tick), a hold takes one back. Saved on the server (migration 0008) so every kitchen screen agrees and a reload keeps them. Ready lights up when everything is out; the bottom tray counts only what is still to be made. The TV does not show ticks.
 - 2026-11-14 — Owner can delete a discount code (asks twice; past orders keep their discount). Kitchen "Today's orders": a tap on a row opens the whole order, one dish per line with extras and notes. Kitchen screen uses the full width of a wide monitor instead of leaving bars left and right.
 - 2026-11-14 — Easebuzz went live on production. The UPI screen no longer counts down: the kiosk waits for the payment, asks "Still there?" after four quiet minutes, and a customer who walks off and pays later still gets the order (the kitchen screen's polling re-checks open payments).
 

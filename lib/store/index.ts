@@ -20,6 +20,9 @@ export interface Store {
   // `from`: the status the caller last saw. If the order has moved on since (another tablet), the
   // change is refused with 409 instead of silently undoing the other tablet's tap.
   setStatus(id: string, to: OrderStatus, from?: OrderStatus): Promise<Order>;
+  // Kitchen ticks (migration 0008): `count` of line number `line` have been given to the customer.
+  // Only for orders on the kitchen rail (new, cooking), else 409; a tick on a new order starts it.
+  setGiven(id: string, line: number, count: number): Promise<Order>;
 
   // A gateway says this order is paid: move it to the kitchen and keep the gateway's reference, in one
   // step. Harmless to repeat (the same payment again returns the order as it is). 409 when the order
