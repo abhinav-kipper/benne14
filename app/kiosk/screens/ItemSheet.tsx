@@ -22,13 +22,21 @@ export function ItemSheet({
   const catalog = useCatalog();
   const item = itemById(itemId, catalog)!;
   const [qty, setQty] = useState(editing?.qty ?? 1);
-  const [choices, setChoices] = useState<Record<string, string[]>>(() => {
+  const [picked, setChoices] = useState<Record<string, string[]>>(() => {
     if (editing) return editing.choices;
     const c: Record<string, string[]> = {};
     for (const g of item.groups) if (catalog.groups[g].kind === 'one') c[g] = [catalog.groups[g].defaultId!];
     return c;
   });
-  const [notes, setNotes] = useState<string[]>(editing?.notes ?? []);
+  const [noted, setNotes] = useState<string[]>(editing?.notes ?? []);
+  // Only what this dish still offers: the menu can change while the sheet is open.
+  const choices: Record<string, string[]> = {};
+  for (const g of item.groups) {
+    const kept = (picked[g] ?? []).filter((id) => catalog.groups[g].options.some((o) => o.id === id));
+    if (kept.length) choices[g] = kept;
+    else if (catalog.groups[g].kind === 'one') choices[g] = [catalog.groups[g].defaultId!];
+  }
+  const notes = noted.filter((id) => notesFor(item, catalog).some((n) => n.id === id));
   const [pair, setPair] = useState(false);
   const line: CartLine = { itemId, qty, choices, notes };
   const total = priceLine(line, catalog).lineTotal + (pair ? (itemById(PAIRING, catalog)?.price ?? 0) : 0);

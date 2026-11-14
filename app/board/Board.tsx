@@ -56,7 +56,11 @@ export default function Board() {
   const rest = ready.slice(1);
   const tier = rest.length <= 2 ? 0 : rest.length <= 6 ? 1 : rest.length <= 12 ? 2 : 3;
   const shown = rest.length > MINI_MAX ? rest.slice(0, MINI_MAX - 1) : rest;
-  const promos = PROMOS.map((id) => itemById(id, catalog)).filter((i): i is MenuItem => !!i && !i.soldOut); // hidden dishes drop out
+  // Hidden and sold-out dishes drop out; dishes the owner added (with a photo) join the rotation.
+  const promos = [
+    ...PROMOS.map((id) => itemById(id, catalog)),
+    ...catalog.items.filter((i) => i.custom && i.photo).slice(0, 3),
+  ].filter((i): i is MenuItem => !!i && !i.soldOut);
   const p = promos.length ? promos[promo % promos.length] : null;
   const clock = !now
     ? ''

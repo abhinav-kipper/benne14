@@ -47,4 +47,33 @@ describe('cart suggestions ("Anything else?")', () => {
       'masala-tea',
     ]);
   });
+
+  it("offers dishes from the owner's own sections too, after the usual ones; never a hidden dish or section", () => {
+    const sweet = {
+      id: 'c-kesari0001',
+      cat: 's-sweets01',
+      name: 'Kesari Bath',
+      desc: '',
+      price: 79,
+      groups: [],
+      photo: null,
+      live: true,
+    };
+    const o = {
+      items: {},
+      options: {},
+      custom: [sweet],
+      sections: { custom: [{ id: 's-sweets01', name: 'Sweets' }] },
+    };
+    const got = suggestFor(['masala-dosa'], mergeCatalog(o), [], 4).map((i) => i.id);
+    expect(got).toContain('c-kesari0001'); // a dosa order is offered a sweet as well as a drink and a side
+    expect(got.indexOf('c-kesari0001')).toBeGreaterThan(got.indexOf('filter-coffee'));
+    const off = mergeCatalog({
+      ...o,
+      sections: { ...o.sections, hidden: ['s-sweets01', 'drinks'] },
+      hidden: ['medu-vada'],
+    });
+    const left = suggestFor(['masala-dosa'], off, [], 9).map((i) => i.id);
+    for (const id of ['c-kesari0001', 'filter-coffee', 'masala-tea', 'medu-vada']) expect(left).not.toContain(id);
+  });
 });

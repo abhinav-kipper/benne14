@@ -1,8 +1,13 @@
 // "Anything else?" in the cart: what to offer next to this order. Pure, so the same rule can be tested.
-import type { Catalog, MenuItem } from './menu';
+import { TEST_CAT, type Catalog, type MenuItem } from './menu';
 
-// What an order is most likely missing, in the order to offer it: a drink, then a side, then a dosa.
+// What an order is most likely missing, in the order to offer it: a drink, then a side, then a dosa,
+// then the sections the owner added (sweets and the like), in the menu's own order.
 const OFFER_FIRST: MenuItem['cat'][] = ['drinks', 'idli', 'dosa'];
+const offerOrder = (catalog: Catalog) => [
+  ...OFFER_FIRST,
+  ...catalog.cats.map((c) => c.id).filter((c) => c !== TEST_CAT && !OFFER_FIRST.includes(c)),
+];
 
 // Up to `n` dishes that are not in the order and not sold out. Sections the order has nothing from
 // come first, one dish from each in turn, so a dosa order is offered a coffee and a vada rather than
@@ -21,8 +26,8 @@ export function suggestFor(inCart: string[], catalog: Catalog, popular: string[]
   const out: MenuItem[] = [];
   // first everything the order has nothing from, section by section in turn; only then more of the same
   for (const sections of [
-    lists(OFFER_FIRST.filter((c) => !catsInCart.has(c))),
-    lists(OFFER_FIRST.filter((c) => catsInCart.has(c))),
+    lists(offerOrder(catalog).filter((c) => !catsInCart.has(c))),
+    lists(offerOrder(catalog).filter((c) => catsInCart.has(c))),
   ])
     for (let round = 0; out.length < n && sections.some((s) => s[round]); round++)
       for (const s of sections) if (s[round] && out.length < n) out.push(s[round]);

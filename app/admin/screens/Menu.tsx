@@ -14,7 +14,13 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   // What is open on top of the list: a dish's sheet, a new dish, or a draft's check page.
   const [view, setView] = useState<
-    { edit: string } | { add: string | true } | { check: string } | { sections: true } | { extras: true } | null
+    | { edit: string }
+    | { add: string | true }
+    | { check: string }
+    | { sections: true }
+    | { extras: true }
+    | { choose: true }
+    | null
   >(null);
   const dragging = useRef(false);
   const { pin, onAuthError } = p;
@@ -141,14 +147,8 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
         it. Hold the dots to move a dish up or down. The kiosk shows changes from the next customer.
       </div>
       <div className="addrow">
-        <button className="btn y" onClick={() => setView({ add: true })} data-testid="add-dish">
-          Add a dish
-        </button>
-        <button className="btn o" onClick={() => setView({ sections: true })} data-testid="open-sections">
-          Sections
-        </button>
-        <button className="btn o" onClick={() => setView({ extras: true })} data-testid="open-extras">
-          Extras &amp; kitchen notes
+        <button className="btn y" onClick={() => setView({ choose: true })} data-testid="open-add">
+          Add or change
         </button>
       </div>
       {err && <div className="err pad">{err}</div>}
@@ -253,6 +253,48 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
       <button className="histlink" onClick={p.openHistory} data-testid="open-history">
         Change history →
       </button>
+      {view && 'choose' in view && (
+        <>
+          <div className="scrim" onClick={() => setView(null)} />
+          <div className="sheet" data-testid="add-sheet">
+            <div className="grab" />
+            <div className="hd">
+              <div>
+                <span className="eyebrow">Menu</span>
+                <div className="disp ttl">Add or change</div>
+              </div>
+            </div>
+            <div className="pick choose">
+              <button onClick={() => setView({ add: true })} data-testid="add-dish">
+                <span>
+                  A new dish
+                  <small>Name, price, photo. It stays a draft until you publish it.</small>
+                </span>
+                <i className="go">›</i>
+              </button>
+              <button onClick={() => setView({ sections: true })} data-testid="open-sections">
+                <span>
+                  Sections
+                  <small>Add a section, rename, reorder, or switch one off.</small>
+                </span>
+                <i className="go">›</i>
+              </button>
+              <button onClick={() => setView({ extras: true })} data-testid="open-extras">
+                <span>
+                  Extras &amp; kitchen notes
+                  <small>What customers can add to a dish, and notes for the kitchen.</small>
+                </span>
+                <i className="go">›</i>
+              </button>
+            </div>
+            <div className="actions">
+              <button className="btn o" onClick={() => setView(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
       {view && 'sections' in view && cat && <SectionsSheet {...p} cat={cat} close={done} changed={load} />}
       {view && 'extras' in view && cat && <ExtrasSheet {...p} cat={cat} close={done} changed={load} />}
       {view && 'add' in view && cat && (
