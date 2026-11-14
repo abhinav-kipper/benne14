@@ -13,8 +13,21 @@ import {
 } from '@/lib/menu';
 import { allGiven, counts, givenOf, minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { PinGate } from '@/components/PinGate';
-import { api, ApiError, chime, useAutoReload, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
+import {
+  api,
+  ApiError,
+  chime,
+  useAutoReload,
+  useAwake,
+  useFreshIds,
+  useHoldToReload,
+  useLiveOrders,
+  useNightlyReload,
+  useTodayOrders,
+} from '@/lib/client';
 
+const DOWN_AFTER_MS = 20_000;
+const UNSTARTED_MIN = 3; // a new order nobody has started for this long flashes
 const WARN_MIN = 8;
 const LATE_MIN = 12;
 const PIN_KEY = 'benne14.staffPin';
@@ -141,6 +154,20 @@ export default function Kitchen() {
   }, []);
 
   useAutoReload(); // orders live on the server, so the kitchen can reload as soon as a new version is out
+  useNightlyReload();
+  useAwake();
+  const holdLogo = useHoldToReload();
+  // A short blip only shows the small "reconnecting" note. After DOWN_AFTER_MS with no answer, new
+  // orders are plainly not arriving: say so across the whole screen until the connection is back.
+  const [down, setDown] = useState(false);
+  useEffect(() => {
+    if (online) {
+      setDown(false);
+      return;
+    }
+    const t = setTimeout(() => setDown(true), DOWN_AFTER_MS);
+    return () => clearTimeout(t);
+  }, [online]);
 
   // Sound. The choice is remembered, but a browser only plays audio after a tap on the page, so after
   // every reload a bar asks for one tap anywhere. New orders also flash the screen, sound or not.
@@ -359,7 +386,7 @@ export default function Kitchen() {
   return (
     <div className="kitchen">
       <div className="top">
-        <div className="logo">
+        <div className="logo" {...holdLogo}>
           Benne <i>14</i>
         </div>
         <button
@@ -397,6 +424,12 @@ export default function Kitchen() {
         )}
         <div className="clock">{clock}</div>
       </div>
+      {down && (
+        <div className="netdown" role="alert" data-testid="netdown">
+          <b>No connection: new orders are NOT arriving.</b> Check the Wi-Fi, or tell the counter to take orders by
+          hand.
+        </div>
+      )}
 
       <div className="railcell">
         <div className="railwrap" ref={railRef} onScroll={countHidden}>
@@ -605,7 +638,10 @@ function Chit({
   const m = minutesSince(o.paidAt ?? o.createdAt, now);
   const age = m >= LATE_MIN ? 'late' : m >= WARN_MIN ? 'warn' : '';
   return (
-    <div className={`chit ${o.status} ${age} ${fresh ? 'fresh' : ''}`} data-testid={`chit-${o.token}`}>
+    <div
+      className={`chit ${o.status} ${age} ${fresh ? 'fresh' : ''} ${o.status === 'new' && m >= UNSTARTED_MIN ? 'waiting' : ''}`}
+      data-testid={`chit-${o.token}`}
+    >
       <span className="clip" />
       <div className="age">
         <i style={{ width: `${Math.min(100, (m / 15) * 100)}%` }} />

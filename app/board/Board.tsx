@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useMenu } from '@/components/Catalog';
 import { itemById, photoFor, type MenuItem } from '@/lib/menu';
 import { minutesSince } from '@/lib/orders';
-import { useAutoReload, useCollected, useLiveOrders } from '@/lib/client';
+import { useAutoReload, useAwake, useCollected, useHoldToReload, useLiveOrders, useNightlyReload } from '@/lib/client';
 
 const PROMOS = ['ghee-podi-thatte-idli', 'ghee-podi-benne-dosa', 'medu-vada'];
 const PREP_MAX = 6;
@@ -26,6 +26,9 @@ export default function Board() {
   const { orders, online } = useLiveOrders(1500);
   const done = useCollected(10_000);
   useAutoReload(); // nothing is typed on the TV, so it can reload the moment a new version is out
+  useNightlyReload();
+  useAwake();
+  const holdLogo = useHoldToReload();
   // Promo prices and names follow the owner's menu changes within half a minute, and a dish that is
   // sold out today is not advertised.
   const { catalog, reload } = useMenu();
@@ -74,7 +77,7 @@ export default function Board() {
   return (
     <div className="board">
       <div className="top">
-        <div className="logo">
+        <div className="logo" {...holdLogo}>
           Benne <i>14</i>
           <small>AUTHENTIC BANGALORE DOSA</small>
         </div>

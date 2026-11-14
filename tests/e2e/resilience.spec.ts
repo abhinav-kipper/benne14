@@ -208,3 +208,130 @@ test('kiosk: a price changed while the customer was paying is shown before anyth
   await expect(page.locator('.k-pay .err')).toContainText('Prices just changed');
   expect(await todayCount(page)).toBe(before); // nothing was placed at the unseen price
 });
+
+// ---- Screens that look after themselves ----
+test('kiosk: when the shop cannot take orders, customers are sent to the counter; it comes back by itself', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await expect(page.getByTestId('start')).toBeVisible();
+  await expect(page.getByTestId('counter-please')).toHaveCount(0);
+  await page.route('**/api/ping', (r) => r.abort('internetdisconnected'));
+  await page.clock.runFor(11_000); // one failed answer could be a blip
+  await expect(page.getByTestId('counter-please')).toHaveCount(0);
+  await page.clock.runFor(25_000);
+  await expect(page.getByTestId('counter-please')).toContainText('at the counter');
+  // the database being down looks the same as no Wi-Fi
+  await page.unroute('**/api/ping');
+  await page.route('**/api/ping', (r) => r.fulfill({ status: 503, json: { ok: false } }));
+  await page.clock.runFor(20_000);
+  await expect(page.getByTestId('counter-please')).toBeVisible();
+  await page.unroute('**/api/ping');
+  await page.clock.runFor(20_000);
+  await expect(page.getByTestId('counter-please')).toHaveCount(0);
+  await page.getByTestId('start').click(); // and ordering works again
+  await expect(page.getByTestId('item-masala-tea')).toBeVisible();
+});
+
+test('kiosk: a customer mid-order keeps their cart through an outage', async ({ page }) => {
+  await page.clock.install();
+  await kioskTo(page);
+  await expect(page.getByTestId('cart-line')).toHaveCount(1);
+  await page.route('**/api/ping', (r) => r.abort('internetdisconnected'));
+  await page.clock.runFor(36_000);
+  await expect(page.getByTestId('counter-please')).toBeVisible();
+  await page.unroute('**/api/ping');
+  await page.clock.runFor(20_000);
+  await expect(page.getByTestId('counter-please')).toHaveCount(0);
+  await expect(page.getByTestId('cart-line')).toHaveCount(1);
+});
+
+test('the ping answers plainly and says nothing else', async ({ request }) => {
+  const r = await request.get('/api/ping');
+  expect(r.status()).toBe(200);
+  expect(await r.json()).toEqual({ ok: true });
+});
+
+test('kitchen: twenty seconds without a connection says loudly that orders are not arriving', async ({ page }) => {
+  await staff(page);
+  await page.clock.install();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/kitchen');
+  await page.route('**/api/orders', (r) => r.abort('internetdisconnected'));
+  await page.clock.runFor(8_000);
+  await expect(page.getByText('No internet, reconnecting')).toBeVisible();
+  await expect(page.getByTestId('netdown')).toHaveCount(0); // a short blip stays a small note
+  await page.clock.runFor(22_000);
+  await expect(page.getByTestId('netdown')).toContainText('new orders are NOT arriving');
+  await page.unroute('**/api/orders');
+  await page.clock.runFor(10_000);
+  await expect(page.getByTestId('netdown')).toHaveCount(0);
+});
+
+test('kitchen: a new order nobody has started for three minutes flashes; starting it stops that', async ({
+  page,
+  request,
+}) => {
+  const o = await (
+    await request.post('/api/orders', {
+      data: {
+        key: `unstarted-${Date.now()}`,
+        type: 'takeaway',
+        name: null,
+        payMethod: 'cash',
+        lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+      },
+    })
+  ).json();
+  await request.post(`/api/orders/${o.id}/status`, { data: { to: 'new' }, headers: { 'x-staff-pin': PIN } });
+  await staff(page);
+  await page.clock.install();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/kitchen');
+  const chit = page.getByTestId(`chit-${o.token}`);
+  await expect(chit).toBeVisible();
+  await expect(chit).not.toHaveClass(/waiting/);
+  await page.clock.runFor(3 * 60_000 + 20_000);
+  await expect(chit).toHaveClass(/waiting/);
+  await page.getByTestId(`go-${o.token}`).click();
+  await expect(chit).not.toHaveClass(/waiting/);
+});
+
+test('staff can restart any screen by holding the logo for five seconds', async ({ page }) => {
+  await staff(page);
+  for (const [path, size] of [
+    ['/kiosk', { width: 800, height: 1280 }],
+    ['/kitchen', { width: 1280, height: 800 }],
+    ['/board', { width: 1920, height: 1080 }],
+  ] as const) {
+    await page.setViewportSize(size);
+    await page.goto(path);
+    const logo = page.locator('.logo').first();
+    await expect(logo).toBeVisible();
+    await page.evaluate(() => ((window as unknown as { mark?: boolean }).mark = true));
+    await logo.dispatchEvent('pointerdown');
+    await page.waitForTimeout(1500);
+    await logo.dispatchEvent('pointerup'); // a short press does nothing
+    expect(await page.evaluate(() => (window as unknown as { mark?: boolean }).mark)).toBe(true);
+    await logo.dispatchEvent('pointerdown');
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { mark?: boolean }).mark), { timeout: 9000 })
+      .toBeUndefined();
+  }
+});
+
+test('a screen that crashes says "One moment" and starts again by itself, but never loops', async ({ page }) => {
+  await page.goto('/crash-test');
+  await expect(page.getByTestId('crash-ok')).toBeVisible();
+  await page.clock.install();
+  await page.goto('/crash-test?boom=1');
+  await expect(page.getByTestId('recover')).toContainText('One moment');
+  await page.clock.runFor(4500); // it reloads itself…
+  await expect(page.getByTestId('recover')).toContainText('One moment'); // …into the same crash
+  await page.clock.runFor(4500);
+  // third crash within a minute: stop reloading and ask for staff
+  await expect(page.getByTestId('recover')).toContainText('needs a hand');
+  await expect(page.getByTestId('recover-reload')).toBeVisible();
+});

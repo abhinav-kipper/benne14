@@ -52,6 +52,7 @@ interface Row {
 }
 
 export const PHOTO_BUCKET = 'dish-photos';
+const DB_TIMEOUT_MS = 8000;
 interface DishRow {
   id: string;
   cat: string;
@@ -137,7 +138,13 @@ export class SupabaseStore {
   constructor(url: string, serviceKey: string, fetchImpl?: typeof fetch) {
     this.db = createClient(url, serviceKey, {
       auth: { persistSession: false },
-      ...(fetchImpl ? { global: { fetch: fetchImpl } } : {}),
+      // A database that stops answering must fail the request quickly (the kiosk then sends
+      // customers to the counter) instead of holding it until the platform gives up.
+      global: {
+        fetch:
+          fetchImpl ??
+          ((input, init) => fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(DB_TIMEOUT_MS) })),
+      },
     });
   }
 

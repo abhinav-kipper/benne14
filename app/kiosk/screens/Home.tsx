@@ -1,6 +1,7 @@
 'use client';
 // Start screen: one tap anywhere begins an order.
 import { useCatalog } from '@/components/Catalog';
+import { useHoldToReload } from '@/lib/client';
 import { photoFor } from '@/lib/menu';
 import { Chevron } from './shared';
 
@@ -20,6 +21,7 @@ export function Home({ onStart }: { onStart: () => void }) {
   // Nine photos of what is on the menu now. The arrangement the owner approved comes first; a dish
   // taken off the menu gives its place to another dish with a photo (the owner's own included).
   const catalog = useCatalog();
+  const holdLogo = useHoldToReload(); // staff: hold the logo five seconds to restart the screen
   const onMenu = new Map(catalog.items.filter((i) => !i.testOnly && photoFor(i)).map((i) => [i.id, photoFor(i)!]));
   const spare = [...onMenu.keys()].filter((id) => !MOSAIC.includes(id));
   const pool = [...onMenu.keys()];
@@ -34,7 +36,7 @@ export function Home({ onStart }: { onStart: () => void }) {
   return (
     <div className="screen k-home" onClick={onStart}>
       <div className="top">
-        <div className="logo">
+        <div className="logo" {...holdLogo}>
           Benne <i>14</i>
           <small>AUTHENTIC BANGALORE DOSA</small>
         </div>

@@ -2,7 +2,7 @@
 // The kiosk: holds the cart and which screen is showing; each screen lives in ./screens.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CatalogProvider, useMenu } from '@/components/Catalog';
-import { api, ApiError, newKey, useAutoReload } from '@/lib/client';
+import { api, ApiError, newKey, useAutoReload, useAwake, useNightlyReload, useServerUp } from '@/lib/client';
 import { cleanPhone, type DiscountRule, type KioskSettings } from '@/lib/discounts';
 import { PAIRING, notesFor } from '@/lib/menu';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
@@ -85,6 +85,12 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     return () => clearInterval(t);
   }, [screen, loadMenu]);
   useAutoReload(screen === 'home'); // pick up a new version between customers, never mid-order
+  useNightlyReload(screen === 'home');
+  useAwake();
+  // While the shop can't take an order (Wi-Fi or database down) customers are sent to the counter.
+  // Not on the payment and order-number screens: an order that exists must be seen through.
+  const up = useServerUp(screen !== 'upi' && screen !== 'done');
+  const closed = !up && screen !== 'upi' && screen !== 'done';
 
   const reset = useCallback(() => {
     setScreen('home');
@@ -154,6 +160,19 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   return (
     <CatalogProvider value={catalog}>
       <div className="kiosk">
+        {closed && (
+          <div className="k-counter" data-testid="counter-please">
+            <div className="logo">
+              Benne <i>14</i>
+            </div>
+            <h1 className="disp">
+              Please order
+              <br />
+              at the <em>counter.</em>
+            </h1>
+            <p>This screen will be back in a moment.</p>
+          </div>
+        )}
         {screen === 'home' && <Home onStart={() => setScreen('menu')} />}
         {screen === 'menu' && (
           <MenuScreen

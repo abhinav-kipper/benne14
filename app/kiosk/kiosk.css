@@ -1984,3 +1984,39 @@
 .k-upi .timer[hidden] {
   display: none;
 }
+
+/* ---- The shop can't take an order right now: customers go to the counter ---- */
+.k-counter {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 40px;
+}
+.k-counter .logo {
+  position: absolute;
+  top: 34px;
+  left: 34px;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 0.85;
+  text-transform: uppercase;
+}
+.k-counter .logo i,
+.k-counter h1 em {
+  font-style: normal;
+  color: var(--benne-fg);
+}
+.k-counter h1 {
+  font-size: 118px;
+  line-height: 0.88;
+}
+.k-counter p {
+  margin-top: 26px;
+  font-size: var(--t-lg);
+  color: var(--cream-2);
+}
