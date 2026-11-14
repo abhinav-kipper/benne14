@@ -16,8 +16,8 @@ Safety and money. None of this is visible to customers, all of it matters.
 - [ ] **Clean books.** Remove the test orders and test dishes, sections and extras made while trying things, so day one's report starts at zero. (`docs/accuracy-audit.md` A5)
 - [ ] **Payments proven with real money.** Set the Easebuzz webhook address; pay ₹1 from GPay, PhonePe and Paytm; refund one; confirm the money and the settlement show in the Easebuzz dashboard. (owner)
 - [ ] **What happens when the gateway is down.** The kiosk falls back to the shop's own QR and staff confirm by the soundbox. On that path the kitchen should not show "Paid" until the customer has tapped "I've paid". (A5) Also check the wording on the pay screen about money coming back. (A4)
-- [ ] **Server next to the database.** The server runs in the USA and the database elsewhere, so every tap waits about a second. Move the server to the database's region. Needs: the Supabase project's region. (A6)
-- [ ] **Paid hosting plans.** Vercel's free plan does not allow commercial use and has request limits; Supabase's free plan pauses the database when idle and keeps no backups. Both need the paid plan (about US$20 and US$25 a month). (A7, owner)
+- [ ] **Server next to the database.** The server runs in the USA and the database elsewhere, so every tap waits about a second. The database is in Tokyo (`ap-northeast-1`). What costs time is the server talking to the database (three or four times per order), not the customer talking to the server, so the server belongs next to the database: Tokyo (`hnd1`) now, a one-line change. Best for Delhi in the long run is both in Mumbai, which means moving the database to a new Supabase project in `ap-south-1`: easiest before launch, while there is no real data. (A6)
+- [ ] **Paid hosting plans** (owner agreed on 2026-11-14 to upgrade both). Vercel's free plan does not allow commercial use and has request limits; Supabase's free plan pauses the database when idle and keeps no backups. Both need the paid plan (about US$20 and US$25 a month). (A7, owner)
 - [ ] **A proper tax bill.** GSTIN, FSSAI number, shop address and a running invoice number on the phone bill. Needs the numbers, and the accountant's answer on whether menu prices include GST. (accuracy C1, ui U10)
 
 ## Stage 2 — So a normal day cannot break it
@@ -52,9 +52,9 @@ Safety and money. None of this is visible to customers, all of it matters.
 
 ## Needed from the owner
 
-1. The Supabase project's region (Settings → General).
+1. ~~The Supabase project's region~~ Tokyo, `ap-northeast-1` (answered 2026-11-14). Open: move the database to Mumbai before launch, or keep Tokyo?
 2. GSTIN, FSSAI number, shop address; whether prices include GST.
-3. Go-ahead for the paid Vercel and Supabase plans.
+3. ~~Go-ahead for the paid Vercel and Supabase plans~~ Yes (2026-11-14); upgrade both before launch.
 4. Tablet model and Android version; whether a receipt printer is wanted.
 5. Opening hours (the charts assume 8 am to 11 pm).
 6. A launch date to work back from.
