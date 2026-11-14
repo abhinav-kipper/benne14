@@ -239,7 +239,7 @@ test('kiosk waits for the payment with no countdown; a customer who walks off an
   await customer(request, o.id, 'pending'); // tapped "Pay by QR" and "Pay": the QR is on screen
   await page.clock.runFor(3 * 60_000 + 50_000); // just under four quiet minutes since the QR appeared
   await expect(page.getByTestId('still-there')).toHaveCount(0);
-  await page.clock.runFor(10_000);
+  await page.clock.runFor(20_000); // the kiosk learns the QR is up within one 3 s check, so allow for that
   // a long silence: ask, don't cancel
   await expect(page.getByTestId('still-there')).toContainText('If you have already paid, your order is safe');
   await page.getByRole('button', { name: /still paying/ }).click();

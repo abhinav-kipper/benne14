@@ -6,7 +6,7 @@ export const metadata = { title: 'Benne 14 — Kitchen' };
 
 export default function KitchenPage() {
   return (
-    <Fit w={1280} h={800}>
+    <Fit w={1280} h={800} stretch>
       <Kitchen />
     </Fit>
   );

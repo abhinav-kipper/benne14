@@ -60,6 +60,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-14 — Owner can delete a discount code (asks twice; past orders keep their discount). Kitchen "Today's orders": a tap on a row opens the whole order, one dish per line with extras and notes. Kitchen screen uses the full width of a wide monitor instead of leaving bars left and right.
 - 2026-11-14 — Easebuzz went live on production. The UPI screen no longer counts down: the kiosk waits for the payment, asks "Still there?" after four quiet minutes, and a customer who walks off and pays later still gets the order (the kitchen screen's polling re-checks open payments).
 
 - 2026-11-14 — Automatic UPI confirmation through Easebuzz (the shop's own gateway account), built and off by default: the kiosk shows Easebuzz's payment page, the order goes to the kitchen by itself once Easebuzz confirms, with fallbacks. Tried end to end on Easebuzz's sandbox. Steps to switch on: `docs/payments.md`.

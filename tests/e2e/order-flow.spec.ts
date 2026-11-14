@@ -433,3 +433,47 @@ test('the cart suggests what the order is missing, not the same three dishes', a
   expect(forTea).not.toContain('masala-tea');
   expect(forTea.some((id) => id.includes('dosa'))).toBe(true);
 });
+
+test('kitchen: a long order opens in full on a tap, and the screen uses the whole width of a wide monitor', async ({
+  page,
+  request,
+}) => {
+  const o = await (
+    await request.post('/api/orders', {
+      data: {
+        key: `long-order-${Date.now()}`,
+        type: 'dine_in',
+        name: 'Big Table',
+        payMethod: 'cash',
+        lines: [
+          { itemId: 'masala-dosa', qty: 3, choices: { dosaExtras: ['benne'] }, notes: ['less-oil'] },
+          { itemId: 'plain-benne-dosa', qty: 2, choices: {}, notes: [] },
+          { itemId: 'ghee-podi-thatte-idli', qty: 2, choices: {}, notes: [] },
+          { itemId: 'medu-vada', qty: 4, choices: {}, notes: [] },
+          { itemId: 'filter-coffee', qty: 5, choices: {}, notes: [] },
+          { itemId: 'masala-tea', qty: 2, choices: {}, notes: [] },
+        ],
+      },
+    })
+  ).json();
+  await staff(page);
+  await page.setViewportSize({ width: 1920, height: 1080 }); // a 16:9 monitor: wider than the 16:10 design
+  await page.goto('/kitchen');
+  const width = async () => Math.round((await page.locator('.kitchen').boundingBox())!.width);
+  await expect.poll(width).toBeGreaterThan(1915); // no empty bars left and right
+  expect((await page.locator('.kitchen').boundingBox())!.x).toBeLessThan(2);
+  await page.getByTestId('open-history').click();
+  const row = page.getByTestId(`hist-${o.token}`);
+  await expect(row.locator('.l2')).toBeVisible(); // collapsed: one cut-off line
+  await expect(row).toContainText('18 items');
+  await row.click();
+  const full = page.getByTestId(`hist-full-${o.token}`);
+  await expect(full.locator('li')).toHaveCount(6); // every dish on its own line
+  await expect(full).toContainText('Masala Tea');
+  await expect(full).toContainText('Extra benne · Less oil');
+  await row.click();
+  await expect(full).toHaveCount(0); // and closes again
+  // on the 16:10 tablet nothing changes: the design is exactly the screen
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(width).toBe(1280);
+});

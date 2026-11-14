@@ -7,7 +7,8 @@
   --late: #d9553a;
   --chit: #ffffff;
   --chit-2: #f1ebdf;
-  width: 1280px;
+  width: 100%; /* 1280 on the 16:10 tablet; wider screens get more room for chits (Fit stretch) */
+  min-width: 1280px;
   height: 800px;
   display: grid;
   grid-template-columns: 1fr 268px;
@@ -839,6 +840,38 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.hist .hr {
+  cursor: pointer;
+}
+.hist .hr.open {
+  align-items: start;
+  background: var(--s1);
+}
+.hist .hr .more {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--cream-2);
+  white-space: nowrap;
+}
+.hist .hr .full {
+  list-style: none;
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+  font-size: 17px;
+  color: var(--cream);
+}
+.hist .hr .full b {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 19px;
+}
+.hist .hr .full small {
+  display: block;
+  font-size: 14px;
+  color: var(--cream-2);
+  padding-left: 34px;
 }
 .hist .hr .amt {
   font-family: var(--display);

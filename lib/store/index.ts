@@ -41,6 +41,8 @@ export interface Store {
   listCodes(): Promise<DiscountCode[]>; // newest first
   getCode(code: string): Promise<DiscountCode | null>;
   saveCode(c: DiscountCode, event: Omit<AdminEvent, 'at'>): Promise<void>; // creates or replaces by code
+  // Removes a code for good. Orders that used it keep its name and their discount (they are snapshots).
+  deleteCode(code: string, event: Omit<AdminEvent, 'at'>): Promise<void>; // 404 if there is no such code
   getSettings(): Promise<KioskSettings>;
   saveSettings(patch: Partial<KioskSettings>, events: Omit<AdminEvent, 'at'>[]): Promise<KioskSettings>;
   listCustomers(): Promise<Customer[]>; // phone numbers on paid orders, latest order first

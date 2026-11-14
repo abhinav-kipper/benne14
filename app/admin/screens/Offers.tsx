@@ -224,6 +224,20 @@ function CodeSheet(p: Ctx & { code: DiscountCode | null; close: () => void; save
   const [expiresOn, setExpiresOn] = useState(c?.expiresOn ?? '');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sure, setSure] = useState(false); // delete asks once more
+  const remove = async () => {
+    if (!c) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await admin.deleteCode(p.pin, c.code);
+      p.saved();
+    } catch (e) {
+      p.onAuthError(e);
+      setErr(e instanceof ApiError ? e.message : 'Not deleted: no internet.');
+      setBusy(false);
+    }
+  };
   const digits = (set: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) =>
     set(e.target.value.replace(/[^\d]/g, '').slice(0, 6));
   const num = (v: string) => (v === '' ? null : Number(v));
@@ -278,7 +292,9 @@ function CodeSheet(p: Ctx & { code: DiscountCode | null; close: () => void; save
             data-testid="dc-code"
           />
           <div className="was">
-            {c ? 'The code itself can’t be changed. Switch it off and make a new one.' : '3 to 16 letters and digits.'}
+            {c
+              ? 'The code itself can’t be changed. Delete it or switch it off, and make a new one.'
+              : '3 to 16 letters and digits.'}
           </div>
         </div>
         <div className="field">
@@ -360,7 +376,22 @@ function CodeSheet(p: Ctx & { code: DiscountCode | null; close: () => void; save
           <button className="btn o" onClick={p.close}>
             Cancel
           </button>
+          {c && (
+            <button
+              className="btn r"
+              disabled={busy}
+              onClick={() => (sure ? remove() : setSure(true))}
+              data-testid="dc-delete"
+            >
+              {sure ? `Yes, delete ${c.code}` : 'Delete this code'}
+            </button>
+          )}
         </div>
+        {c && (
+          <div className="was">
+            Deleting removes the code from this list for good. Orders that already used it keep their discount.
+          </div>
+        )}
       </div>
     </>
   );

@@ -244,6 +244,11 @@ export class MemoryStore {
     await this.addEvent(event);
   }
 
+  async deleteCode(code: string, event: Omit<AdminEvent, 'at'>) {
+    if (!this.codes.delete(code)) throw new StoreError('No such code', 404);
+    await this.addEvent(event);
+  }
+
   async getSettings() {
     return { ...this.settings };
   }

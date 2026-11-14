@@ -462,6 +462,14 @@ export class SupabaseStore {
     await this.addEvent(event);
   }
 
+  async deleteCode(code: string, event: Omit<AdminEvent, 'at'>) {
+    const { data, error } = await this.db.from('discount_codes').delete().eq('code', code).select('code');
+    if (missing(error)) throw new StoreError('No such code', 404);
+    if (error) throw new StoreError(error.message, 500);
+    if (!(data as unknown[]).length) throw new StoreError('No such code', 404);
+    await this.addEvent(event);
+  }
+
   async getSettings(): Promise<KioskSettings> {
     const { data, error } = await this.db.from('kiosk_settings').select('codes,phone').eq('id', 1).maybeSingle();
     // Before migration 0005 nothing can be stored, so the kiosk shows neither field.
