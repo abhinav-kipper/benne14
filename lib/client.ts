@@ -17,9 +17,14 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(url: string, init?: RequestInit): Promise<T> {
+// No request waits forever: on a weak connection a hung request would leave "Placing your order…"
+// on screen with no way out. A timeout fails like any lost connection, and every write can be retried.
+const TIMEOUT_MS = 12_000;
+async function call<T>(url: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
+  const { timeoutMs, ...rest } = init ?? {};
   const r = await fetch(url, {
-    ...init,
+    ...rest,
+    signal: rest.signal ?? AbortSignal.timeout(timeoutMs ?? TIMEOUT_MS),
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   });
@@ -363,6 +368,7 @@ export const admin = {
     call<{ url: string }>('/api/admin/photo', {
       method: 'POST',
       body: jpeg,
+      timeoutMs: 45_000, // a photo on a slow connection
       headers: { ...pinHeader(pin), 'Content-Type': 'image/jpeg' },
     }),
   refund: (pin: string, id: string, reason: string) =>
@@ -421,3 +427,82 @@ export const admin = {
 
 export const newKey = () =>
   crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+// ---- Screens that look after themselves (docs/go-live.md stage 2) ----
+
+// Can the shop take an order right now (server reachable, database answering)? Asked every 10 s.
+// One failed answer can be a blip; two in a row means down. The first good answer means up again.
+export function useServerUp(on = true) {
+  const [up, setUp] = useState(true);
+  const fails = useRef(0);
+  usePoll(
+    async () => {
+      try {
+        await call<{ ok: boolean }>('/api/ping', { timeoutMs: 6000 });
+        fails.current = 0;
+        setUp(true);
+      } catch {
+        if (++fails.current >= 2) setUp(false);
+        return false;
+      }
+    },
+    10_000,
+    on,
+  );
+  return up;
+}
+
+// Keep the screen on: a kiosk, kitchen display or TV that dims or sleeps is a screen out of service.
+// The browser drops the lock whenever the page is hidden, so it is asked for again each time it shows.
+export function useAwake() {
+  useEffect(() => {
+    const nav = navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<unknown> } };
+    const hold = () => {
+      if (!document.hidden) nav.wakeLock?.request('screen').catch(() => {});
+    };
+    hold();
+    document.addEventListener('visibilitychange', hold);
+    return () => document.removeEventListener('visibilitychange', hold);
+  }, []);
+}
+
+// Start fresh once a night: a browser left running for weeks slows down and collects odd state.
+// Between 4 and 5 am, once per night, and only when `safe` (nobody is in the middle of anything).
+const NIGHTLY = 'benne14.nightly';
+export function useNightlyReload(safe = true) {
+  const ok = useRef(safe);
+  ok.current = safe;
+  useEffect(() => {
+    const t = setInterval(() => {
+      const now = new Date();
+      if (now.getHours() !== 4 || !ok.current) return;
+      const night = now.toDateString();
+      try {
+        if (sessionStorage.getItem(NIGHTLY) === night) return;
+        sessionStorage.setItem(NIGHTLY, night);
+      } catch {
+        return;
+      }
+      window.location.reload();
+    }, 60_000);
+    return () => clearInterval(t);
+  }, []);
+}
+
+// Staff's way to unstick a screen with no keyboard: hold the logo for five seconds and it reloads.
+export const HOLD_RELOAD_MS = 5000;
+export function useHoldToReload() {
+  const t = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const stop = useCallback(() => clearTimeout(t.current), []);
+  useEffect(() => stop, [stop]);
+  return {
+    onPointerDown: () => {
+      stop();
+      t.current = setTimeout(() => window.location.reload(), HOLD_RELOAD_MS);
+    },
+    onPointerUp: stop,
+    onPointerLeave: stop,
+    onPointerCancel: stop,
+    onContextMenu: (e: { preventDefault: () => void }) => e.preventDefault(),
+  };
+}

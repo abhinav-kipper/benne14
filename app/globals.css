@@ -352,3 +352,49 @@ img {
   height: 24px;
   margin-top: 12px;
 }
+
+/* A screen that crashed and is starting again (components/Recover.tsx). */
+.recover {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px;
+  text-align: center;
+  background: var(--bg);
+  color: var(--cream);
+}
+.recover .logo {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 40px;
+  text-transform: uppercase;
+}
+.recover .logo i {
+  font-style: normal;
+  color: var(--benne-fg);
+}
+.recover h1 {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 64px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.recover p {
+  font-size: 22px;
+  color: var(--cream-2);
+}
+.recover button {
+  margin-top: 10px;
+  height: 72px;
+  padding: 0 40px;
+  border-radius: var(--r-md);
+  background: var(--benne);
+  color: var(--benne-ink);
+  font-size: 22px;
+  font-weight: 700;
+}
