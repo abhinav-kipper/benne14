@@ -39,6 +39,10 @@ describe.skipIf(!URL_)('Supabase store on a real database', () => {
       'admin_events?id=not.is.null',
       'discount_codes?code=not.is.null',
       'kiosk_settings?id=not.is.null', // no row = the defaults (both on)
+      'menu_dishes?id=not.is.null',
+      'menu_layout?id=not.is.null',
+      'devices?id=not.is.null',
+      'error_log?id=not.is.null',
     ]) {
       const r = await rest(t, 'service_role', { method: 'DELETE' });
       if (!r.ok) throw new Error(`wipe ${t}: ${r.status} ${await r.text()}`);

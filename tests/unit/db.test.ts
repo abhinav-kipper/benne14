@@ -358,6 +358,19 @@ describe('database (supabase/migrations)', () => {
       await db.exec('delete from menu_dishes; delete from menu_layout');
     });
 
+    it('devices and the error log take only what the app sends them (0012)', async () => {
+      await db.query("insert into devices (id, kind) values ('kiosk0000001', 'kiosk')");
+      await expect(db.query("insert into devices (id, kind) values ('BAD ID', 'kiosk')")).rejects.toThrow();
+      await expect(db.query("insert into devices (id, kind) values ('kiosk0000002', 'toaster')")).rejects.toThrow();
+      await db.query("insert into error_log (source, message) values ('server', 'boom')");
+      await expect(db.query("insert into error_log (source, message) values ('elsewhere', 'boom')")).rejects.toThrow();
+      await expect(db.query("insert into error_log (source, message) values ('kiosk', '')")).rejects.toThrow();
+      await expect(
+        db.query('insert into error_log (source, message) values ($1, $2)', ['kiosk', 'x'.repeat(301)]),
+      ).rejects.toThrow();
+      await db.exec('delete from devices; delete from error_log');
+    });
+
     it('logs every change of state by itself, in order', async () => {
       const o = await place('log-order-1', 'upi');
       for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'])

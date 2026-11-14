@@ -3,7 +3,10 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { OrderError } from './pricing';
 import { FailureLimiter } from './ratelimit';
+import { getStore } from './store';
 import { StoreError } from './store/memory';
+import { clip } from './system';
+import { BUILD_ID } from './version';
 
 export const json = (data: unknown, status = 200) =>
   NextResponse.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -30,7 +33,41 @@ export function fail(e: unknown) {
   if (e instanceof OrderError) return json({ error: e.message }, 400);
   if (e instanceof StoreError) return json({ error: e.message }, e.status);
   console.error(e);
+  recordServerError(e);
   return json({ error: 'Something went wrong' }, 500);
+}
+
+// Something the server could not handle: keep it for the owner app's System page. Never awaited
+// and never allowed to throw: reporting a failure must not become a second failure.
+function recordServerError(e: unknown) {
+  try {
+    const err = e instanceof Error ? e : new Error(String(e));
+    void getStore()
+      .logError({
+        source: 'server',
+        message: clip(err.message, 300) || 'Unknown error',
+        detail: clip(err.stack, 2000) || null,
+        build: BUILD_ID,
+        device: null,
+      })
+      .catch(() => {});
+  } catch {
+    // no store: nothing to record it in
+  }
+}
+
+// A small counter per key (an address, usually): true once `max` calls arrived within `ms`. In
+// memory and per server instance, so it is a brake on abuse of the open endpoints, not a wall.
+const hits = new Map<string, { n: number; until: number }>();
+export function limited(key: string, max: number, ms: number): boolean {
+  const now = Date.now();
+  if (hits.size > 5000) for (const [k, v] of hits) if (v.until < now) hits.delete(k);
+  const h = hits.get(key);
+  if (!h || h.until < now) {
+    hits.set(key, { n: 1, until: now + ms });
+    return false;
+  }
+  return ++h.n > max;
 }
 
 // Staff actions (kitchen, counter) need the shop PIN. In production STAFF_PIN must be set;

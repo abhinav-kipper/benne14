@@ -25,7 +25,8 @@ Safety and money. None of this is visible to customers, all of it matters.
 - [x] **Screens look after themselves** (2026-11-14): stay awake, reload at 4 am, recover from a crash by themselves, restart by holding the logo 5 s; the kiosk sends customers to the counter when it can't reach the server; the kitchen says so loudly when orders are not arriving and flashes an unstarted order.
 - [ ] **The tablets behave like appliances.** Kiosk tablet locked to the app (Android screen pinning or a kiosk browser), screen never sleeps, always on charge, restarts into the app. Same for the kitchen tablet and the TV. (audit B5)
 - [ ] **When the internet drops.** Today the screens say they are offline and recover by themselves, but no order can be placed. Decide the fallback: a phone hotspot as second Wi-Fi, and a paper pad at the counter. Write it on one page for staff.
-- [ ] **Someone is told when something fails.** Error and uptime alerts exist; decide whose phone they reach and test one.
+- [x] **The owner can see what is wrong** (2026-11-14): System page in the owner app with every screen's status, what needs a look, and the latest errors.
+- [ ] **Someone is told when something fails.** Phone notifications from the owner app (part 2b), on top of the GitHub email every 15 minutes. Error and uptime alerts exist; decide whose phone they reach and test one.
 - [ ] **Backups and a restore drill.** With the paid Supabase plan, restore yesterday's backup once into a spare project to know it works.
 - [ ] **End of day.** A closing screen: takings by UPI, card and cash, a box to type the cash counted, the difference. (accuracy C5)
 - [ ] **A dry run.** One quiet afternoon with staff ordering as customers on the real tablet, TV and kitchen screen, paying real ₹1 orders, before the first real customer.

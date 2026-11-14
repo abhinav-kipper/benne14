@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CatalogProvider, useMenu } from '@/components/Catalog';
 import { PinGate, PIN_KEY } from '@/components/PinGate';
-import { ApiError, useLiveOrders } from '@/lib/client';
+import { admin, ApiError, useLiveOrders, usePoll, useWatch, type SystemReport } from '@/lib/client';
+import { System } from './screens/System';
 import { History } from './screens/History';
 import { Menu } from './screens/Menu';
 import { Offers } from './screens/Offers';
@@ -31,6 +32,22 @@ export default function Admin() {
     }
   }, []);
   const live = useLiveOrders(5000);
+  useWatch('owner', tab);
+  // The shop's screens and anything that needs a look, for the line on Today and the System page.
+  const [sys, setSys] = useState<SystemReport | null>(null);
+  usePoll(
+    async () => {
+      if (!pin) return;
+      try {
+        setSys(await admin.system(pin));
+      } catch (e) {
+        onAuthError(e);
+        return false;
+      }
+    },
+    tab === 'system' ? 10_000 : 30_000,
+    !!pin,
+  );
   // Dish photos for the reports, owner-made dishes included. Refreshed when the owner changes tab.
   const { catalog, reload } = useMenu(true);
   useEffect(() => {
@@ -57,7 +74,10 @@ export default function Admin() {
   return (
     <CatalogProvider value={catalog}>
       <div className="adm">
-        {tab === 'today' && <Today {...ctx} live={live.orders ?? []} refreshLive={live.refresh} go={setTab} />}
+        {tab === 'today' && (
+          <Today {...ctx} live={live.orders ?? []} refreshLive={live.refresh} go={setTab} sys={sys} />
+        )}
+        {tab === 'system' && <System sys={sys} back={() => setTab('today')} />}
         {tab === 'orders' && <Orders {...ctx} refreshLive={live.refresh} />}
         {tab === 'menu' && <Menu {...ctx} openHistory={() => setTab('history')} />}
         {tab === 'offers' && <Offers {...ctx} />}
@@ -67,7 +87,9 @@ export default function Admin() {
           {(['today', 'orders', 'menu', 'offers', 'reports'] as const).map((t) => (
             <button
               key={t}
-              className={tab === t || (t === 'menu' && tab === 'history') ? 'on' : ''}
+              className={
+                tab === t || (t === 'menu' && tab === 'history') || (t === 'today' && tab === 'system') ? 'on' : ''
+              }
               onClick={() => setTab(t)}
               data-testid={`tab-${t}`}
             >

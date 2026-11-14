@@ -353,6 +353,27 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(list[1].firstOrderAt <= list[1].lastOrderAt).toBe(true);
     });
 
+    it('remembers which screens are alive and what went wrong, newest first', async () => {
+      expect(await s.listDevices()).toEqual([]);
+      expect(await s.listErrors()).toEqual([]);
+      await s.beat({ id: 'kiosk0000001', kind: 'kiosk', screen: 'home', build: 'v1' });
+      await s.beat({ id: 'kitchen00001', kind: 'kitchen', screen: null, build: 'v1' });
+      await s.beat({ id: 'kiosk0000001', kind: 'kiosk', screen: 'cart', build: 'v2' }); // the same screen again
+      const devices = await s.listDevices();
+      expect(devices).toHaveLength(2);
+      const kiosk = devices.find((d) => d.id === 'kiosk0000001')!;
+      expect(kiosk).toMatchObject({ kind: 'kiosk', screen: 'cart', build: 'v2' });
+      expect(Date.parse(kiosk.seenAt)).toBeGreaterThanOrEqual(Date.parse(kiosk.firstSeen));
+      expect(devices[0].id).toBe('kiosk0000001'); // heard from most recently
+
+      await s.logError({ source: 'kiosk', message: 'first', detail: 'at line 1', build: 'v2', device: 'kiosk0000001' });
+      await s.logError({ source: 'server', message: 'second', detail: null, build: 'v2', device: null });
+      const errors = await s.listErrors();
+      expect(errors.map((e) => e.message)).toEqual(['second', 'first']);
+      expect(errors[1]).toMatchObject({ source: 'kiosk', detail: 'at line 1', device: 'kiosk0000001' });
+      expect(await s.listErrors(1)).toHaveLength(1);
+    });
+
     it('knows which migrations have run', async () => {
       expect([...(await s.appliedMigrations())].sort()).toEqual(MIGRATIONS);
     });

@@ -11,6 +11,8 @@ section A are open.
 
 ## Up next
 
+- **Owner to do now: run `supabase/migrations/0012_system_watch.sql`** in Supabase (0001 to 0011 are done). Until it is run the System page lists no screens and no errors; everything else works.
+
 **The plan to launch is `docs/go-live.md`**: four stages, stage 1 is what must be done before the first real customer.
 
 1. **Stage 1, launch blockers** (`docs/audit.md` section A): kiosk-only ordering with a rate limit, PIN on the order list, a separate owner PIN, new keys and PINs (all were shared in chat), test mode off, test data cleared, real ₹1 payments, server region next to the database, paid hosting plans, GSTIN and invoice numbers on the bill.
@@ -49,6 +51,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-14 — Fault tolerance, part 2a: the owner app has a System page. Every screen says "I'm here" each half minute (`/api/beat`), unhandled errors on screens and on the server are kept in `error_log` (`/api/log`), and the page lists the screens (online or silent), what needs a look (`lib/system.ts`) and the latest errors. One line on Today shows green or red. Needs migration 0012. Phone notifications are part 2b.
 - 2026-11-14 — Fault tolerance, part 1 (`docs/go-live.md` stage 2): the kiosk sends customers to the counter while the server or database can't be reached and comes back by itself; no request waits more than 12 s (database calls 8 s); a crashed screen says "One moment" and reloads (never in a loop); screens stay awake, reload at 4 am, and staff can restart one by holding the logo 5 s; the kitchen says across the screen when orders are not arriving and flashes an order nobody started for 3 minutes.
 - 2026-11-14 — New dish photos: all ten dishes (filter coffee now has one too) use large, clear stock photos from Pexels and Unsplash, 1400×1400, chosen to match each dish. Sources in `public/food/CREDITS.tsv`. The kiosk start screen, menu, dish sheet, TV banner, kitchen tray and reports all use them.
 - 2026-11-14 — Audit of the owner menu across every screen (`docs/menu-audit.md`): seven gaps fixed (dish sheet crash when an extra is switched off mid-order, suggestions and TV banner ignoring owner-made dishes and sections, start-screen photos of hidden dishes, kitchen colours and tray order). The Menu tab's three buttons became one "Add or change" button.

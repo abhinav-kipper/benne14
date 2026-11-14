@@ -3,7 +3,15 @@ import { useEffect, useState } from 'react';
 import { useMenu } from '@/components/Catalog';
 import { itemById, photoFor, type MenuItem } from '@/lib/menu';
 import { minutesSince } from '@/lib/orders';
-import { useAutoReload, useAwake, useCollected, useHoldToReload, useLiveOrders, useNightlyReload } from '@/lib/client';
+import {
+  useAutoReload,
+  useAwake,
+  useCollected,
+  useHoldToReload,
+  useLiveOrders,
+  useNightlyReload,
+  useWatch,
+} from '@/lib/client';
 
 const PROMOS = ['ghee-podi-thatte-idli', 'ghee-podi-benne-dosa', 'medu-vada'];
 const PREP_MAX = 6;
@@ -28,6 +36,7 @@ export default function Board() {
   useAutoReload(); // nothing is typed on the TV, so it can reload the moment a new version is out
   useNightlyReload();
   useAwake();
+  useWatch('board');
   const holdLogo = useHoldToReload();
   // Promo prices and names follow the owner's menu changes within half a minute, and a dish that is
   // sold out today is not advertised.

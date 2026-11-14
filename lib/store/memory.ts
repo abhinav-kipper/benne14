@@ -22,6 +22,7 @@ import {
 import { DEFAULT_SETTINGS, type Customer, type DiscountCode, type KioskSettings } from '../discounts';
 import { optionKey, type CustomItem, type ExtrasLayout, type Overrides, type SectionsLayout } from '../menu';
 import type { LayoutPatch, MenuEdit } from './index';
+import { FORGET_MS, type Device, type DeviceKind, type ErrorEntry } from '../system';
 import { MIGRATIONS } from '../migrations';
 
 interface ItemRow {
@@ -30,6 +31,11 @@ interface ItemRow {
   price: number | null;
   soldOutOn: string | null;
 }
+
+// A shop has a handful of screens. The caps stop a stranger filling the tables through the two
+// open endpoints (/api/beat and /api/log).
+export const MAX_DEVICES = 40;
+export const MAX_ERRORS = 500;
 
 export class StoreError extends Error {
   constructor(
@@ -47,6 +53,8 @@ export class MemoryStore {
   private counters = new Map<string, number>();
   private items = new Map<string, ItemRow>();
   private dishes = new Map<string, CustomItem>();
+  private devices = new Map<string, Device>();
+  private errors: ErrorEntry[] = [];
   private layout = {
     hidden: [] as string[],
     order: [] as string[],
@@ -333,6 +341,28 @@ export class MemoryStore {
       by.set(phone, c);
     }
     return [...by.values()].sort((a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt));
+  }
+
+  async beat(d: { id: string; kind: DeviceKind; screen: string | null; build: string | null }) {
+    const now = new Date().toISOString();
+    if (!this.devices.has(d.id) && this.devices.size >= MAX_DEVICES) return;
+    this.devices.set(d.id, { ...d, firstSeen: this.devices.get(d.id)?.firstSeen ?? now, seenAt: now });
+  }
+
+  async listDevices() {
+    const since = Date.now() - FORGET_MS;
+    return [...this.devices.values()]
+      .filter((d) => Date.parse(d.seenAt) > since)
+      .sort((a, b) => b.seenAt.localeCompare(a.seenAt));
+  }
+
+  async logError(e: Omit<ErrorEntry, 'at'>) {
+    this.errors.unshift({ ...e, at: new Date().toISOString() });
+    this.errors.length = Math.min(this.errors.length, MAX_ERRORS);
+  }
+
+  async listErrors(limit = 50) {
+    return this.errors.slice(0, limit);
   }
 
   async appliedMigrations() {
