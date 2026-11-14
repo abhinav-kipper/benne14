@@ -20,7 +20,7 @@ import {
   type PlaceOrderInput,
 } from '../orders';
 import { DEFAULT_SETTINGS, type Customer, type DiscountCode, type KioskSettings } from '../discounts';
-import { optionKey, type CustomItem, type Overrides, type SectionsLayout } from '../menu';
+import { optionKey, type CustomItem, type ExtrasLayout, type Overrides, type SectionsLayout } from '../menu';
 import type { LayoutPatch, MenuEdit } from './index';
 import { MIGRATIONS } from '../migrations';
 
@@ -47,7 +47,12 @@ export class MemoryStore {
   private counters = new Map<string, number>();
   private items = new Map<string, ItemRow>();
   private dishes = new Map<string, CustomItem>();
-  private layout = { hidden: [] as string[], order: [] as string[], sections: {} as SectionsLayout };
+  private layout = {
+    hidden: [] as string[],
+    order: [] as string[],
+    sections: {} as SectionsLayout,
+    extras: {} as ExtrasLayout,
+  };
   private options = new Map<string, number>();
   private events: AdminEvent[] = [];
   private history = new Map<string, OrderEvent[]>(); // per order, as the database's trigger writes it
@@ -230,6 +235,7 @@ export class MemoryStore {
       hidden: [...this.layout.hidden],
       order: [...this.layout.order],
       sections: structuredClone(this.layout.sections),
+      extras: structuredClone(this.layout.extras),
     };
   }
 
@@ -245,6 +251,7 @@ export class MemoryStore {
 
   async saveLayout(patch: LayoutPatch, event: Omit<AdminEvent, 'at'> | null) {
     if (patch.sections) this.layout.sections = structuredClone(patch.sections);
+    if (patch.extras) this.layout.extras = structuredClone(patch.extras);
     if (patch.hidden) this.layout.hidden = [...patch.hidden];
     if (patch.order) this.layout.order = [...patch.order];
     if (event) await this.addEvent(event);
@@ -260,7 +267,7 @@ export class MemoryStore {
     if (e.patch.desc !== undefined) r.desc = e.patch.desc;
     if (e.patch.price !== undefined) r.price = e.patch.price;
     if (e.patch.soldOut !== undefined) r.soldOutOn = e.patch.soldOut ? istDay() : null;
-    this.items.set(e.itemId, r);
+    if (Object.keys(e.patch).length) this.items.set(e.itemId, r);
     for (const o of e.options) this.options.set(optionKey(o.groupId, o.optionId), o.price);
     for (const ev of e.events) await this.addEvent(ev);
   }

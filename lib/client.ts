@@ -340,6 +340,25 @@ export const admin = {
       body: JSON.stringify(b),
       headers: pinHeader(pin),
     }),
+  // Extras and kitchen notes, one change at a time (see app/api/admin/extras/route.ts).
+  extrasChange: (
+    pin: string,
+    b:
+      | { extra: { set: string; id?: string; name: string; price: number } }
+      | { hideExtra: string }
+      | { showExtra: string }
+      | { set: { id?: string; name: string } }
+      | { removeSet: string }
+      | { dishSets: { itemId: string; sets: string[] } }
+      | { note: { id?: string; label: string; tone: 'add' | 'less' | null; cats: string[] } }
+      | { hideNote: string }
+      | { showNote: string },
+  ) =>
+    call<{ extra?: { id: string }; set?: { id: string; name: string }; note?: { id: string } }>('/api/admin/extras', {
+      method: 'POST',
+      body: JSON.stringify(b),
+      headers: pinHeader(pin),
+    }),
   photo: (pin: string, jpeg: Blob) =>
     call<{ url: string }>('/api/admin/photo', {
       method: 'POST',

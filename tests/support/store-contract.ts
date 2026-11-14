@@ -189,6 +189,7 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
         hidden: [],
         order: [],
         sections: {},
+        extras: {},
       });
       await s.saveMenuEdit({
         itemId: 'masala-dosa',
@@ -256,6 +257,33 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(withSections.custom![0].cat).toBe('s-sweets01');
       await s.saveLayout({ sections: {} }, null);
       expect((await s.getOverrides()).sections).toEqual({});
+
+      // extras and kitchen notes: one value, kept whole, apart from the rest of the layout
+      const extras = {
+        options: { dosaExtras: [{ id: 'x-cheese01', name: 'Extra cheese', price: 30 }] },
+        names: { 'dosaExtras:podi': 'Extra gunpowder' },
+        hidden: ['dosaExtras:palya'],
+        sets: [{ id: 'g-ontop001', name: 'Add on top' }],
+        dishSets: { 'masala-tea': [] },
+        notes: [{ id: 'n-noonion1', label: 'No onion', tone: 'less' as const, cats: ['dosa'] }],
+        hiddenNotes: ['extra-crisp'],
+      };
+      await s.saveLayout({ extras }, { kind: 'menu', subject: 'Extra cheese', after: 'New extra · ₹30' });
+      const withExtras = await s.getOverrides();
+      expect(withExtras.extras).toEqual(extras);
+      expect(withExtras.order).toEqual(['plain-dosa', dish.id, 'masala-dosa']);
+      // an extra's price can change without touching any dish
+      await s.saveMenuEdit({
+        itemId: '',
+        patch: {},
+        options: [{ groupId: 'dosaExtras', optionId: 'benne', price: 35 }],
+        events: [],
+      });
+      const priced = await s.getOverrides();
+      expect(priced.options['dosaExtras:benne']).toBe(35);
+      expect(priced.items['']).toBeUndefined();
+      await s.saveLayout({ extras: {} }, null);
+      expect((await s.getOverrides()).extras).toEqual({});
 
       await s.deleteDish(dish.id, { kind: 'menu', subject: dish.name, after: 'Draft discarded' });
       expect((await s.getOverrides()).custom).toEqual([]);

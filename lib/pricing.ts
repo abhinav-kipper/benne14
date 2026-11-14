@@ -93,7 +93,7 @@ export function priceLine(line: CartLine, cat: Catalog = BASE_CATALOG): PricedLi
   }
 
   const notes = [...new Set(line.notes ?? [])].map((id) => {
-    const n = notesFor(item).find((x) => x.id === id);
+    const n = notesFor(item, cat).find((x) => x.id === id);
     if (!n) throw new OrderError(`Note ${id} not allowed for ${item.name}`);
     return { id: n.id, label: n.label };
   });

@@ -32,6 +32,7 @@ supabase/migrations/                SQL, run by hand in order; logged in schema_
   it is idempotent on the checkout key and hands out 1, 2, 3… per day.
 - `menu_dishes`, `menu_layout` (0009): dishes the owner added from the dashboard (drafts until published), which dishes are hidden, and the order of the menu. `mergeCatalog()` merges them with the dishes in code; hidden dishes and drafts are left out of the catalog the kiosk and the server price from. Photos go to the Supabase Storage bucket `dish-photos` through `/api/admin/photo`.
 - `menu_layout.sections` (0010): the owner's own sections, new names, the order of sections and which are hidden, as one JSON value. `mergeSections()` turns it into `catalog.cats`; a dish in a hidden section is left out of the menu like a hidden dish.
+- `menu_layout.extras` (0011): the owner's own extras, sets of extras and kitchen notes, new names, what is switched off, and which set each dish offers (`ExtrasLayout` in `lib/menu.ts`; changed through `/api/admin/extras`). `mergeCatalog()` builds `catalog.groups` and `catalog.notes` from it; `notesFor(item, catalog)` says which notes a dish takes. Extras and notes are switched off, not deleted: the kitchen loads the full catalog so old chits keep their colours.
 - `menu_overrides`, `option_overrides`: the owner's changes on top of `lib/menu.ts` (price, name,
   description, sold out today; extras' prices). `save_menu_edit()` writes an edit and its history in one transaction.
 - `admin_events`: change history (menu edits, refunds). `schema_migrations`: which SQL files ran.

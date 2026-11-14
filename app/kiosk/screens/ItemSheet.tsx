@@ -113,14 +113,14 @@ export function ItemSheet({
               </div>
             );
           })}
-          {notesFor(item).length > 0 && (
+          {notesFor(item, catalog).length > 0 && (
             <div className="grp">
               <div className="gh">
                 <h3 className="disp">Note for the kitchen</h3>
                 <small>Tap any</small>
               </div>
               <div className="notes">
-                {notesFor(item).map((n) => (
+                {notesFor(item, catalog).map((n) => (
                   <button
                     key={n.id}
                     className={`note ${notes.includes(n.id) ? 'on' : ''}`}

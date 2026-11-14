@@ -1,6 +1,16 @@
 'use client';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { mergeCatalog, noteTone, optionTone, photoFor, placeholderFor, type MenuItem, type Tone } from '@/lib/menu';
+import {
+  BASE_CATALOG,
+  mergeCatalog,
+  noteTone,
+  optionTone,
+  photoFor,
+  placeholderFor,
+  type Catalog,
+  type MenuItem,
+  type Tone,
+} from '@/lib/menu';
 import { allGiven, counts, givenOf, minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { PinGate } from '@/components/PinGate';
 import { api, ApiError, chime, useAutoReload, useFreshIds, useLiveOrders, useTodayOrders } from '@/lib/client';
@@ -283,11 +293,16 @@ export default function Kitchen() {
   const isFresh = (o: Order) => fresh.has(`${o.id}:${o.status === 'cooking' ? 'new' : o.status}`);
   // The whole menu, hidden dishes included: an order placed before a dish was hidden still shows its photo.
   const [dishes, setDishes] = useState<Map<string, MenuItem>>(new Map());
+  const [menu, setMenu] = useState<Catalog>(BASE_CATALOG); // for the colours of the owner's own extras and notes
   useEffect(() => {
     const load = () =>
       api
         .menu()
-        .then((o) => setDishes(new Map(mergeCatalog(o, true).items.map((i) => [i.id, i]))))
+        .then((o) => {
+          const all = mergeCatalog(o, true);
+          setMenu(all);
+          setDishes(new Map(all.items.map((i) => [i.id, i])));
+        })
         .catch(() => {});
     load();
     const t = setInterval(load, 60_000);
@@ -367,6 +382,7 @@ export default function Kitchen() {
                 fresh={isFresh(o)}
                 onGo={() => move(o, o.status === 'new' ? 'cooking' : 'ready')}
                 onTick={(line, by) => tick(o, line, by)}
+                menu={menu}
               />
             ))}
           </div>
@@ -539,12 +555,14 @@ function Chit({
   fresh,
   onGo,
   onTick,
+  menu,
 }: {
   o: Order;
   now: number;
   fresh: boolean;
   onGo: () => void;
   onTick: (line: number, by: 1 | -1) => void;
+  menu: Catalog;
 }) {
   const given = givenOf(o);
   const all = allGiven(o);
@@ -576,7 +594,7 @@ function Chit({
       <div className="perf" />
       <div className="items">
         {o.lines.map((l, i) => {
-          const tags = lineTags(l);
+          const tags = lineTags(l, menu);
           return (
             <div
               className={`ln ${given[i] === l.qty ? 'given' : given[i] > 0 ? 'part' : ''}`}
@@ -662,15 +680,15 @@ function Chit({
 
 // What the cook reads under a dish: extras and "more" in green (+), "less / no" in red (−), other notes in black.
 // Regular sugar is the default, so it doesn't show. (Spice was dropped; old orders may still carry it.)
-function lineTags(l: Order['lines'][number]): { key: string; text: string; tone?: Tone }[] {
+function lineTags(l: Order['lines'][number], menu: Catalog): { key: string; text: string; tone?: Tone }[] {
   const mods = l.mods
     .map((m) => ({
       key: `${m.groupId}:${m.id}`,
       text: m.groupId === 'spice' ? `${m.name} spice` : m.name,
-      tone: optionTone(m.groupId, m.id) ?? (m.price > 0 ? ('add' as const) : undefined),
+      tone: optionTone(m.groupId, m.id, menu) ?? (m.price > 0 ? ('add' as const) : undefined),
     }))
     .filter((t) => t.tone);
-  const notes = l.notes.map((n) => ({ key: `note:${n.id}`, text: n.label, tone: noteTone(n.id) }));
+  const notes = l.notes.map((n) => ({ key: `note:${n.id}`, text: n.label, tone: noteTone(n.id, menu) }));
   const rank = (t: { tone?: Tone }) => (t.tone === 'add' ? 0 : t.tone === 'less' ? 1 : 2);
   return [...mods, ...notes].sort((a, b) => rank(a) - rank(b));
 }

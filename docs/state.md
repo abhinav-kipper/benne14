@@ -11,7 +11,7 @@ section A are open.
 
 ## Up next
 
-- **Owner to do now: run `supabase/migrations/0010_owner_sections.sql`** in Supabase (0001 to 0009 are done). Until it is run, changes in the Sections sheet answer with an error; the rest works as before.
+- **Owner to do now: run `supabase/migrations/0011_owner_extras.sql`** in Supabase (0001 to 0010 are done). Until it is run, changes in the Extras & kitchen notes sheet answer with an error; the rest works as before.
 
 0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Round 1 (flow) is merged; round 2 (feel) is on `feat/ui-round-2`. Left: round 3 needs the owner (photos, veg marks, invoice numbers, keyboard check on the tablet), round 4 is the staff screens. The launch blockers below are on hold until then, not dropped.
 
@@ -60,6 +60,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-14 — Owner menu, stage 3 of 3: extras and kitchen notes. Add an extra to a set, rename and reprice any extra, switch extras off, make a new set of extras, choose which set any dish offers, add kitchen notes (more / less / plain, per section) and switch notes off. The kitchen chit colours the owner's own extras and notes. Needs migration 0011. Extras and notes are switched off, never deleted, so old chits and bills still read right.
 - 2026-11-14 — Owner menu, stage 2 of 3: sections. Add a section, rename any section, drag sections into a new order, switch a whole section (and its dishes) off the kiosk, remove an empty section the owner added. A dish the owner adds can go in any section. Needs migration 0010. The kiosk no longer breaks if the house special is hidden. Extras and kitchen notes are stage 3.
 - 2026-11-14 — Owner can change the menu's dishes from the dashboard (stage 1 of 3): add a dish with a photo from the phone, keep it as a draft, check how the kiosk will show it, publish; hide any dish and bring it back; drag dishes into a new order. Needs migration 0009 (also creates the photo bucket). Sections and extras are stages 2 and 3.
 - 2026-11-14 — Kitchen ticks: a tap on a chit line counts one more of that dish as given ("2 of 4 given", then a green tick), a hold takes one back. Saved on the server (migration 0008) so every kitchen screen agrees and a reload keeps them. Ready lights up when everything is out; the bottom tray counts only what is still to be made. The TV does not show ticks.

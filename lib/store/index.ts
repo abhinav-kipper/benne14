@@ -2,7 +2,7 @@
 // (and tests pass) with no database. Only server code imports this.
 import 'server-only';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
-import type { CustomItem, Overrides, SectionsLayout } from '../menu';
+import type { CustomItem, ExtrasLayout, Overrides, SectionsLayout } from '../menu';
 import type { AdminEvent, GatewayPayment, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
 import { MemoryStore, StoreError } from './memory';
 import { SupabaseStore } from './supabase';
@@ -63,6 +63,7 @@ export interface LayoutPatch {
   hidden?: string[];
   order?: string[];
   sections?: SectionsLayout;
+  extras?: ExtrasLayout; // migration 0011; like sections, replaces the whole value
 }
 
 // undefined = leave as is; null = back to the menu in code.

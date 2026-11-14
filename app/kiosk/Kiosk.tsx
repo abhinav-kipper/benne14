@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CatalogProvider, useMenu } from '@/components/Catalog';
 import { api, ApiError, newKey, useAutoReload } from '@/lib/client';
 import { cleanPhone, type DiscountRule, type KioskSettings } from '@/lib/discounts';
-import { PAIRING } from '@/lib/menu';
+import { PAIRING, notesFor } from '@/lib/menu';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
 import { priceOrder, type CartLine } from '@/lib/pricing';
 import { Cart } from './screens/Cart';
@@ -43,8 +43,25 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   // screen, i.e. for every new customer. If it can't load, the kiosk keeps the last menu it had.
   const { catalog, reload: loadMenu } = useMenu();
   // A dish the owner takes off the menu while it sits in a cart simply leaves the cart.
+  // So does an extra or a kitchen note the owner switches off: the dish stays, without it.
   const lines = useMemo(
-    () => cartLines.filter((l) => catalog.items.some((i) => i.id === l.itemId)),
+    () =>
+      cartLines.flatMap((l) => {
+        const item = catalog.items.find((i) => i.id === l.itemId);
+        if (!item) return [];
+        const choices: Line['choices'] = {};
+        for (const g of item.groups) {
+          const have = new Set(catalog.groups[g].options.map((o) => o.id));
+          const kept = (l.choices[g] ?? []).filter((id) => have.has(id));
+          if (kept.length) choices[g] = kept;
+        }
+        const allowed = new Set(notesFor(item, catalog).map((n) => n.id));
+        const notes = l.notes.filter((id) => allowed.has(id));
+        const same =
+          notes.length === l.notes.length &&
+          Object.keys(l.choices).every((g) => (choices[g]?.length ?? 0) === l.choices[g].length);
+        return [same ? l : { ...l, choices, notes }];
+      }),
     [cartLines, catalog],
   );
   useEffect(() => {
