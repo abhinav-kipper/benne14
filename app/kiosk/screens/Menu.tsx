@@ -19,7 +19,7 @@ export function MenuScreen(p: {
 }) {
   const catalog = useCatalog();
   const items = visibleItems(p.testMode, catalog);
-  const cats = catalog.cats.filter((c) => items.some((i) => i.cat === c.id));
+  const cats = catalog.cats.filter((c) => items.some((i) => i.cat === c.id && !i.special));
   const [active, setActiveState] = useState(cats.find((c) => c.id === p.scrollMemo.current.cat)?.id ?? cats[0]?.id);
   const setActive = (id: typeof active) => {
     p.scrollMemo.current.cat = id;

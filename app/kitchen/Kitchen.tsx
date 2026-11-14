@@ -294,8 +294,8 @@ export default function Kitchen() {
   // The whole menu, hidden dishes included: an order placed before a dish was hidden still shows its photo.
   const [dishes, setDishes] = useState<Map<string, MenuItem>>(new Map());
   const [menu, setMenu] = useState<Catalog>(BASE_CATALOG); // for the colours of the owner's own extras and notes
-  useEffect(() => {
-    const load = () =>
+  const loadMenu = useCallback(
+    () =>
       api
         .menu()
         .then((o) => {
@@ -303,22 +303,50 @@ export default function Kitchen() {
           setMenu(all);
           setDishes(new Map(all.items.map((i) => [i.id, i])));
         })
-        .catch(() => {});
-    load();
-    const t = setInterval(load, 60_000);
+        .catch(() => {}),
+    [],
+  );
+  useEffect(() => {
+    loadMenu();
+    const t = setInterval(loadMenu, 60_000);
     return () => clearInterval(t);
-  }, []);
+  }, [loadMenu]);
+  // An order with a dish, extra or note this screen has not heard of (the owner just added it):
+  // fetch the menu now, once per such thing, so the chit gets its photo and colours at once.
+  const asked = useRef(new Set<string>());
+  useEffect(() => {
+    let fresh = false;
+    for (const o of rail)
+      for (const l of o.lines) {
+        const unknown = [
+          dishes.has(l.itemId) ? null : l.itemId,
+          ...l.mods.map((m) =>
+            menu.groups[m.groupId]?.options.some((x) => x.id === m.id) ? null : `${m.groupId}:${m.id}`,
+          ),
+          ...l.notes.map((n) => (menu.notes.some((x) => x.id === n.id) ? null : n.id)),
+        ];
+        for (const id of unknown)
+          if (id && !asked.current.has(id)) {
+            asked.current.add(id);
+            fresh = true;
+          }
+      }
+    if (fresh) loadMenu();
+  }, [rail, dishes, menu, loadMenu]);
   const tray = useMemo(() => {
+    // grouped by section, in the menu's own order of sections
+    const place = (id: string) => {
+      const at = menu.cats.findIndex((c) => c.id === dishes.get(id)?.cat);
+      return at < 0 ? menu.cats.length : at;
+    };
     const m = new Map<string, number>();
     // what is still to be made: dishes already given (ticked) are off the tray
     for (const o of rail) {
       const given = givenOf(o);
       o.lines.forEach((l, i) => m.set(l.itemId, (m.get(l.itemId) ?? 0) + l.qty - given[i]));
     }
-    return [...m.entries()]
-      .filter(([, n]) => n > 0)
-      .sort((a, b) => (dishes.get(a[0])?.cat ?? '').localeCompare(dishes.get(b[0])?.cat ?? ''));
-  }, [rail, dishes]);
+    return [...m.entries()].filter(([, n]) => n > 0).sort((a, b) => place(a[0]) - place(b[0]));
+  }, [rail, dishes, menu]);
   const clock = !now
     ? ''
     : new Date(now).toLocaleTimeString('en-IN', {

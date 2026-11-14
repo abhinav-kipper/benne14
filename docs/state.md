@@ -60,6 +60,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-14 — Audit of the owner menu across every screen (`docs/menu-audit.md`): seven gaps fixed (dish sheet crash when an extra is switched off mid-order, suggestions and TV banner ignoring owner-made dishes and sections, start-screen photos of hidden dishes, kitchen colours and tray order). The Menu tab's three buttons became one "Add or change" button.
 - 2026-11-14 — Owner menu, stage 3 of 3: extras and kitchen notes. Add an extra to a set, rename and reprice any extra, switch extras off, make a new set of extras, choose which set any dish offers, add kitchen notes (more / less / plain, per section) and switch notes off. The kitchen chit colours the owner's own extras and notes. Needs migration 0011. Extras and notes are switched off, never deleted, so old chits and bills still read right.
 - 2026-11-14 — Owner menu, stage 2 of 3: sections. Add a section, rename any section, drag sections into a new order, switch a whole section (and its dishes) off the kiosk, remove an empty section the owner added. A dish the owner adds can go in any section. Needs migration 0010. The kiosk no longer breaks if the house special is hidden. Extras and kitchen notes are stage 3.
 - 2026-11-14 — Owner can change the menu's dishes from the dashboard (stage 1 of 3): add a dish with a photo from the phone, keep it as a draft, check how the kiosk will show it, publish; hide any dish and bring it back; drag dishes into a new order. Needs migration 0009 (also creates the photo bucket). Sections and extras are stages 2 and 3.

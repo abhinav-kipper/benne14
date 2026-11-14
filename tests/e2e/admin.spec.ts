@@ -563,6 +563,7 @@ test('owner adds a dish with a photo, checks it, publishes it; customers can the
 }) => {
   await owner(page);
   await page.getByTestId('tab-menu').click();
+  await page.getByTestId('open-add').click();
   await page.getByTestId('add-dish').click();
   await page.getByTestId('dish-save').click();
   await expect(page.getByTestId('dish-err')).toContainText('needs a name'); // nothing half-made is saved
@@ -742,6 +743,7 @@ test('owner adds a section, puts a dish in it, renames, reorders and hides secti
 }) => {
   await owner(page);
   await page.getByTestId('tab-menu').click();
+  await page.getByTestId('open-add').click();
   await page.getByTestId('open-sections').click();
   const sheet = page.getByTestId('sections-sheet');
   await page.getByTestId('sec-add').click();
@@ -802,6 +804,7 @@ test('owner adds a section, puts a dish in it, renames, reorders and hides secti
   expect((await orderIt(request, dish.id)).ok()).toBe(true);
 
   // switch the section off: it and its dish leave the kiosk and can't be ordered
+  await page.getByTestId('open-add').click();
   await page.getByTestId('open-sections').click();
   await page.getByTestId(`sec-sw-${sid}`).click();
   await expect(page.getByTestId(`sec-${sid}`)).toContainText('off the kiosk');
@@ -876,6 +879,7 @@ test('owner adds an extra and a kitchen note; the kiosk offers them, the kitchen
 }) => {
   await owner(page);
   await page.getByTestId('tab-menu').click();
+  await page.getByTestId('open-add').click();
   await page.getByTestId('open-extras').click();
   // a new extra in the dosas' set
   await page.getByTestId('x-add-dosaExtras').click();
@@ -955,6 +959,7 @@ test('owner adds an extra and a kitchen note; the kiosk offers them, the kitchen
 test('owner makes a set of extras and gives it to a dish that had none', async ({ page, request }) => {
   await owner(page);
   await page.getByTestId('tab-menu').click();
+  await page.getByTestId('open-add').click();
   await page.getByTestId('open-extras').click();
   await page.getByTestId('xset-new').fill('Add on top');
   await page.getByTestId('xset-add').click();
@@ -1040,4 +1045,65 @@ test('extras API: PIN, bad input, limits, and what stays for old orders', async 
   // leave the extras that came with the app as the other tests expect them
   await extras(request, { extra: { set: 'dosaExtras', id: 'podi', name: 'Extra podi', price: 15 } });
   await extras(request, { showExtra: 'dosaExtras:palya' });
+});
+
+// ---- The owner's changes reach every screen without breaking a customer mid-order ----
+test('an extra switched off while a customer has it picked leaves the dish and the screen intact', async ({
+  page,
+  request,
+}) => {
+  await page.clock.install();
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  // one in the cart with the extra, and the sheet open on another with the same extra picked
+  await page.getByTestId('item-masala-dosa').click();
+  await page.getByTestId('addon-sambar').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('item-plain-dosa').click();
+  await page.getByTestId('addon-sambar').click();
+  const add = page.getByTestId('add-to-order');
+  const withExtra = await add.innerText();
+  expect((await extras(request, { hideExtra: 'dosaExtras:sambar' })).ok()).toBe(true);
+  await page.clock.runFor(31_000); // the kiosk asks for the menu again every half minute
+  await expect(page.getByTestId('addon-sambar')).toHaveCount(0);
+  await expect(add).not.toHaveText(withExtra); // the price dropped with the extra; nothing crashed
+  await add.click();
+  await page.getByTestId('cartbar').click();
+  await expect(page.getByTestId('cart-line')).toHaveCount(2);
+  await expect(page.locator('.kiosk')).not.toContainText('Extra sambhar');
+  await extras(request, { showExtra: 'dosaExtras:sambar' });
+});
+
+test('the start screen, the suggestions and the TV follow a hidden dish and a new one', async ({ page, request }) => {
+  const live = ((await publicMenu(request)).custom as { id: string; name: string; photo: string | null }[]).find(
+    (c) => c.name === 'Onion Benne Dosa',
+  )!;
+  await dishes(request, { show: live.id }); // the dish with a photo from the first dishes test
+  await dishes(request, { hide: 'masala-tea' });
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  const shots = () => page.locator('.mosaic img').evaluateAll((els) => els.map((e) => e.getAttribute('src') ?? ''));
+  await expect.poll(async () => (await shots()).some((s) => s.includes('masala-tea'))).toBe(false); // off the menu, off the wall
+  expect(await shots()).toHaveLength(9);
+  expect((await shots()).some((s) => s === live.photo)).toBe(true); // the owner's photo took its place
+  // a dosa order is not offered the hidden tea
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-plain-dosa').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await expect(page.locator('[data-testid^="suggest-"]').first()).toBeVisible();
+  await expect(page.getByTestId('suggest-masala-tea')).toHaveCount(0);
+  // the TV advertises the owner's new dish in its turn
+  await page.clock.install();
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/board');
+  let seen = '';
+  for (let i = 0; i < 12 && !seen.includes('onion benne dosa'); i++) {
+    await page.clock.runFor(8_000);
+    seen = (await page.locator('.promo').innerText()).toLowerCase(); // the banner prints names in capitals
+  }
+  expect(seen).toContain('onion benne dosa');
+  await dishes(request, { show: 'masala-tea' });
+  await dishes(request, { hide: live.id });
 });

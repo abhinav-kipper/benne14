@@ -1435,8 +1435,6 @@
 .adm .addrow {
   margin: 14px 20px 0;
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
 }
 .adm .addrow .btn:nth-child(3) {
   grid-column: 1 / -1;
@@ -1909,4 +1907,22 @@
 }
 .adm .pick .r.sq {
   border-radius: 6px;
+}
+
+/* the one "Add or change" button's choices */
+.adm .pick.choose {
+  margin-top: 14px;
+}
+.adm .pick.choose button {
+  padding: 15px 14px;
+  font-weight: 700;
+}
+.adm .pick.choose small {
+  font-size: 13px;
+  margin-top: 3px;
+}
+.adm .pick.choose .go {
+  font-style: normal;
+  font-size: 24px;
+  color: var(--cream-3);
 }
