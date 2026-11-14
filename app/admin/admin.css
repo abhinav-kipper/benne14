@@ -499,10 +499,9 @@
 .adm .ord .l2 {
   font-size: 13px;
   color: var(--cream-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   margin-top: 3px;
+  line-height: 1.35;
+  text-align: left; /* the whole order, wrapped: a long order is never cut off */
 }
 .adm .ord .amt {
   text-align: right;
