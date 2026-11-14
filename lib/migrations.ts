@@ -12,4 +12,5 @@ export const MIGRATIONS = [
   '0008_given_ticks',
   '0009_owner_dishes',
   '0010_owner_sections',
+  '0011_owner_extras',
 ];

@@ -856,3 +856,188 @@ test('sections API: PIN, bad input, limits, and what can and cannot be removed',
   await dishes(request, { section: { id: 'drinks', name: 'Coffee & Tea' } });
   await dishes(request, { sectionOrder: [] });
 });
+
+// ---- The owner's extras and kitchen notes ----
+const extras = (r: APIRequestContext, data: object, headers: Record<string, string> = H) =>
+  r.post('/api/admin/extras', { data, headers });
+const extrasNow = async (r: APIRequestContext) =>
+  ((await (await r.get('/api/admin/dishes', { headers: H })).json()).extras ?? {}) as {
+    options?: Record<string, { id: string; name: string; price: number }[]>;
+    notes?: { id: string; label: string }[];
+    sets?: { id: string; name: string }[];
+    hidden?: string[];
+    hiddenNotes?: string[];
+  };
+
+test('owner adds an extra and a kitchen note; the kiosk offers them, the kitchen prints them in colour', async ({
+  page,
+  request,
+  browser,
+}) => {
+  await owner(page);
+  await page.getByTestId('tab-menu').click();
+  await page.getByTestId('open-extras').click();
+  // a new extra in the dosas' set
+  await page.getByTestId('x-add-dosaExtras').click();
+  await expect(page.getByTestId('extras-err')).toContainText('name');
+  await page.getByTestId('x-new-name-dosaExtras').fill('Extra cheese');
+  await page.getByTestId('x-new-price-dosaExtras').fill('30');
+  await page.getByTestId('x-add-dosaExtras').click();
+  await expect(page.getByTestId('xset-dosaExtras')).toContainText('Extra cheese');
+  const cheese = (await extrasNow(request)).options!.dosaExtras[0];
+  expect(cheese).toMatchObject({ name: 'Extra cheese', price: 30 });
+  // reprice and rename one that came with the app
+  await page.getByTestId('x-dosaExtras-podi').locator('.nm').click();
+  await page.getByTestId('x-edit-name').fill('Extra gunpowder');
+  await page.getByTestId('x-edit-price').fill('18');
+  await page.getByTestId('x-edit-save').click();
+  await expect(page.getByTestId('x-dosaExtras-podi')).toContainText('Extra gunpowder');
+  await expect(page.getByTestId('x-dosaExtras-podi')).toContainText('+₹18');
+  // switch one off
+  await page.getByTestId('x-sw-dosaExtras-palya').click();
+  await expect(page.getByTestId('x-sw-dosaExtras-palya')).toHaveAttribute('aria-checked', 'false');
+  // a kitchen note for dosas
+  await page.getByTestId('note-new').fill('No onion');
+  await page.getByTestId('note-add').click();
+  await expect(page.getByTestId('extras-err')).toContainText('sections'); // must say which dishes take it
+  await page.getByTestId('note-cat-dosa').click();
+  await page.getByTestId('note-add').click();
+  await expect(page.getByTestId('notes')).toContainText('No onion');
+  const note = (await extrasNow(request)).notes![0];
+  await page.getByTestId('extras-done').click();
+
+  // the kiosk's dish sheet: new extra and note are there, the switched-off extra is not
+  const kiosk = await (await browser.newContext({ viewport: { width: 800, height: 1280 } })).newPage();
+  await kiosk.goto('/kiosk');
+  await kiosk.getByTestId('start').click();
+  await kiosk.getByTestId('item-masala-dosa').click();
+  const sheet = kiosk.getByTestId('sheet');
+  await expect(sheet).toContainText('Extra cheese');
+  await expect(sheet).toContainText('Extra gunpowder');
+  await expect(sheet).toContainText('No onion');
+  await expect(sheet).not.toContainText('Extra stuffing');
+  await kiosk.context().close();
+
+  // the server prices it; a switched-off extra is refused
+  const place = (choices: Record<string, string[]>, notes: string[] = []) =>
+    request.post('/api/orders', {
+      data: {
+        key: `extras-${Date.now()}-${k++}`,
+        type: 'takeaway',
+        name: 'Extras',
+        payMethod: 'cash',
+        lines: [{ itemId: 'masala-dosa', qty: 1, choices, notes }],
+      },
+    });
+  expect((await place({ dosaExtras: ['palya'] })).status()).toBe(400);
+  const base = (await (await place({})).json()).subtotal as number;
+  const o = await (await place({ dosaExtras: [cheese.id, 'podi'] }, [note.id])).json();
+  expect(o.subtotal).toBe(base + 30 + 18);
+  expect(o.lines[0].mods.map((m: { name: string }) => m.name).sort()).toEqual(['Extra cheese', 'Extra gunpowder']);
+  expect(o.lines[0].notes).toEqual([{ id: note.id, label: 'No onion' }]);
+
+  // the kitchen chit: the extra in green, the note in red
+  await request.post(`/api/orders/${o.id}/status`, { data: { to: 'new' }, headers: H });
+  const kitchen = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+  await kitchen.addInitScript((pin) => localStorage.setItem('benne14.staffPin', pin), PIN);
+  await kitchen.goto('/kitchen');
+  const chit = kitchen.getByTestId(`chit-${o.token}`);
+  await expect(chit.locator('.tg.more', { hasText: 'Extra cheese' })).toBeVisible();
+  await expect(chit.locator('.tg.less', { hasText: 'No onion' })).toBeVisible({ timeout: 8000 });
+  await kitchen.context().close();
+
+  // history has the changes
+  await page.getByTestId('open-history').click();
+  for (const text of ['Extra cheese', 'Extra gunpowder', 'Extra switched off', 'New kitchen note'])
+    await expect(page.getByTestId('history')).toContainText(text);
+});
+
+test('owner makes a set of extras and gives it to a dish that had none', async ({ page, request }) => {
+  await owner(page);
+  await page.getByTestId('tab-menu').click();
+  await page.getByTestId('open-extras').click();
+  await page.getByTestId('xset-new').fill('Add on top');
+  await page.getByTestId('xset-add').click();
+  const set = (await extrasNow(request)).sets![0];
+  await page.getByTestId(`x-new-name-${set.id}`).fill('Ice cream');
+  await page.getByTestId(`x-new-price-${set.id}`).fill('40');
+  await page.getByTestId(`x-add-${set.id}`).click();
+  await expect(page.getByTestId(`xset-${set.id}`)).toContainText('Ice cream');
+  await page.getByTestId('extras-done').click();
+  // mallige idli now offers it instead of the idli extras
+  await page.getByTestId('mi-mallige-idli').locator('.open').click();
+  await page.getByTestId(`dish-group-${set.id}`).click();
+  await page.getByTestId('ed-save').click();
+  await expect(page.getByTestId('edit-sheet')).toHaveCount(0);
+  const ice = (await extrasNow(request)).options![set.id][0];
+  const place = (choices: Record<string, string[]>) =>
+    request.post('/api/orders', {
+      data: {
+        key: `sets-${Date.now()}-${k++}`,
+        type: 'takeaway',
+        name: null,
+        payMethod: 'cash',
+        lines: [{ itemId: 'mallige-idli', qty: 1, choices, notes: [] }],
+      },
+    });
+  const plain = (await (await place({})).json()).subtotal as number;
+  expect((await (await place({ [set.id]: [ice.id] })).json()).subtotal).toBe(plain + 40);
+  expect((await place({ idliExtras: ['ghee'] })).status()).toBe(400); // no longer offered on this dish
+  // put it back as the other tests expect
+  expect((await extras(request, { dishSets: { itemId: 'mallige-idli', sets: ['idliExtras'] } })).ok()).toBe(true);
+});
+
+test('extras API: PIN, bad input, limits, and what stays for old orders', async ({ request }) => {
+  expect((await extras(request, { extra: { set: 'dosaExtras', name: 'X', price: 5 } }, {})).status()).toBe(401);
+  for (const bad of [
+    {},
+    { extra: { set: 'dosaExtras', name: '', price: 5 } },
+    { extra: { set: 'dosaExtras', name: 'x'.repeat(31), price: 5 } },
+    { extra: { set: 'dosaExtras', name: 'Free lunch', price: -1 } },
+    { extra: { set: 'dosaExtras', name: 'Half', price: 2.5 } },
+    { extra: { set: 'dosaExtras', name: 'extra BENNE', price: 5 } }, // already there
+    { set: { name: '' } },
+    { dishSets: { itemId: 'masala-dosa', sets: ['nope'] } },
+    { dishSets: { itemId: 'masala-dosa', sets: 'dosaExtras' } },
+    { note: { label: '', tone: 'less', cats: ['dosa'] } },
+    { note: { label: 'Hot', tone: 'spicy', cats: ['dosa'] } },
+    { note: { label: 'Hot', tone: null, cats: [] } },
+    { note: { label: 'Hot', tone: null, cats: ['test'] } },
+    { note: { label: 'less oil', tone: 'less', cats: ['dosa'] } }, // already there
+  ])
+    expect((await extras(request, bad)).status(), JSON.stringify(bad).slice(0, 90)).toBe(400);
+  for (const b of [
+    { extra: { set: 'sugar', name: 'Jaggery', price: 5 } }, // a choice, not a set of extras
+    { extra: { set: 'nope', name: 'X', price: 5 } },
+    { extra: { set: 'dosaExtras', id: 'x-nosuch01', name: 'X', price: 5 } },
+    { hideExtra: 'dosaExtras:nope' },
+    { showExtra: 'sugar:less' },
+    { set: { id: 'g-nosuch01', name: 'X' } },
+    { removeSet: 'g-nosuch01' },
+    { dishSets: { itemId: 'test-1', sets: [] } },
+    { note: { id: 'less-oil', label: 'Less oil please', tone: 'less', cats: ['dosa'] } }, // not the owner's own
+    { hideNote: 'nope' },
+  ])
+    expect((await extras(request, b)).status(), JSON.stringify(b)).toBe(404);
+  expect((await extras(request, { set: { id: 'dosaExtras', name: 'Mine' } })).status()).toBe(409);
+  expect((await extras(request, { removeSet: 'dosaExtras' })).status()).toBe(409);
+  const now = await extrasNow(request);
+  expect((await extras(request, { removeSet: now.sets![0].id })).status()).toBe(409); // it has an extra: old orders may show it
+
+  // an empty set of the owner's own can go
+  const spare = (await (await extras(request, { set: { name: 'Spare' } })).json()).set;
+  expect((await extras(request, { removeSet: spare.id })).ok()).toBe(true);
+  // at most twelve extras in a set
+  const made: string[] = [];
+  for (let n = 0; n < 7; n++) {
+    const r = await extras(request, { extra: { set: 'dosaExtras', name: `Topping ${n}`, price: n } });
+    expect(r.ok(), `topping ${n}`).toBe(true);
+    made.push((await r.json()).extra.id);
+  }
+  expect((await extras(request, { extra: { set: 'dosaExtras', name: 'One too many', price: 1 } })).status()).toBe(400);
+  for (const id of made) await extras(request, { hideExtra: `dosaExtras:${id}` });
+
+  // leave the extras that came with the app as the other tests expect them
+  await extras(request, { extra: { set: 'dosaExtras', id: 'podi', name: 'Extra podi', price: 15 } });
+  await extras(request, { showExtra: 'dosaExtras:palya' });
+});

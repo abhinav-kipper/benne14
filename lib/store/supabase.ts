@@ -1,7 +1,7 @@
 // Supabase-backed store. Server only: uses the service role key; tables have RLS with no public policies.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
-import { optionKey, type CustomItem, type Overrides, type SectionsLayout } from '../menu';
+import { optionKey, type CustomItem, type ExtrasLayout, type Overrides, type SectionsLayout } from '../menu';
 import type { LayoutPatch, MenuEdit } from './index';
 import {
   canMove,
@@ -387,14 +387,18 @@ export class SupabaseStore {
       out.options[optionKey(r.group_id, r.option_id)] = r.price;
 
     // The owner's own dishes and the layout (migration 0009). Before it is run: none.
-    const [dishes, first] = await Promise.all([
+    // The layout row grew a column in 0010 (sections) and one in 0011 (extras): read what is there.
+    const readLayout = async () => {
+      for (const cols of ['hidden,item_order,sections,extras', 'hidden,item_order,sections', 'hidden,item_order']) {
+        const r = await this.db.from('menu_layout').select(cols).eq('id', 1).maybeSingle();
+        if (!noColumn(r.error)) return r as { data: unknown; error: typeof r.error };
+      }
+      return { data: null, error: null };
+    };
+    const [dishes, layout] = await Promise.all([
       this.db.from('menu_dishes').select('id,cat,name,description,price,groups,photo,live').order('created_at'),
-      this.db.from('menu_layout').select('hidden,item_order,sections').eq('id', 1).maybeSingle(),
+      readLayout(),
     ]);
-    // Before migration 0010 the layout has no sections column: read the rest.
-    const layout: { data: unknown; error: typeof first.error } = noColumn(first.error)
-      ? await this.db.from('menu_layout').select('hidden,item_order').eq('id', 1).maybeSingle()
-      : first;
     if (missing(dishes.error) || missing(layout.error)) return out;
     if (dishes.error) throw new StoreError(dishes.error.message, 500);
     if (layout.error) throw new StoreError(layout.error.message, 500);
@@ -412,7 +416,10 @@ export class SupabaseStore {
     out.hidden = strings((layout.data as { hidden: unknown } | null)?.hidden);
     out.order = strings((layout.data as { item_order: unknown } | null)?.item_order);
     const sec = (layout.data as { sections?: unknown } | null)?.sections;
-    out.sections = sec && typeof sec === 'object' && !Array.isArray(sec) ? (sec as SectionsLayout) : {};
+    const obj = (v: unknown) => !!v && typeof v === 'object' && !Array.isArray(v);
+    out.sections = obj(sec) ? (sec as SectionsLayout) : {};
+    const ext = (layout.data as { extras?: unknown } | null)?.extras;
+    out.extras = obj(ext) ? (ext as ExtrasLayout) : {};
     return out;
   }
 
@@ -452,10 +459,12 @@ export class SupabaseStore {
     if (patch.hidden) row.hidden = patch.hidden;
     if (patch.order) row.item_order = patch.order;
     if (patch.sections) row.sections = patch.sections;
+    if (patch.extras) row.extras = patch.extras;
     const { error } = await this.db.from('menu_layout').upsert(row);
     if (noColumn(error)) {
-      console.error('menu_layout.sections missing: run supabase/migrations/0010_owner_sections.sql');
-      throw new StoreError('Sections need a database update (migration 0010)', 503);
+      const [what, file] = patch.extras ? ['Extras', '0011_owner_extras'] : ['Sections', '0010_owner_sections'];
+      console.error(`menu_layout column missing: run supabase/migrations/${file}.sql`);
+      throw new StoreError(`${what} need a database update (migration ${file.slice(0, 4)})`, 503);
     }
     this.needs0009(error);
     if (error) throw storeError(error);

@@ -21,6 +21,8 @@ export interface ModOption {
   name: string;
   price: number; // rupees added per unit
   tone?: Tone;
+  custom?: boolean; // added by the owner
+  hidden?: boolean; // only in the owner's full catalog: switched off, customers don't see it
 }
 
 export interface ModGroup {
@@ -29,6 +31,7 @@ export interface ModGroup {
   kind: 'one' | 'many'; // 'one' = pick exactly one (has a default), 'many' = optional extras
   defaultId?: string;
   options: ModOption[];
+  custom?: boolean; // a set of extras the owner made
 }
 
 export interface MenuItem {
@@ -55,6 +58,9 @@ export interface KitchenNote {
   label: string;
   tone?: Tone;
   items?: string[]; // only these items offer it (default: every item that takes notes)
+  cats?: string[]; // a note the owner added: the sections whose dishes offer it
+  custom?: boolean;
+  hidden?: boolean; // only in the owner's full catalog
 }
 
 export const CATEGORIES: Category[] = [
@@ -279,6 +285,22 @@ export function mergeSections(s: SectionsLayout | undefined, all = false): Categ
     .concat(CATEGORIES.filter((c) => c.id === TEST_CAT)); // the payment test always comes last
 }
 
+// The owner's changes to extras and kitchen notes (migration 0011). Ids the app makes: extras "x-…",
+// sets of extras "g-…", notes "n-…". Nothing is ever deleted that an old order may point at: an
+// extra or a note is switched off (hidden), so the kitchen still colours old chits correctly.
+export interface ExtrasLayout {
+  options?: Record<string, { id: string; name: string; price: number }[]>; // set id → the owner's extras in it
+  names?: Record<string, string>; // "set:extra" → new name for an extra that came with the app
+  hidden?: string[]; // "set:extra" switched off
+  sets?: { id: string; name: string }[]; // sets of extras the owner made
+  dishSets?: Record<string, string[]>; // a dish that came with the app → the sets it offers now
+  notes?: { id: string; label: string; tone: Tone | null; cats: string[] }[];
+  hiddenNotes?: string[];
+}
+export const isExtraId = (id: unknown): id is string => typeof id === 'string' && /^x-[a-z0-9]{6,12}$/.test(id);
+export const isSetId = (id: unknown): id is string => typeof id === 'string' && /^g-[a-z0-9]{6,12}$/.test(id);
+export const isNoteId = (id: unknown): id is string => typeof id === 'string' && /^n-[a-z0-9]{6,12}$/.test(id);
+
 export interface Overrides {
   items: Record<string, ItemOverride>;
   options: Record<string, number>; // "group:option" → price
@@ -286,14 +308,16 @@ export interface Overrides {
   hidden?: string[]; // dish ids taken off the menu
   order?: string[]; // dish ids in the order the owner arranged them; the rest follow in their usual order
   sections?: SectionsLayout;
+  extras?: ExtrasLayout;
 }
 export interface Catalog {
   cats: Category[]; // the sections, in order
   items: MenuItem[];
   groups: Record<string, ModGroup>;
+  notes: KitchenNote[]; // every kitchen note; notesFor() picks the ones a dish offers
 }
 
-export const BASE_CATALOG: Catalog = { cats: CATEGORIES, items: ITEMS, groups: GROUPS };
+export const BASE_CATALOG: Catalog = { cats: CATEGORIES, items: ITEMS, groups: GROUPS, notes: NOTES };
 export const optionKey = (groupId: string, optionId: string) => `${groupId}:${optionId}`;
 
 // What customers can order: hidden dishes and drafts are left out, so the kiosk can't show them and
@@ -306,11 +330,48 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
     desc: c.desc,
     price: c.price,
     photo: c.photo ?? undefined,
-    groups: c.groups.filter((g) => Object.hasOwn(GROUPS, g)),
+    groups: c.groups,
     notes: c.cat === 'dosa' || c.cat === 'idli',
     custom: true,
     draft: !c.live,
   }));
+  // Extras first: the dishes below are checked against the sets that exist.
+  const ex = o.extras ?? {};
+  const offOpt = new Set(ex.hidden ?? []);
+  const groups: Record<string, ModGroup> = {};
+  const build = (g: ModGroup) => {
+    const mine: ModOption[] =
+      g.kind === 'many'
+        ? (ex.options?.[g.id] ?? []).map((c) => ({ id: c.id, name: c.name, price: c.price, tone: 'add', custom: true }))
+        : [];
+    const options = [
+      ...g.options.map((op) => {
+        const key = optionKey(g.id, op.id);
+        return { ...op, name: ex.names?.[key] || op.name, price: o.options[key] ?? op.price };
+      }),
+      ...mine,
+    ].map((op) => (g.kind === 'many' && offOpt.has(optionKey(g.id, op.id)) ? { ...op, hidden: true } : op));
+    groups[g.id] = { ...g, options: options.filter((op) => all || !op.hidden) };
+  };
+  for (const g of Object.values(GROUPS)) build(g);
+  for (const s of ex.sets ?? []) build({ id: s.id, name: s.name, kind: 'many', options: [], custom: true });
+  // what a dish offers: sets that exist and, for customers, have something in them
+  const sets = (ids: string[]) => ids.filter((g) => Object.hasOwn(groups, g) && (all || groups[g].options.length > 0));
+
+  const offNote = new Set(ex.hiddenNotes ?? []);
+  const notes: KitchenNote[] = [
+    ...NOTES,
+    ...(ex.notes ?? []).map((n): KitchenNote => ({
+      id: n.id,
+      label: n.label,
+      tone: n.tone ?? undefined,
+      cats: n.cats,
+      custom: true,
+    })),
+  ]
+    .map((n) => (offNote.has(n.id) ? { ...n, hidden: true } : n))
+    .filter((n) => all || !n.hidden);
+
   const hidden = new Set(o.hidden ?? []);
   const place = new Map((o.order ?? []).map((id, n) => [id, n]));
   const cats = mergeSections(o.sections, all);
@@ -318,7 +379,7 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
   const items = [...ITEMS, ...own]
     .map((i, n) => {
       const x = o.items[i.id];
-      const it: MenuItem = { ...i };
+      const it: MenuItem = { ...i, groups: sets(i.custom ? i.groups : (ex.dishSets?.[i.id] ?? i.groups)) };
       if (hidden.has(i.id)) it.hidden = true;
       if (x) {
         it.soldOut = !!x.soldOut;
@@ -329,14 +390,7 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
     .sort((a, b) => a.at - b.at)
     .map((x) => x.it)
     .filter((i) => all || (!i.hidden && !i.draft && open.has(i.cat)));
-  const groups: Record<string, ModGroup> = {};
-  for (const [gid, g] of Object.entries(GROUPS)) {
-    groups[gid] = {
-      ...g,
-      options: g.options.map((op) => ({ ...op, price: o.options[optionKey(gid, op.id)] ?? op.price })),
-    };
-  }
-  return { cats, items, groups };
+  return { cats, items, groups, notes };
 }
 
 // Look a dish up in a catalog. Screens pass the catalog they loaded (components/Catalog.tsx); the
@@ -344,18 +398,21 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
 export const itemById = (id: string, cat: Catalog = BASE_CATALOG) => cat.items.find((i) => i.id === id);
 
 // Kitchen notes the item sheet offers for an item.
-export const notesFor = (item: MenuItem) =>
-  item.notes
-    ? NOTES.filter(
+export const notesFor = (item: MenuItem, cat: Catalog = BASE_CATALOG) =>
+  cat.notes.filter((n) =>
+    n.custom
+      ? !!n.cats?.includes(item.cat) // the owner said which sections take it
+      : item.notes &&
         // a dosa the owner added is made on the tawa like the others: it takes the same two notes
-        (n) => !n.items || n.items.includes(item.id) || (item.custom && item.cat === 'dosa' && n.items === FRIED),
-      )
-    : [];
+        (!n.items || n.items.includes(item.id) || (item.custom && item.cat === 'dosa' && n.items === FRIED)),
+  );
 
-// Tone of a choice on an order, looked up by id so orders saved before tones existed still colour correctly.
-export const optionTone = (groupId: string, id: string): Tone | undefined =>
-  GROUPS[groupId]?.options.find((o) => o.id === id)?.tone;
-export const noteTone = (id: string): Tone | undefined => NOTES.find((n) => n.id === id)?.tone;
+// Tone of a choice on an order, looked up by id so orders saved before tones existed still colour
+// correctly. Pass the owner's full catalog to colour the owner's own extras and notes too.
+export const optionTone = (groupId: string, id: string, cat: Catalog = BASE_CATALOG): Tone | undefined =>
+  (cat.groups[groupId] ?? GROUPS[groupId])?.options.find((o) => o.id === id)?.tone;
+export const noteTone = (id: string, cat: Catalog = BASE_CATALOG): Tone | undefined =>
+  (cat.notes.find((n) => n.id === id) ?? NOTES.find((n) => n.id === id))?.tone;
 
 // Shown as "Goes well with" in the item sheet. The cart's "Anything else?" is worked out per order (lib/suggest.ts).
 export const PAIRING = 'filter-coffee';

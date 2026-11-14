@@ -5,6 +5,9 @@ import {
   itemById,
   mergeCatalog,
   mergeSections,
+  noteTone,
+  optionTone,
+  type ExtrasLayout,
   isSectionId,
   notesFor,
   photoFor,
@@ -160,5 +163,77 @@ describe("the owner's sections", () => {
   it('knows a section id it made', () => {
     expect(isSectionId('s-sweets01')).toBe(true);
     for (const bad of ['dosa', 'test', 's-', 's-AB12cd34', 7, null]) expect(isSectionId(bad)).toBe(false);
+  });
+});
+
+describe("the owner's extras and kitchen notes", () => {
+  const extras: ExtrasLayout = {
+    options: {
+      dosaExtras: [{ id: 'x-cheese01', name: 'Extra cheese', price: 30 }],
+      'g-ontop001': [{ id: 'x-icecrm01', name: 'Ice cream', price: 40 }],
+    },
+    names: { 'dosaExtras:podi': 'Extra gunpowder' },
+    hidden: ['dosaExtras:palya', 'sugar:regular'],
+    sets: [
+      { id: 'g-ontop001', name: 'Add on top' },
+      { id: 'g-empty001', name: 'Empty' },
+    ],
+    dishSets: { 'masala-tea': ['g-ontop001', 'sugar'], 'plain-dosa': ['g-empty001'], 'mallige-idli': ['no-such-set'] },
+    notes: [{ id: 'n-noonion1', label: 'No onion', tone: 'less', cats: ['dosa', 'drinks'] }],
+    hiddenNotes: ['extra-crisp'],
+  };
+  const cat = mergeCatalog({ items: {}, options: { 'dosaExtras:benne': 35 }, extras });
+  const all = mergeCatalog({ items: {}, options: { 'dosaExtras:benne': 35 }, extras }, true);
+  const line = (itemId: string, choices: Record<string, string[]> = {}, notes: string[] = []) => ({
+    itemId,
+    qty: 1,
+    choices,
+    notes,
+  });
+
+  it("adds the owner's extras to a set, renames, reprices, and leaves switched-off ones out", () => {
+    expect(cat.groups.dosaExtras.options.map((o) => [o.id, o.name, o.price])).toEqual([
+      ['benne', 'Extra benne', 35],
+      ['podi', 'Extra gunpowder', 15],
+      ['sambar', 'Extra sambhar', 20],
+      ['x-cheese01', 'Extra cheese', 30],
+    ]);
+    expect(all.groups.dosaExtras.options.find((o) => o.id === 'palya')).toMatchObject({ hidden: true });
+    expect(cat.groups.sugar.options).toHaveLength(3); // a choice with a default can't lose an option
+    expect(priceOrder([line('masala-dosa', { dosaExtras: ['x-cheese01', 'benne'] })], cat).subtotal).toBe(
+      209 + 30 + 35,
+    );
+    expect(() => priceOrder([line('masala-dosa', { dosaExtras: ['palya'] })], cat)).toThrow(); // switched off
+    expect(priceOrder([line('masala-dosa', { dosaExtras: ['x-cheese01'] })], cat).lines[0].mods[0].name).toBe(
+      'Extra cheese',
+    );
+  });
+
+  it('a dish offers the sets the owner chose; an empty or missing set is not offered to customers', () => {
+    expect(itemById('masala-tea', cat)!.groups).toEqual(['g-ontop001', 'sugar']);
+    expect(priceOrder([line('masala-tea', { 'g-ontop001': ['x-icecrm01'] })], cat).subtotal).toBe(49 + 40);
+    expect(itemById('plain-dosa', cat)!.groups).toEqual([]); // the set has nothing in it
+    expect(itemById('plain-dosa', all)!.groups).toEqual(['g-empty001']); // the owner still sees the choice
+    expect(itemById('mallige-idli', cat)!.groups).toEqual([]);
+    expect(() => priceOrder([line('plain-dosa', { dosaExtras: ['benne'] })], cat)).toThrow(); // no longer offered
+  });
+
+  it("the owner's notes go to the sections picked; switched-off notes are gone; old notes keep their rules", () => {
+    const ids = (id: string) => notesFor(itemById(id, cat)!, cat).map((n) => n.id);
+    expect(ids('masala-dosa')).toEqual(['less-oil', 'potato-side', 'n-noonion1']);
+    expect(ids('masala-tea')).toEqual(['n-noonion1']); // drinks took no notes before
+    expect(ids('mallige-idli')).toEqual([]);
+    expect(priceOrder([line('masala-tea', {}, ['n-noonion1'])], cat).lines[0].notes).toEqual([
+      { id: 'n-noonion1', label: 'No onion' },
+    ]);
+    expect(() => priceOrder([line('masala-dosa', {}, ['extra-crisp'])], cat)).toThrow();
+  });
+
+  it("the kitchen colours them: the owner's extras green, notes as the owner said, even after they are switched off", () => {
+    expect(optionTone('dosaExtras', 'x-cheese01', all)).toBe('add');
+    expect(optionTone('dosaExtras', 'palya', all)).toBe('add');
+    expect(noteTone('n-noonion1', all)).toBe('less');
+    expect(noteTone('extra-crisp', all)).toBe('add');
+    expect(noteTone('extra-crisp')).toBe('add'); // with no menu loaded yet, the notes in code still colour
   });
 });

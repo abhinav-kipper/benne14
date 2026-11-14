@@ -23,8 +23,49 @@ async function shrink(file: File, max = 1000): Promise<Blob> {
 // What a set of extras is called in the picker: its extras, as the customer reads them.
 const groupLine = (cat: Catalog, id: string) => {
   const g = cat.groups[id];
-  return { title: g.kind === 'many' ? 'Extras' : g.name, sub: g.options.map((o) => o.name).join(', ') };
+  const on = g.options.filter((o) => !o.hidden).map((o) => o.name);
+  return {
+    title: g.custom ? g.name : g.kind === 'many' ? 'Extras' : g.name,
+    sub: on.length ? on.join(', ') : 'Nothing in it yet',
+  };
 };
+
+// Which set of extras (or the sugar choice) a dish offers: one of them, or nothing.
+export function SetPicker(p: { cat: Catalog; value: string | null; onChange: (g: string | null) => void }) {
+  return (
+    <div className="pick" role="radiogroup" aria-label="Extras">
+      {Object.keys(p.cat.groups).map((g) => {
+        const t = groupLine(p.cat, g);
+        return (
+          <button
+            key={g}
+            role="radio"
+            aria-checked={p.value === g}
+            className={p.value === g ? 'on' : ''}
+            onClick={() => p.onChange(g)}
+            data-testid={`dish-group-${g}`}
+          >
+            <span>
+              {t.title}
+              <small>{t.sub}</small>
+            </span>
+            <i className="r" />
+          </button>
+        );
+      })}
+      <button
+        role="radio"
+        aria-checked={p.value === null}
+        className={p.value === null ? 'on' : ''}
+        onClick={() => p.onChange(null)}
+        data-testid="dish-group-none"
+      >
+        <span>Nothing</span>
+        <i className="r" />
+      </button>
+    </div>
+  );
+}
 
 // "Hide from the menu", asked twice. Used at the bottom of every live dish's sheet.
 export function HideButton(p: Ctx & { item: MenuItem; done: () => void; onError: (m: string) => void }) {
@@ -223,37 +264,7 @@ export function DishSheet(
         </div>
         <div className="field">
           <label>What customers can add or choose</label>
-          <div className="pick" role="radiogroup" aria-label="Extras">
-            {Object.keys(cat.groups).map((g) => {
-              const t = groupLine(cat, g);
-              return (
-                <button
-                  key={g}
-                  role="radio"
-                  aria-checked={group === g}
-                  className={group === g ? 'on' : ''}
-                  onClick={() => setGroup(g)}
-                  data-testid={`dish-group-${g}`}
-                >
-                  <span>
-                    {t.title}
-                    <small>{t.sub}</small>
-                  </span>
-                  <i className="r" />
-                </button>
-              );
-            })}
-            <button
-              role="radio"
-              aria-checked={group === null}
-              className={group === null ? 'on' : ''}
-              onClick={() => setGroup(null)}
-              data-testid="dish-group-none"
-            >
-              <span>Nothing</span>
-              <i className="r" />
-            </button>
-          </div>
+          <SetPicker cat={cat} value={group} onChange={setGroup} />
         </div>
         {err && (
           <div className="err" data-testid="dish-err">
@@ -293,7 +304,9 @@ export function Check(p: Ctx & { item: MenuItem; cat: Catalog; back: () => void;
     }
   };
   const src = photoFor(item);
-  const notes = notesFor(item).map((n) => n.label);
+  const notes = notesFor(item, cat)
+    .filter((n) => !n.hidden)
+    .map((n) => n.label);
   return (
     <div data-testid="dish-check">
       <div className="h1">

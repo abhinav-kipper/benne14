@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { adminDenied, cleanPrice, cleanText } from '@/lib/admin';
-import { GROUPS, TEST_CAT, mergeCatalog, mergeSections, type CustomItem, type SectionsLayout } from '@/lib/menu';
+import { TEST_CAT, mergeCatalog, mergeSections, type CustomItem, type SectionsLayout } from '@/lib/menu';
 import type { AdminEvent } from '@/lib/orders';
 import { getStore, type Store } from '@/lib/store';
 import { BadRequest, fail, json, readJson } from '@/lib/server';
@@ -58,6 +58,7 @@ export async function POST(req: Request) {
     // every section the owner can put a dish in or change (never the payment test)
     const sections = mergeSections(o.sections, true).filter((c) => c.id !== TEST_CAT);
     const lay: SectionsLayout = o.sections ?? {};
+    const known = mergeCatalog(o, true).groups; // the sets of extras a dish may offer, the owner's own included
 
     if (b.dish !== undefined) {
       const d = (b.dish ?? {}) as Record<string, unknown>;
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
         !Array.isArray(groups) ||
         groups.length > 4 ||
         new Set(groups).size !== groups.length ||
-        !groups.every((g) => typeof g === 'string' && Object.hasOwn(GROUPS, g))
+        !groups.every((g) => typeof g === 'string' && Object.hasOwn(known, g))
       )
         return json({ error: 'Unknown extras' }, 400);
       if (all.some((i) => i.id !== was?.id && !i.hidden && i.name.toLowerCase() === name.toLowerCase()))
