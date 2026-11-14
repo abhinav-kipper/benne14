@@ -522,3 +522,30 @@ test('a price change reaches the TV banner and an open kiosk cart within half a 
   await setPrice(id, null);
   await setPrice('medu-vada', null); // back to the menu's own price
 });
+
+test('orders list: a long order is shown in full, not cut off', async ({ page, request }) => {
+  const lines = [
+    'masala-dosa',
+    'plain-benne-dosa',
+    'ghee-podi-thatte-idli',
+    'medu-vada',
+    'filter-coffee',
+    'masala-tea',
+  ];
+  const o = await (
+    await request.post('/api/orders', {
+      data: {
+        key: `long-admin-${Date.now()}`,
+        type: 'dine_in',
+        name: 'Big Table',
+        payMethod: 'cash',
+        lines: lines.map((itemId) => ({ itemId, qty: 2, choices: {}, notes: [] })),
+      },
+    })
+  ).json();
+  await owner(page);
+  await page.getByTestId('tab-orders').click();
+  const l2 = page.getByTestId(`ord-${o.token}`).locator('.l2');
+  await expect(l2).toContainText('2 × Masala Tea'); // the last dish
+  expect(await l2.evaluate((el) => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight)).toBe(true);
+});
