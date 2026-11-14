@@ -13,7 +13,7 @@ Legend: `[ ]` pending · `[x]` done · `[-]` decided not to do (with reason)
 - [ ] A3 One 4-digit PIN guards kitchen and owner dashboard (takings, prices). The current PIN and the Supabase secret key were shared in chat. Fix: rotate both; separate owner PIN or login (`lib/admin.ts` `adminDenied`).
 - [ ] A4 Pay screen says "Payment stuck? Don't worry, the money comes back to you automatically." False for direct UPI. Reword.
 - [ ] A5 UPI is on trust: kitchen shows "Paid" even on orders whose QR is still open. Fix: hide "Paid" until the customer tapped "I've paid" (until Paytm auto-confirmation, see `docs/payments.md`).
-- [ ] A6 Slow for India: functions run in `iad1` (Washington DC); each DB call 0.25–0.75 s; a poll ~0.85 s; placing an order needs 3–4 DB calls. Fix: `vercel.json` function region next to the Supabase region (ask the user for the region).
+- [x] A6 (done: functions run in Tokyo `hnd1`, next to the database, see `vercel.json`) Slow for India: functions run in `iad1` (Washington DC); each DB call 0.25–0.75 s; a poll ~0.85 s; placing an order needs 3–4 DB calls. Fix: `vercel.json` function region next to the Supabase region (ask the user for the region).
 - [ ] A7 Hosting limits: polling is ~2 M requests/month. User to check the Vercel plan (free plan: commercial use, request limits) and Supabase plan (free: pauses when idle, backups).
 - [ ] A8 Test mode is on in production. Set `TEST_MODE=0` at launch (and repo variable `SMOKE_EXPECT_LIVE=1`).
 
