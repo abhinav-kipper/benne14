@@ -1,5 +1,6 @@
 'use client';
 // The kiosk: holds the cart and which screen is showing; each screen lives in ./screens.
+import { PinGate } from '@/components/PinGate';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CatalogProvider, useMenu } from '@/components/Catalog';
 import { api, ApiError, newKey, useAutoReload, useAwake, useNightlyReload, useServerUp, useWatch } from '@/lib/client';
@@ -32,6 +33,9 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   const [code, setCode] = useState<DiscountRule | null>(null); // a discount code the server said works
   // What the cart asks for, as the owner switched it. Off until the server says otherwise.
   const [asks, setAsks] = useState<KioskSettings>({ codes: false, phone: false });
+  // Has staff set this tablet up as the shop's kiosk? null until the server has said. Only a clear
+  // "no" shows the PIN pad: a failed request must not lock a working kiosk.
+  const [enrolled, setEnrolled] = useState<boolean | null>(null);
   const [popular, setPopular] = useState<string[]>([]); // best sellers, for the cart's suggestions
   const [orderId, setOrderId] = useState<string | null>(null);
   const [placed, setPlaced] = useState<Order | null>(null);
@@ -69,7 +73,10 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     loadMenu();
     api
       .kiosk()
-      .then(setAsks)
+      .then((k) => {
+        setAsks(k);
+        setEnrolled(k.enrolled);
+      })
       .catch(() => {}); // keep the last answer if the request fails
     api
       .popular()
@@ -161,6 +168,21 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   return (
     <CatalogProvider value={catalog}>
       <div className="kiosk">
+        {enrolled === false && (
+          <div className="k-setup" data-testid="kiosk-setup">
+            <PinGate
+              title="Set up this kiosk"
+              ask="Staff: enter the staff PIN once. Customers can then order on this tablet."
+              note={null}
+              onPin={(pin) =>
+                api
+                  .enrolKiosk(pin)
+                  .then(() => setEnrolled(true))
+                  .catch(() => {})
+              }
+            />
+          </div>
+        )}
         {closed && (
           <div className="k-counter" data-testid="counter-please">
             <div className="logo">
@@ -243,6 +265,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
                 });
               } catch (e) {
                 if (e instanceof ApiError && e.status === 409) loadMenu(); // something sold out meanwhile: the cart will show which
+                if (e instanceof ApiError && e.status === 401) setEnrolled(false); // the staff PIN was changed: set up again
                 throw e;
               }
               setOrderId(o.id);

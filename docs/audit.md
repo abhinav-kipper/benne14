@@ -8,9 +8,9 @@ Legend: `[ ]` pending · `[x]` done · `[-]` decided not to do (with reason)
 
 ## A. Before real customers (security, trust, speed, hosting)
 
-- [ ] A1 Anyone on the internet can place orders: `POST /api/orders` has no device check or rate limit; in test mode cash goes straight to the kitchen. Fix: kiosk device key + rate limit.
+- [x] A1 (done: kiosk key, `lib/kioskkey.ts`, and 120 orders a minute per tablet) Anyone on the internet can place orders: `POST /api/orders` has no device check or rate limit; in test mode cash goes straight to the kitchen. Fix: kiosk device key + rate limit.
 - [ ] A2 Today's orders are public: `GET /api/orders` and `?view=today` return names, items, totals and order ids without a PIN (live: 15 orders, 11 with names). With an id anyone can call `/claim` to cancel an unpaid UPI order or mark it "says paid". Fix: PIN on the full list; slim public feed (number, name, status) for the TV board.
-- [ ] A3 One 4-digit PIN guards kitchen and owner dashboard (takings, prices). The current PIN and the Supabase secret key were shared in chat. Fix: rotate both; separate owner PIN or login (`lib/admin.ts` `adminDenied`).
+- [x] A3 (done: `OWNER_PIN` for the owner app; rotating the exposed keys is still the owner's to do) One 4-digit PIN guards kitchen and owner dashboard (takings, prices). The current PIN and the Supabase secret key were shared in chat. Fix: rotate both; separate owner PIN or login (`lib/admin.ts` `adminDenied`).
 - [ ] A4 Pay screen says "Payment stuck? Don't worry, the money comes back to you automatically." False for direct UPI. Reword.
 - [ ] A5 UPI is on trust: kitchen shows "Paid" even on orders whose QR is still open. Fix: hide "Paid" until the customer tapped "I've paid" (until Paytm auto-confirmation, see `docs/payments.md`).
 - [x] A6 (done: functions run in Tokyo `hnd1`, next to the database, see `vercel.json`) Slow for India: functions run in `iad1` (Washington DC); each DB call 0.25–0.75 s; a poll ~0.85 s; placing an order needs 3–4 DB calls. Fix: `vercel.json` function region next to the Supabase region (ask the user for the region).

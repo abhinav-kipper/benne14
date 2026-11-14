@@ -59,6 +59,7 @@ export interface SystemInput {
   missingMigrations: string[];
   testMode: boolean;
   payments: { at: string; subject: string; note?: string | null }[]; // payments flagged for a look
+  ownerPinSet?: boolean; // does the owner app have its own PIN yet?
 }
 
 // Everything that needs the owner's eye, worst first.
@@ -113,6 +114,13 @@ export function problems(s: SystemInput): Problem[] {
       level: 'warn',
       text: 'A database update has not been run',
       hint: `Run in Supabase: ${s.missingMigrations.join(', ')}`,
+    });
+  if (s.ownerPinSet === false)
+    out.push({
+      key: 'ownerpin',
+      level: 'warn',
+      text: 'The owner app still opens with the kitchen’s PIN',
+      hint: 'Set OWNER_PIN (six digits) in Vercel and redeploy. Kitchen staff then cannot see takings or change prices.',
     });
   if (s.testMode)
     out.push({

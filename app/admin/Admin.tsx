@@ -3,8 +3,8 @@
 // login. This file holds the PIN gate and the tabs; each tab's screen lives in ./screens.
 import { useCallback, useEffect, useState } from 'react';
 import { CatalogProvider, useMenu } from '@/components/Catalog';
-import { PinGate, PIN_KEY } from '@/components/PinGate';
-import { admin, ApiError, useLiveOrders, usePoll, useWatch, type SystemReport } from '@/lib/client';
+import { PinGate, OWNER_PIN_KEY as PIN_KEY } from '@/components/PinGate';
+import { admin, api, ApiError, useLiveOrders, usePoll, useWatch, type SystemReport } from '@/lib/client';
 import { System } from './screens/System';
 import { History } from './screens/History';
 import { Menu } from './screens/Menu';
@@ -19,9 +19,14 @@ export default function Admin() {
   const [ready, setReady] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('today');
+  const [digits, setDigits] = useState(4);
   useEffect(() => {
     setPin(localStorage.getItem(PIN_KEY));
     setReady(true);
+    api
+      .pinDigits()
+      .then((d) => setDigits(d.ownerDigits))
+      .catch(() => {}); // offline: the pad takes four, and says so if that is wrong
   }, []);
   // A PIN the server stops accepting (changed in Vercel) sends the owner back to the PIN pad.
   const onAuthError = useCallback((e: unknown) => {
@@ -60,6 +65,8 @@ export default function Admin() {
     return (
       <div className="adm">
         <PinGate
+          who="owner"
+          digits={digits}
           title="Owner"
           note={note}
           onPin={(p) => {

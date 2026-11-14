@@ -1,12 +1,12 @@
 // Server helpers for the owner dashboard's API (/api/admin/*).
 import 'server-only';
 import { daysBetween, isDay } from './orders';
-import { BadRequest, staffCheck, staffDenied } from './server';
+import { BadRequest, ownerCheck, staffDenied } from './server';
 
-// v1 has no owner login (owner's call): the dashboard is behind the same staff PIN as the kitchen.
-// Returns a response to send back when the PIN is missing or locked out, else null.
+// The owner app is behind the owner PIN (the staff PIN until OWNER_PIN is set: see lib/server.ts).
+// Returns a response to send back when the PIN is missing, wrong or locked out, else null.
 export function adminDenied(req: Request) {
-  const r = staffCheck(req);
+  const r = ownerCheck(req);
   return r === 'ok' ? null : staffDenied(r);
 }
 

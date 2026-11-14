@@ -2,7 +2,8 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 // Owner dashboard. Own server (port 3103): these tests change prices and sold-out state, which
 // would upset the other suites' expected totals.
-const PIN = '2468';
+const PIN = '246810'; // the owner PIN (it also does everything the staff PIN does)
+const STAFF_PIN = '2468';
 const H = { 'x-staff-pin': PIN };
 
 test.beforeAll(async ({ request }) => {
@@ -12,7 +13,7 @@ test.beforeAll(async ({ request }) => {
 test.describe.configure({ mode: 'serial' });
 
 const owner = async (page: Page) => {
-  await page.addInitScript((pin) => localStorage.setItem('benne14.staffPin', pin), PIN);
+  await page.addInitScript((pin) => localStorage.setItem('benne14.ownerPin', pin), PIN);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/admin');
 };
@@ -431,7 +432,7 @@ test('the owner can switch the code box and the phone box off; the server then i
   await page.getByTestId('set-codes').click();
   await page.getByTestId('set-phone').click();
   await expect(page.getByTestId('set-phone')).toHaveAttribute('aria-checked', 'false');
-  await expect.poll(async () => (await request.get('/api/kiosk')).json()).toEqual({ codes: false, phone: false });
+  await expect.poll(async () => (await request.get('/api/kiosk')).json()).toMatchObject({ codes: false, phone: false });
 
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.goto('/kiosk');
@@ -465,7 +466,7 @@ test('the owner can switch the code box and the phone box off; the server then i
   expect((await (await request.get('/api/kiosk')).json()).codes).toBe(true);
   for (const c of (await (await request.get('/api/admin/offers', { headers: H })).json()).codes)
     await offers(request, { code: { ...c, active: false } });
-  expect(await (await request.get('/api/kiosk')).json()).toEqual({ codes: false, phone: true });
+  expect(await (await request.get('/api/kiosk')).json()).toMatchObject({ codes: false, phone: true });
   // a code can be deleted from its sheet (asked twice); orders that used it keep its name
   expect((await offers(request, { remove: 'NOSUCHCODE' })).status()).toBe(404);
   expect((await offers(request, { remove: 'BIG100' }, {})).status()).toBe(401);
@@ -1272,4 +1273,88 @@ test('the System page offers notifications for this phone and lists what was ann
       .or(notify.getByText('can’t show notifications'))
       .or(notify.getByText('Notifications are blocked')),
   ).toBeVisible();
+});
+
+// ---- Who may do what: the owner PIN, the staff PIN, and the kiosk's key ----
+test('the kitchen’s PIN does not open the owner app; the owner PIN does everything', async ({ page, request }) => {
+  const staff = { 'x-staff-pin': STAFF_PIN };
+  // takings, prices, the menu, refunds, the system page: owner only
+  for (const path of [
+    '/api/admin/system',
+    '/api/admin/events',
+    '/api/admin/dishes',
+    '/api/admin/offers',
+    '/api/admin/push',
+  ])
+    expect((await request.get(path, { headers: staff })).status(), path).toBe(401);
+  expect(
+    (await request.post('/api/admin/menu', { data: { itemId: 'masala-tea', price: 1 }, headers: staff })).status(),
+  ).toBe(401);
+  expect((await request.get('/api/admin/system', { headers: H })).status()).toBe(200);
+  // the kitchen still works with the staff PIN, and the owner PIN works there too
+  const o = await (await order(request, 'masala-tea')).json();
+  expect((await request.post(`/api/orders/${o.id}/status`, { data: { to: 'new' }, headers: staff })).ok()).toBe(true);
+  expect((await request.post(`/api/orders/${o.id}/status`, { data: { to: 'cooking' }, headers: H })).ok()).toBe(true);
+  expect(await (await request.get('/api/staff')).json()).toEqual({ staffDigits: 4, ownerDigits: 6 });
+
+  // the owner app's PIN pad takes six digits and refuses the kitchen's PIN
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin');
+  const gate = page.getByTestId('pin-gate');
+  await expect(gate).toContainText('Enter the owner PIN');
+  await expect(gate.locator('.dots i')).toHaveCount(6);
+  for (const d of '246800') await gate.getByRole('button', { name: d, exact: true }).click();
+  await expect(page.getByTestId('pin-msg')).toContainText('Wrong PIN');
+  for (const d of PIN) await gate.getByRole('button', { name: d, exact: true }).click();
+  await expect(page.getByTestId('today-slip')).toBeVisible();
+  // and the System page no longer nags about the shared PIN
+  const sys = await (await request.get('/api/admin/system', { headers: H })).json();
+  expect(sys.problems.some((p: { key: string }) => p.key === 'ownerpin')).toBe(false);
+});
+
+test('only a tablet staff have set up can place orders; setting one up takes the staff PIN once', async ({
+  browser,
+  playwright,
+  baseURL,
+}) => {
+  const body = {
+    key: `locked-${Date.now()}`,
+    type: 'takeaway',
+    name: null,
+    payMethod: 'cash',
+    lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+  };
+  // a stranger: no key, a made-up key, a key signed with the wrong PIN
+  const stranger = await playwright.request.newContext({ baseURL, extraHTTPHeaders: {} });
+  expect((await stranger.post('/api/orders', { data: body })).status()).toBe(401);
+  for (const key of ['k1.abcdefgh.' + 'A'.repeat(32), 'nonsense', ''])
+    expect((await stranger.post('/api/orders', { data: body, headers: { 'x-kiosk-key': key } })).status()).toBe(401);
+  // a key is handed out only for the staff PIN
+  expect((await stranger.post('/api/kiosk')).status()).toBe(401);
+  expect(
+    (await stranger.post('/api/kiosk', { headers: { 'x-staff-pin': '0000', 'x-forwarded-for': '10.5.5.5' } })).status(),
+  ).toBe(401);
+  const { key } = await (await stranger.post('/api/kiosk', { headers: { 'x-staff-pin': STAFF_PIN } })).json();
+  expect(key).toMatch(/^k1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{32}$/);
+  expect((await stranger.post('/api/orders', { data: body, headers: { 'x-kiosk-key': key } })).status()).toBe(201);
+  await stranger.dispose();
+
+  // a brand-new tablet: the kiosk asks staff for the PIN once, then customers can order
+  const ctx = await browser.newContext({ viewport: { width: 800, height: 1280 }, extraHTTPHeaders: {} });
+  const kiosk = await ctx.newPage();
+  await kiosk.goto('/kiosk');
+  const setup = kiosk.getByTestId('kiosk-setup');
+  await expect(setup).toContainText('Set up this kiosk');
+  for (const d of STAFF_PIN) await setup.getByRole('button', { name: d, exact: true }).click();
+  await expect(setup).toHaveCount(0);
+  await kiosk.getByTestId('start').click();
+  await kiosk.getByTestId('item-masala-tea').click();
+  await kiosk.getByTestId('add-to-order').click();
+  await kiosk.getByTestId('cartbar').click();
+  await expect(kiosk.getByTestId('cart-line')).toHaveCount(1);
+  // it stays set up after a reload
+  await kiosk.reload();
+  await expect(kiosk.getByTestId('start')).toBeVisible();
+  await expect(kiosk.getByTestId('kiosk-setup')).toHaveCount(0);
+  await ctx.close();
 });

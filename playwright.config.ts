@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { makeKioskKey } from './lib/kioskkey';
 
 // Runs against a production build on the in-memory store (no Supabase needed).
 // Two servers from the same build: the normal flow (test mode off) and test mode on.
@@ -22,6 +23,9 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }], ['list']] : 'list',
   use: {
     trace: 'retain-on-failure',
+    // Every test browser and API call acts as a tablet staff have set up as the kiosk (lib/kioskkey.ts).
+    // The tests of the lock itself drop this header.
+    extraHTTPHeaders: { 'x-kiosk-key': makeKioskKey(safeEnv.STAFF_PIN, '', 'e2etests0001') },
     // Machines with a preinstalled Chromium (e.g. cloud sessions) can point at it; CI downloads its own.
     launchOptions: process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {},
   },
@@ -61,7 +65,8 @@ export default defineConfig({
       url: 'http://localhost:3103',
       timeout: 60_000,
       reuseExistingServer: false,
-      env: { ...safeEnv, TEST_MODE: '0' },
+      // the owner's server has an owner PIN of its own; the others fall back to the staff PIN
+      env: { ...safeEnv, TEST_MODE: '0', OWNER_PIN: '246810' },
     },
     {
       command: 'node tests/support/fake-easebuzz.mjs',

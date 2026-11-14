@@ -41,6 +41,7 @@ Commands: `npm run dev` · `npm run check` (typecheck, lint, format check, unit 
 - The menu reaches components through `useCatalog()` / an explicit `catalog` argument, never a module-level variable.
 - A new migration: add the SQL file, add its name to `lib/migrations.ts`, make it record itself in `schema_migrations`, and tell the user to run it.
 - A gateway payment is confirmed in one place, `settle()` in `lib/gateway.ts`, by asking the gateway directly; never from a webhook or client message alone.
+- `POST /api/orders` needs a kiosk key (`x-kiosk-key`, `lib/kioskkey.ts`); `/api/admin/*` needs the owner PIN (`adminDenied`), kitchen actions the staff PIN (`staffCheck`). A new route picks one of the three on purpose, or says in a comment why it is open.
 - Secrets only from env (`.env.local`, Vercel, cloud environment settings). Never commit or paste keys.
 - Every feature: at least one unit test (logic) and one Playwright test (user-visible flow). API inputs also get a bad-input case in `tests/e2e/api.spec.ts`; anything that talks to the network gets a failure case in `tests/e2e/resilience.spec.ts`.
 - No new dependency without a one-line reason in the PR.

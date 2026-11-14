@@ -11,7 +11,7 @@ section A are open.
 
 ## Up next
 
-- **Owner to do now: run `supabase/migrations/0013_owner_alerts.sql`** in Supabase (0001 to 0012 are done), then open the owner app on your phone → System → Turn on notifications. Until the SQL is run that button answers with an error; everything else works.
+- **Owner to do now: set `OWNER_PIN` (six digits) in Vercel and redeploy**; until then the owner app still opens with the staff PIN and the System page says so. After the next deploy the kiosk tablet asks for the staff PIN once.
 
 **The plan to launch is `docs/go-live.md`**: four stages, stage 1 is what must be done before the first real customer.
 
@@ -27,7 +27,7 @@ section A are open.
 - Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen asks "Still there?" after 90 s and returns to start 30 s later; an untouched order is cleared after 60 s + a 15 s prompt (no Start over button).
 - UPI is confirmed by Easebuzz's payment gateway by itself (`docs/payments.md`); if the gateway is down the kiosk falls back to the shop's own QR and staff confirm on the soundbox. Card and cash wait on the kitchen's "Collect payment" shelf.
 - Test mode (on unless `TEST_MODE=0`): cash counts as paid, a ₹1 test item shows.
-- Owner dashboard is behind the kitchen's staff PIN for now (no separate login).
+- Two PINs: `STAFF_PIN` for the kitchen and for setting a tablet up as the kiosk, `OWNER_PIN` (six digits) for the owner app. The owner PIN also works wherever the staff PIN does.
 - Menu = dishes in `lib/menu.ts` + everything the owner changes from the dashboard (own dishes, sections, extras, notes, hidden, order), merged by `mergeCatalog()`. Sold out lasts for the day.
 - Screens poll (no Realtime), pause when hidden, and reload themselves after a deploy.
 - Design rule: never flatten an approved design; compare against `main` side by side before pushing visual changes (see `CLAUDE.md`).
@@ -51,6 +51,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-14 — Security locks (`docs/go-live.md` stage 1): orders are accepted only from a tablet staff have set up as the kiosk (staff PIN once, the tablet then holds a signed key; at most 120 orders a minute per tablet), and the owner app takes its own six-digit `OWNER_PIN` (the staff PIN no longer opens it once that is set; the owner PIN still does everything the staff PIN does). The TV and the public order list are unchanged (owner's call).
 - 2026-11-14 — Fault tolerance, part 2b: alerts on the owner's phone. The owner app's System page has "Turn on notifications" (per phone, opt-in). A check that runs with the kitchen's and TV's polling (at most once a minute) and from the 15-minute uptime job opens an alert for each new problem and sends one notification per problem: a silent kiosk, kitchen screen or TV, a burst of errors, a payment that needs a look. Needs migration 0013. One new dependency: `web-push`.
 - 2026-11-14 — Fault tolerance, part 2a: the owner app has a System page. Every screen says "I'm here" each half minute (`/api/beat`), unhandled errors on screens and on the server are kept in `error_log` (`/api/log`), and the page lists the screens (online or silent), what needs a look (`lib/system.ts`) and the latest errors. One line on Today shows green or red. Needs migration 0012. Phone notifications are part 2b.
 - 2026-11-14 — Fault tolerance, part 1 (`docs/go-live.md` stage 2): the kiosk sends customers to the counter while the server or database can't be reached and comes back by itself; no request waits more than 12 s (database calls 8 s); a crashed screen says "One moment" and reloads (never in a loop); screens stay awake, reload at 4 am, and staff can restart one by holding the logo 5 s; the kitchen says across the screen when orders are not arriving and flashes an order nobody started for 3 minutes.

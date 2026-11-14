@@ -42,10 +42,12 @@ test('live orders API answers, and bad input is refused before touching the data
   const live = await request.get('/api/orders');
   expect(live.status()).toBe(200);
   expect(Array.isArray(await live.json())).toBe(true);
+  // This check holds no kiosk key, so the site must refuse to take an order from it (401), whatever
+  // the request says. Nothing is written.
   expect(
     (await request.post('/api/orders', { data: '{bad', headers: { 'Content-Type': 'application/json' } })).status(),
-  ).toBe(400);
-  expect((await request.post('/api/orders', { data: { key: 'x' } })).status()).toBe(400);
+  ).toBe(401);
+  expect((await request.post('/api/orders', { data: { key: 'x' } })).status()).toBe(401);
   expect((await request.get('/api/orders/not-an-id')).status()).toBe(404);
   expect(
     (await request.post('/api/orders/00000000-0000-0000-0000-000000000000/status', { data: { to: 'new' } })).status(),

@@ -5,7 +5,7 @@ import 'server-only';
 import { MIGRATIONS } from './migrations';
 import { istHour } from './orders';
 import { pushToAll } from './push';
-import { paymentMode } from './server';
+import { ownerPin, paymentMode } from './server';
 import { SHOP } from './shop';
 import type { Store } from './store';
 import { alertChanges, problems, worthAPush } from './system';
@@ -43,6 +43,7 @@ export async function systemReport(store: Store) {
       errors,
       missingMigrations: missing,
       testMode,
+      ownerPinSet: !!ownerPin(),
       payments: events
         .filter((e) => e.kind === 'payment')
         .map((e) => ({ at: e.at, subject: e.subject, note: e.note ?? e.after })),
