@@ -22,6 +22,7 @@ export interface ErrorEntry {
   device: string | null;
 }
 export interface Problem {
+  key: string; // the same problem keeps the same key from one check to the next
   level: 'bad' | 'warn' | 'info'; // bad: orders may be affected now; warn: look soon; info: good to know
   text: string;
   hint?: string; // what to do about it
@@ -70,6 +71,7 @@ export function problems(s: SystemInput): Problem[] {
     if (!live.length && s.open) {
       const last = mine.reduce((a, d) => (d.seenAt > a ? d.seenAt : a), mine[0].seenAt);
       out.push({
+        key: `silent:${kind}`,
         level: kind === 'board' ? 'warn' : 'bad',
         text: `${KIND_NAME[kind]} has been silent since ${ago(last, s.now)}`,
         hint:
@@ -84,6 +86,7 @@ export function problems(s: SystemInput): Problem[] {
     const stale = live.filter((d) => d.build && d.build !== s.build && s.now - Date.parse(d.firstSeen) > 10 * 60_000);
     if (stale.length)
       out.push({
+        key: `old:${kind}`,
         level: 'warn',
         text: `${KIND_NAME[kind]} is on an old version`,
         hint: 'Hold the logo on that screen for five seconds to restart it.',
@@ -92,20 +95,28 @@ export function problems(s: SystemInput): Problem[] {
   const recent = s.errors.filter((e) => s.now - Date.parse(e.at) < 15 * 60_000);
   if (recent.length >= 3)
     out.push({
+      key: 'errors',
       level: recent.some((e) => e.source === 'server') ? 'bad' : 'warn',
       text: `${recent.length} errors in the last 15 minutes`,
       hint: 'See the list below. If orders are failing, take them at the counter.',
     });
   for (const p of s.payments.filter((p) => s.now - Date.parse(p.at) < 24 * 3600_000))
-    out.push({ level: 'bad', text: `Payment needs a look: ${p.subject}`, hint: p.note ?? undefined });
+    out.push({
+      key: `pay:${p.at}`,
+      level: 'bad',
+      text: `Payment needs a look: ${p.subject}`,
+      hint: p.note ?? undefined,
+    });
   if (s.missingMigrations.length)
     out.push({
+      key: 'migrations',
       level: 'warn',
       text: 'A database update has not been run',
       hint: `Run in Supabase: ${s.missingMigrations.join(', ')}`,
     });
   if (s.testMode)
     out.push({
+      key: 'test',
       level: 'info',
       text: 'Test mode is on',
       hint: 'Cash counts as paid by itself. Turn it off before real customers.',
@@ -120,3 +131,44 @@ export const clip = (v: unknown, max: number): string =>
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
     .trim()
     .slice(0, max);
+
+// Which problems are worth waking the owner's phone for: anything that may be losing orders or
+// money now, and any shop screen gone silent. A stale version or test mode can wait for a look.
+export const worthAPush = (p: Problem) => p.level === 'bad' || p.key.startsWith('silent:');
+
+export interface Alert {
+  key: string;
+  level: Problem['level'];
+  text: string;
+  hint: string | null;
+  firstAt: string;
+  clearedAt: string | null;
+}
+// What changed since the last check: problems that are new, and alerts whose problem has gone.
+export function alertChanges(now: Problem[], open: Pick<Alert, 'key'>[]) {
+  const was = new Set(open.map((a) => a.key));
+  const is = new Set(now.map((p) => p.key));
+  return { fresh: now.filter((p) => !was.has(p.key)), gone: open.filter((a) => !is.has(a.key)).map((a) => a.key) };
+}
+
+// Where a browser's push messages are sent. Only the real push services (and a reserved test name):
+// the server will post to this address, so it must never be one somebody made up.
+export function isPushEndpoint(v: unknown): v is string {
+  if (typeof v !== 'string' || v.length > 1000) return false;
+  let u: URL;
+  try {
+    u = new URL(v);
+  } catch {
+    return false;
+  }
+  const h = u.hostname;
+  return (
+    u.protocol === 'https:' &&
+    (h === 'fcm.googleapis.com' ||
+      h === 'updates.push.services.mozilla.com' ||
+      h === 'web.push.apple.com' ||
+      h.endsWith('.push.apple.com') ||
+      h.endsWith('.notify.windows.com') ||
+      h.endsWith('.push.invalid'))
+  );
+}

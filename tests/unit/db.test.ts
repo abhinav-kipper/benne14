@@ -371,6 +371,23 @@ describe('database (supabase/migrations)', () => {
       await db.exec('delete from devices; delete from error_log');
     });
 
+    it('phones, alerts and keys hold only well-formed rows; the keys are for the server alone (0013)', async () => {
+      await db.query(
+        "insert into push_subs (endpoint, p256dh, auth) values ('https://fcm.googleapis.com/x', 'p', 'a')",
+      );
+      await expect(
+        db.query("insert into push_subs (endpoint, p256dh, auth) values ('http://plain.example/x', 'p', 'a')"),
+      ).rejects.toThrow();
+      await db.query("insert into alerts (key, level, text) values ('silent:kiosk', 'bad', 'Kiosk has been silent')");
+      await expect(db.query("insert into alerts (key, level, text) values ('x', 'shouting', 'x')")).rejects.toThrow();
+      await db.query("insert into app_keys (name, value) values ('vapid', '{}')");
+      const can = await db.query<{ anon: boolean; auth: boolean }>(
+        "select has_table_privilege('anon', 'public.app_keys', 'select') anon, has_table_privilege('authenticated', 'public.app_keys', 'select') auth",
+      );
+      expect(can.rows[0]).toEqual({ anon: false, auth: false });
+      await db.exec('delete from push_subs; delete from alerts; delete from app_keys');
+    });
+
     it('logs every change of state by itself, in order', async () => {
       const o = await place('log-order-1', 'upi');
       for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'])

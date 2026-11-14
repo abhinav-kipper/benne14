@@ -1,10 +1,10 @@
 'use client';
 // Is everything in the shop working? Every screen and when it was last heard from, what needs a
 // look, and the latest errors. The numbers come from /api/admin/system; the rules are in lib/system.ts.
-import { useState } from 'react';
-import type { SystemReport } from '@/lib/client';
+import { useCallback, useEffect, useState } from 'react';
+import { admin, ApiError, type SystemReport } from '@/lib/client';
 import { ago, isOnline, kindName, type DeviceKind } from '@/lib/system';
-import { Bar, time } from './shared';
+import { Bar, time, type Ctx } from './shared';
 
 const SHOP_SCREENS: DeviceKind[] = ['kiosk', 'kitchen', 'board'];
 const SHOWING: Record<string, string> = {
@@ -37,7 +37,7 @@ export function SystemLine({ sys, open }: { sys: SystemReport | null; open: () =
   );
 }
 
-export function System({ sys, back }: { sys: SystemReport | null; back: () => void }) {
+export function System({ sys, back, ...ctx }: Ctx & { sys: SystemReport | null; back: () => void }) {
   const [open, setOpen] = useState<number | null>(null);
   const now = sys ? Date.parse(sys.now) : 0;
   return (
@@ -114,6 +114,27 @@ export function System({ sys, back }: { sys: SystemReport | null; back: () => vo
             </div>
           </div>
 
+          <Notify {...ctx} phones={sys.phones} />
+
+          {sys.alerts.length > 0 && (
+            <div className="mcat" data-testid="alerts">
+              <h3>Alerts</h3>
+              {sys.alerts.map((a) => (
+                <div className={`dev ${a.clearedAt ? 'done' : 'off'}`} key={a.key}>
+                  <i />
+                  <div>
+                    <b>{a.text}</b>
+                    <span>
+                      {a.clearedAt
+                        ? `Sorted ${ago(a.clearedAt, now)} · began ${ago(a.firstAt, now)}`
+                        : `Still going · began ${ago(a.firstAt, now)}`}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="mcat">
             <h3>Latest errors</h3>
             {sys.errors.length === 0 && <div className="none">Nothing has gone wrong.</div>}
@@ -145,5 +166,126 @@ export function System({ sys, back }: { sys: SystemReport | null; back: () => vo
         </>
       )}
     </section>
+  );
+}
+
+// "Tell this phone when something is wrong." A notification is a browser feature that the person
+// holding the phone switches on: only phones where someone taps this button ever get one.
+type NotifyState = 'checking' | 'off' | 'on' | 'blocked' | 'unsupported';
+const keyBytes = (b64: string) => {
+  const raw = atob(
+    b64
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(b64.length / 4) * 4, '='),
+  );
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+};
+
+function Notify({ pin, onAuthError, phones }: Ctx & { phones: number }) {
+  const [state, setState] = useState<NotifyState>('checking');
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const supported = () =>
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window;
+  const check = useCallback(async () => {
+    if (!supported()) return setState('unsupported');
+    if (Notification.permission === 'denied') return setState('blocked');
+    const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+    setState((await reg?.pushManager.getSubscription()) ? 'on' : 'off');
+  }, []);
+  useEffect(() => {
+    check().catch(() => setState('off'));
+  }, [check]);
+
+  const run = async (what: () => Promise<string | null>) => {
+    setBusy(true);
+    setNote(null);
+    try {
+      setNote(await what());
+    } catch (e) {
+      onAuthError(e);
+      setNote(e instanceof ApiError ? e.message : 'That did not work. Check the internet and try again.');
+    }
+    setBusy(false);
+    check().catch(() => {});
+  };
+  const turnOn = () =>
+    run(async () => {
+      if ((await Notification.requestPermission()) !== 'granted')
+        return 'Notifications were not allowed on this phone.';
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      const { publicKey } = await admin.pushInfo(pin);
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) });
+      await admin.pushChange(pin, { subscribe: sub.toJSON() });
+      await admin.pushChange(pin, { test: true });
+      return 'On. A test notification is on its way to this phone.';
+    });
+  const turnOff = () =>
+    run(async () => {
+      const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) {
+        await admin.pushChange(pin, { unsubscribe: sub.endpoint });
+        await sub.unsubscribe();
+      }
+      return 'Off for this phone.';
+    });
+  const test = () =>
+    run(async () => {
+      const { sent } = await admin.pushChange(pin, { test: true });
+      return sent ? `Sent to ${sent} ${sent === 1 ? 'phone' : 'phones'}.` : 'No phone has notifications on yet.';
+    });
+
+  return (
+    <div className="mcat" data-testid="notify">
+      <h3>Alerts on this phone</h3>
+      <div className="was">
+        A notification when the kiosk, kitchen screen or TV goes silent, when errors pile up, or when a payment needs a
+        look. Only phones where this is switched on get them.{' '}
+        {phones > 0 && `On for ${phones} ${phones === 1 ? 'phone' : 'phones'} now.`}
+      </div>
+      {state === 'unsupported' && (
+        <div className="prob warn">
+          <b>This browser can’t show notifications yet</b>
+          <span>
+            On an iPhone: tap Share, then “Add to Home Screen”, and open the owner app from that icon. On Android, use
+            Chrome.
+          </span>
+        </div>
+      )}
+      {state === 'blocked' && (
+        <div className="prob warn">
+          <b>Notifications are blocked for this site</b>
+          <span>Allow them in the phone’s browser settings for this site, then come back here.</span>
+        </div>
+      )}
+      <div className="actions">
+        {state === 'off' && (
+          <button className="btn y" disabled={busy} onClick={turnOn} data-testid="notify-on">
+            {busy ? 'Turning on…' : 'Turn on notifications'}
+          </button>
+        )}
+        {state === 'on' && (
+          <>
+            <button className="btn o" disabled={busy} onClick={test} data-testid="notify-test">
+              Send a test
+            </button>
+            <button className="btn o" disabled={busy} onClick={turnOff} data-testid="notify-off">
+              Turn off for this phone
+            </button>
+          </>
+        )}
+      </div>
+      {note && (
+        <div className="was" data-testid="notify-note">
+          {note}
+        </div>
+      )}
+    </div>
   );
 }

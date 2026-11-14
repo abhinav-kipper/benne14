@@ -4,7 +4,7 @@ import 'server-only';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import type { CustomItem, ExtrasLayout, Overrides, SectionsLayout } from '../menu';
 import type { AdminEvent, GatewayPayment, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
-import type { Device, DeviceKind, ErrorEntry } from '../system';
+import type { Alert, Device, DeviceKind, ErrorEntry } from '../system';
 import { MemoryStore, StoreError } from './memory';
 import { SupabaseStore } from './supabase';
 
@@ -63,7 +63,26 @@ export interface Store {
   listDevices(): Promise<Device[]>; // every screen seen in the last two weeks, most recent first
   logError(e: Omit<ErrorEntry, 'at'>): Promise<void>;
   listErrors(limit?: number): Promise<ErrorEntry[]>; // newest first
+  // Alerts to the owner's phone (migration 0013). Before it is run: no phones, no alerts, no keys.
+  listSubs(): Promise<PushSub[]>;
+  saveSub(s: PushSub): Promise<void>;
+  dropSub(endpoint: string): Promise<void>;
+  // Open an alert for a problem. True only for the caller that opened it (it was not open already),
+  // so two servers noticing the same problem send one notification between them.
+  openAlert(a: Pick<Alert, 'key' | 'level' | 'text' | 'hint'>): Promise<boolean>;
+  clearAlerts(keys: string[]): Promise<void>;
+  listAlerts(limit?: number): Promise<Alert[]>; // open ones first, then the latest cleared
+  // A value the app keeps for itself. setKeyOnce stores it only if nothing is there yet and
+  // answers with what is stored, so every server ends up with the same value.
+  getKey(name: string): Promise<string | null>;
+  setKeyOnce(name: string, value: string): Promise<string>;
   appliedMigrations(): Promise<string[]>; // names recorded in schema_migrations ([] before 0004 is run)
+}
+
+export interface PushSub {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }
 
 export interface LayoutPatch {

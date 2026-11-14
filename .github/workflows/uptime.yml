@@ -29,3 +29,6 @@ jobs:
           done
           echo "::error::Benne 14 production is not healthy: $body"
           exit 1
+      - name: Run the owner's alert check (a silent kiosk is noticed even when no other screen is awake)
+        if: always()
+        run: curl -sS -m 20 "$PRODUCTION_URL/api/watch" || true

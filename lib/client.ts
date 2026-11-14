@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Customer, DiscountCode, DiscountRule, KioskSettings } from './discounts';
 import type { CartLine } from './pricing';
-import type { Device, ErrorEntry, Problem } from './system';
+import type { Alert, Device, ErrorEntry, Problem } from './system';
 import type { CustomItem, Overrides } from './menu';
 import type { AdminEvent, Order, OrderEvent, OrderStatus, OrderType, PayMethod } from './orders';
 import type { Summary } from './reports';
@@ -315,6 +315,8 @@ export interface SystemReport {
   devices: Device[];
   errors: ErrorEntry[];
   problems: Problem[];
+  alerts: Alert[]; // what was announced to the owner's phone: open ones first
+  phones: number; // phones with notifications on
 }
 export const admin = {
   report: (pin: string, from: string, to: string) =>
@@ -376,6 +378,14 @@ export const admin = {
       headers: pinHeader(pin),
     }),
   system: (pin: string) => call<SystemReport>('/api/admin/system', { headers: pinHeader(pin) }),
+  pushInfo: (pin: string) =>
+    call<{ publicKey: string; phones: number }>('/api/admin/push', { headers: pinHeader(pin) }),
+  pushChange: (pin: string, b: { subscribe: PushSubscriptionJSON } | { unsubscribe: string } | { test: true }) =>
+    call<{ phones?: number; sent?: number }>('/api/admin/push', {
+      method: 'POST',
+      body: JSON.stringify(b),
+      headers: pinHeader(pin),
+    }),
   photo: (pin: string, jpeg: Blob) =>
     call<{ url: string }>('/api/admin/photo', {
       method: 'POST',
