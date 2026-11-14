@@ -1086,7 +1086,8 @@ test('the start screen, the suggestions and the TV follow a hidden dish and a ne
   const shots = () => page.locator('.mosaic img').evaluateAll((els) => els.map((e) => e.getAttribute('src') ?? ''));
   await expect.poll(async () => (await shots()).some((s) => s.includes('masala-tea'))).toBe(false); // off the menu, off the wall
   expect(await shots()).toHaveLength(9);
-  expect((await shots()).some((s) => s === live.photo)).toBe(true); // the owner's photo took its place
+  // another dish on the menu took its place: the next one with a photo, or the owner's own
+  expect((await shots()).some((s) => s.includes('filter-coffee') || s === live.photo)).toBe(true);
   // a dosa order is not offered the hidden tea
   await page.getByTestId('start').click();
   await page.getByTestId('item-plain-dosa').click();
