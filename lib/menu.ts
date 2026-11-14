@@ -223,8 +223,8 @@ export const ITEMS: MenuItem[] = [
   },
 ];
 
-// Items with a real photo in /public/food. Filter coffee is waiting for the restaurant's own photo.
-const PHOTOS = new Set(ITEMS.map((i) => i.id).filter((id) => id !== 'filter-coffee' && id !== 'test-1'));
+// Items with a photo in /public/food (sources and licences: public/food/CREDITS.tsv). All but the payment test.
+const PHOTOS = new Set(ITEMS.map((i) => i.id).filter((id) => id !== 'test-1'));
 export const placeholderOf = (id: string) => ITEMS.find((i) => i.id === id)?.placeholder ?? 'Coffee';
 // The same two for a dish from a catalog, which may be one the owner added (its photo is a URL).
 export const photoFor = (item: Pick<MenuItem, 'id' | 'photo'> | undefined) =>
