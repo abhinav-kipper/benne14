@@ -20,8 +20,8 @@ import {
   type PlaceOrderInput,
 } from '../orders';
 import { DEFAULT_SETTINGS, type Customer, type DiscountCode, type KioskSettings } from '../discounts';
-import { optionKey, type CustomItem, type Overrides } from '../menu';
-import type { MenuEdit } from './index';
+import { optionKey, type CustomItem, type Overrides, type SectionsLayout } from '../menu';
+import type { LayoutPatch, MenuEdit } from './index';
 import { MIGRATIONS } from '../migrations';
 
 interface ItemRow {
@@ -47,7 +47,7 @@ export class MemoryStore {
   private counters = new Map<string, number>();
   private items = new Map<string, ItemRow>();
   private dishes = new Map<string, CustomItem>();
-  private layout = { hidden: [] as string[], order: [] as string[] };
+  private layout = { hidden: [] as string[], order: [] as string[], sections: {} as SectionsLayout };
   private options = new Map<string, number>();
   private events: AdminEvent[] = [];
   private history = new Map<string, OrderEvent[]>(); // per order, as the database's trigger writes it
@@ -229,6 +229,7 @@ export class MemoryStore {
       custom: [...this.dishes.values()].map((d) => ({ ...d, groups: [...d.groups] })),
       hidden: [...this.layout.hidden],
       order: [...this.layout.order],
+      sections: structuredClone(this.layout.sections),
     };
   }
 
@@ -242,7 +243,8 @@ export class MemoryStore {
     await this.addEvent(event);
   }
 
-  async saveLayout(patch: { hidden?: string[]; order?: string[] }, event: Omit<AdminEvent, 'at'> | null) {
+  async saveLayout(patch: LayoutPatch, event: Omit<AdminEvent, 'at'> | null) {
+    if (patch.sections) this.layout.sections = structuredClone(patch.sections);
     if (patch.hidden) this.layout.hidden = [...patch.hidden];
     if (patch.order) this.layout.order = [...patch.order];
     if (event) await this.addEvent(event);

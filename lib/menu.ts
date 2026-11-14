@@ -2,11 +2,15 @@
 // discount was dropped (discount codes may come later, see docs/state.md).
 // A price change is a one-line edit + deploy until the owner admin (M4) moves this into the DB.
 
-export type CategoryId = 'dosa' | 'idli' | 'drinks' | 'test';
+// A section of the menu. Three come with the app ('dosa', 'idli', 'drinks'; 'test' is the ₹1 payment
+// check); the owner can add more from the dashboard (ids like "s-ab12cd34"), rename, reorder and hide them.
+export type CategoryId = string;
 
 export interface Category {
   id: CategoryId;
   name: string;
+  custom?: boolean; // added by the owner
+  hidden?: boolean; // only in the owner's full view: the section and its dishes are off the kiosk
 }
 
 // How a choice reads on the kitchen chit: 'add' = more of something (green +), 'less' = less or none (red −).
@@ -236,10 +240,9 @@ export interface ItemOverride {
   soldOut?: boolean;
 }
 // A dish the owner added from the dashboard. It lives in the database (menu_dishes), not in this file.
-export const CUSTOM_CATS = ['dosa', 'idli', 'drinks'] as const;
 export interface CustomItem {
   id: string; // "c-" + random letters and digits
-  cat: (typeof CUSTOM_CATS)[number];
+  cat: CategoryId; // any section but 'test'
   name: string;
   desc: string;
   price: number;
@@ -249,19 +252,48 @@ export interface CustomItem {
 }
 export const isCustomId = (id: unknown): id is string => typeof id === 'string' && /^c-[a-z0-9]{6,12}$/.test(id);
 
+export const isSectionId = (id: unknown): id is string => typeof id === 'string' && /^s-[a-z0-9]{6,12}$/.test(id);
+export const TEST_CAT = 'test';
+
+// The owner's changes to the sections: their own sections, new names, the order, which are hidden.
+export interface SectionsLayout {
+  custom?: { id: string; name: string }[];
+  names?: Record<string, string>; // section id → name the owner gave it
+  order?: string[]; // section ids in the owner's order; the rest follow in their usual order
+  hidden?: string[];
+}
+// The sections in order. `all` = the owner's view, hidden ones included and marked.
+export function mergeSections(s: SectionsLayout | undefined, all = false): Category[] {
+  const hidden = new Set(s?.hidden ?? []);
+  const place = new Map((s?.order ?? []).map((id, n) => [id, n]));
+  const own: Category[] = (s?.custom ?? []).map((c) => ({ id: c.id, name: c.name, custom: true }));
+  return [...CATEGORIES.filter((c) => c.id !== TEST_CAT), ...own]
+    .map((c, n) => {
+      const out: Category = { ...c, name: s?.names?.[c.id] || c.name };
+      if (hidden.has(c.id)) out.hidden = true;
+      return { out, at: place.get(c.id) ?? 1e6 + n };
+    })
+    .sort((a, b) => a.at - b.at)
+    .map((x) => x.out)
+    .filter((c) => all || !c.hidden)
+    .concat(CATEGORIES.filter((c) => c.id === TEST_CAT)); // the payment test always comes last
+}
+
 export interface Overrides {
   items: Record<string, ItemOverride>;
   options: Record<string, number>; // "group:option" → price
   custom?: CustomItem[]; // the owner's own dishes
   hidden?: string[]; // dish ids taken off the menu
   order?: string[]; // dish ids in the order the owner arranged them; the rest follow in their usual order
+  sections?: SectionsLayout;
 }
 export interface Catalog {
+  cats: Category[]; // the sections, in order
   items: MenuItem[];
   groups: Record<string, ModGroup>;
 }
 
-export const BASE_CATALOG: Catalog = { items: ITEMS, groups: GROUPS };
+export const BASE_CATALOG: Catalog = { cats: CATEGORIES, items: ITEMS, groups: GROUPS };
 export const optionKey = (groupId: string, optionId: string) => `${groupId}:${optionId}`;
 
 // What customers can order: hidden dishes and drafts are left out, so the kiosk can't show them and
@@ -275,12 +307,14 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
     price: c.price,
     photo: c.photo ?? undefined,
     groups: c.groups.filter((g) => Object.hasOwn(GROUPS, g)),
-    notes: c.cat !== 'drinks',
+    notes: c.cat === 'dosa' || c.cat === 'idli',
     custom: true,
     draft: !c.live,
   }));
   const hidden = new Set(o.hidden ?? []);
   const place = new Map((o.order ?? []).map((id, n) => [id, n]));
+  const cats = mergeSections(o.sections, all);
+  const open = new Set(cats.map((c) => c.id)); // a dish in a hidden (or removed) section is off the menu too
   const items = [...ITEMS, ...own]
     .map((i, n) => {
       const x = o.items[i.id];
@@ -294,7 +328,7 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
     })
     .sort((a, b) => a.at - b.at)
     .map((x) => x.it)
-    .filter((i) => all || (!i.hidden && !i.draft));
+    .filter((i) => all || (!i.hidden && !i.draft && open.has(i.cat)));
   const groups: Record<string, ModGroup> = {};
   for (const [gid, g] of Object.entries(GROUPS)) {
     groups[gid] = {
@@ -302,7 +336,7 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
       options: g.options.map((op) => ({ ...op, price: o.options[optionKey(gid, op.id)] ?? op.price })),
     };
   }
-  return { items, groups };
+  return { cats, items, groups };
 }
 
 // Look a dish up in a catalog. Screens pass the catalog they loaded (components/Catalog.tsx); the

@@ -4,6 +4,8 @@ import {
   isCustomId,
   itemById,
   mergeCatalog,
+  mergeSections,
+  isSectionId,
   notesFor,
   photoFor,
   type CustomItem,
@@ -102,5 +104,61 @@ describe("the owner's own dishes, hidden dishes and the order of the menu", () =
     expect(isCustomId('c-onion00001')).toBe(true);
     for (const bad of ['masala-dosa', 'c-', 'c-ABC12345', 'c-abc', "c-abc123'; drop", 7, null])
       expect(isCustomId(bad)).toBe(false);
+  });
+});
+
+describe("the owner's sections", () => {
+  const lay = {
+    custom: [{ id: 's-sweets01', name: 'Sweets' }],
+    names: { dosa: 'Dosa', idli: '' },
+    order: ['drinks', 's-sweets01'],
+    hidden: ['idli'],
+  };
+  const sweet: CustomItem = {
+    id: 'c-kesari0001',
+    cat: 's-sweets01',
+    name: 'Kesari Bath',
+    desc: '',
+    price: 79,
+    groups: [],
+    photo: null,
+    live: true,
+  };
+
+  it('with no changes the sections are the ones that came with the app, the payment test last', () => {
+    expect(mergeSections(undefined).map((c) => c.id)).toEqual(['dosa', 'idli', 'drinks', 'test']);
+    expect(mergeCatalog({ items: {}, options: {} }).cats).toEqual(BASE_CATALOG.cats);
+  });
+
+  it("follows the owner's order and names; a hidden section is left out, an empty name keeps the old one", () => {
+    expect(mergeSections(lay).map((c) => [c.id, c.name])).toEqual([
+      ['drinks', 'Coffee & Tea'],
+      ['s-sweets01', 'Sweets'],
+      ['dosa', 'Dosa'],
+      ['test', 'Payment test'],
+    ]);
+    const all = mergeSections(lay, true);
+    expect(all.find((c) => c.id === 'idli')).toMatchObject({ hidden: true, name: 'Idli & Vada' });
+    expect(all.find((c) => c.id === 's-sweets01')).toMatchObject({ custom: true });
+  });
+
+  it('a hidden section takes its dishes off the menu, so they cannot be ordered', () => {
+    const cat = mergeCatalog({ items: {}, options: {}, custom: [sweet], sections: lay });
+    expect(itemById('mallige-idli', cat)).toBeUndefined();
+    expect(() => priceOrder([{ itemId: 'mallige-idli', qty: 1, choices: {}, notes: [] }], cat)).toThrow();
+    expect(itemById('c-kesari0001', cat)).toMatchObject({ cat: 's-sweets01', notes: false });
+    expect(priceOrder([{ itemId: 'c-kesari0001', qty: 2, choices: {}, notes: [] }], cat).subtotal).toBe(158);
+    // the owner still sees them
+    expect(itemById('mallige-idli', mergeCatalog({ items: {}, options: {}, sections: lay }, true))).toBeDefined();
+  });
+
+  it('a dish whose section no longer exists is not on the menu', () => {
+    const cat = mergeCatalog({ items: {}, options: {}, custom: [{ ...sweet, cat: 's-gone00001' }] });
+    expect(itemById('c-kesari0001', cat)).toBeUndefined();
+  });
+
+  it('knows a section id it made', () => {
+    expect(isSectionId('s-sweets01')).toBe(true);
+    for (const bad of ['dosa', 'test', 's-', 's-AB12cd34', 7, null]) expect(isSectionId(bad)).toBe(false);
   });
 });

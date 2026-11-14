@@ -11,4 +11,5 @@ export const MIGRATIONS = [
   '0007_gateway_payments',
   '0008_given_ticks',
   '0009_owner_dishes',
+  '0010_owner_sections',
 ];

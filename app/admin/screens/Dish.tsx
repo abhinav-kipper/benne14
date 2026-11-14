@@ -3,7 +3,7 @@
 // page for a draft, and the hide button every dish's sheet ends with.
 import { useRef, useState } from 'react';
 import { admin, ApiError } from '@/lib/client';
-import { CATEGORIES, CUSTOM_CATS, notesFor, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
+import { TEST_CAT, notesFor, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
 import type { Ctx } from './shared';
 
 const say = (e: unknown, what: string) => (e instanceof ApiError ? e.message : `${what}: no internet.`);
@@ -55,16 +55,23 @@ export function HideButton(p: Ctx & { item: MenuItem; done: () => void; onError:
 }
 
 export function DishSheet(
-  p: Ctx & { item?: MenuItem; cat: Catalog; close: () => void; saved: (id: string, live: boolean) => void },
+  p: Ctx & {
+    item?: MenuItem;
+    section?: string; // where a new dish starts
+    cat: Catalog;
+    close: () => void;
+    saved: (id: string, live: boolean) => void;
+  },
 ) {
   const { item, cat } = p;
   const [name, setName] = useState(item?.name ?? '');
   const [price, setPrice] = useState(item ? String(item.price) : '');
   const [desc, setDesc] = useState(item?.desc ?? '');
-  const [section, setSection] = useState<(typeof CUSTOM_CATS)[number]>(
-    CUSTOM_CATS.find((c) => c === item?.cat) ?? 'dosa',
+  const sections = cat.cats.filter((c) => c.id !== TEST_CAT);
+  const [section, setSection] = useState(item?.cat ?? p.section ?? sections[0]?.id ?? 'dosa');
+  const [group, setGroup] = useState<string | null>(
+    item ? (item.groups[0] ?? null) : p.section && p.section !== 'dosa' ? null : 'dosaExtras',
   );
-  const [group, setGroup] = useState<string | null>(item ? (item.groups[0] ?? null) : 'dosaExtras');
   const [photo, setPhoto] = useState<string | null>(item?.photo ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<'photo' | 'save' | null>(null);
@@ -199,13 +206,13 @@ export function DishSheet(
         <div className="field">
           <label>Section</label>
           <div className="pick" role="radiogroup" aria-label="Section">
-            {CATEGORIES.filter((c) => (CUSTOM_CATS as readonly string[]).includes(c.id)).map((c) => (
+            {sections.map((c) => (
               <button
                 key={c.id}
                 role="radio"
                 aria-checked={section === c.id}
                 className={section === c.id ? 'on' : ''}
-                onClick={() => setSection(c.id as typeof section)}
+                onClick={() => setSection(c.id)}
                 data-testid={`dish-cat-${c.id}`}
               >
                 <span>{c.name}</span>
@@ -312,7 +319,7 @@ export function Check(p: Ctx & { item: MenuItem; cat: Catalog; back: () => void;
       <div className="facts">
         <div>
           <span>Section</span>
-          <b>{CATEGORIES.find((c) => c.id === item.cat)?.name}</b>
+          <b>{cat.cats.find((c) => c.id === item.cat)?.name}</b>
         </div>
         <div>
           <span>Customers can add</span>

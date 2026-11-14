@@ -2,7 +2,8 @@
 // The menu as the kiosk shows it: sold-out switches, and a sheet to edit price, name, description and extras.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { admin, ApiError } from '@/lib/client';
-import { CATEGORIES, mergeCatalog, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
+import { TEST_CAT, mergeCatalog, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
+import { SectionsSheet } from './Sections';
 import { Check, DishSheet, HideButton } from './Dish';
 import { Bar, type Ctx } from './shared';
 
@@ -11,7 +12,9 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
   const [cat, setCat] = useState<Catalog | null>(null);
   const [err, setErr] = useState<string | null>(null);
   // What is open on top of the list: a dish's sheet, a new dish, or a draft's check page.
-  const [view, setView] = useState<{ edit: string } | { add: true } | { check: string } | null>(null);
+  const [view, setView] = useState<
+    { edit: string } | { add: string | true } | { check: string } | { sections: true } | null
+  >(null);
   const dragging = useRef(false);
   const { pin, onAuthError } = p;
   const load = useCallback(
@@ -140,71 +143,84 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
         <button className="btn y" onClick={() => setView({ add: true })} data-testid="add-dish">
           Add a dish
         </button>
+        <button className="btn o" onClick={() => setView({ sections: true })} data-testid="open-sections">
+          Sections
+        </button>
       </div>
       {err && <div className="err pad">{err}</div>}
-      {CATEGORIES.filter((c) => all.some((i) => i.cat === c.id && !i.hidden)).map((c) => (
-        <div className="mcat" key={c.id} data-testid={`mcat-${c.id}`}>
-          <h3>{c.name}</h3>
-          {all
-            .filter((i) => i.cat === c.id && !i.hidden)
-            .map((i) => {
-              const src = photoFor(i);
-              return (
-                <div
-                  className={`mi mv ${i.soldOut ? 'off' : ''} ${i.draft ? 'draft' : ''} ${held === i.id ? 'held' : ''}`}
-                  key={i.id}
-                  data-testid={`mi-${i.id}`}
-                  data-dish={i.name}
-                >
-                  <span
-                    className="grip"
-                    role="button"
-                    aria-label={`Move ${i.name}`}
-                    onPointerDown={(e) => dragStart(e, i)}
-                    onPointerMove={dragMove}
-                    onPointerUp={dragEnd}
-                    onPointerCancel={dragEnd}
-                    data-testid={`grip-${i.id}`}
+      {(cat?.cats ?? [])
+        .filter((c) => c.id !== TEST_CAT && (c.custom || all.some((i) => i.cat === c.id && !i.hidden)))
+        .map((c) => (
+          <div className={`mcat ${c.hidden ? 'secoff' : ''}`} key={c.id} data-testid={`mcat-${c.id}`}>
+            <div className="hidden-h">
+              <h3>{c.name}</h3>
+              {c.hidden && <span>Section is off the kiosk</span>}
+            </div>
+            {!all.some((i) => i.cat === c.id && !i.hidden) && (
+              <button className="emptysec" onClick={() => setView({ add: c.id })} data-testid={`add-to-${c.id}`}>
+                No dishes yet. Add the first one
+              </button>
+            )}
+            {all
+              .filter((i) => i.cat === c.id && !i.hidden)
+              .map((i) => {
+                const src = photoFor(i);
+                return (
+                  <div
+                    className={`mi mv ${i.soldOut ? 'off' : ''} ${i.draft ? 'draft' : ''} ${held === i.id ? 'held' : ''}`}
+                    key={i.id}
+                    data-testid={`mi-${i.id}`}
+                    data-dish={i.name}
                   >
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                  <button className="open" onClick={() => setView({ edit: i.id })}>
-                    {src ? <img src={src} alt="" /> : <div className="ph">{placeholderFor(i)}</div>}
-                    <div>
-                      <b>
-                        {i.name}
-                        {i.draft && <span className="tag">Draft</span>}
-                        {i.soldOut && <span className="so">Sold out</span>}
-                      </b>
-                      <span className="p">₹{i.price}</span>
-                    </div>
-                  </button>
-                  {i.draft ? (
-                    <button className="pub" onClick={() => setView({ check: i.id })} data-testid={`pub-${i.id}`}>
-                      Publish
-                    </button>
-                  ) : (
-                    <button
-                      className={`sw ${i.soldOut ? 'off' : ''}`}
-                      role="switch"
-                      aria-checked={!i.soldOut}
-                      aria-label={`${i.name} on the kiosk`}
-                      onClick={() => toggle(i)}
-                      data-testid={`sw-${i.id}`}
+                    <span
+                      className="grip"
+                      role="button"
+                      aria-label={`Move ${i.name}`}
+                      onPointerDown={(e) => dragStart(e, i)}
+                      onPointerMove={dragMove}
+                      onPointerUp={dragEnd}
+                      onPointerCancel={dragEnd}
+                      data-testid={`grip-${i.id}`}
                     >
-                      <span className="swlbl">{i.soldOut ? 'Off' : 'On'}</span>
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                    <button className="open" onClick={() => setView({ edit: i.id })}>
+                      {src ? <img src={src} alt="" /> : <div className="ph">{placeholderFor(i)}</div>}
+                      <div>
+                        <b>
+                          {i.name}
+                          {i.draft && <span className="tag">Draft</span>}
+                          {i.soldOut && <span className="so">Sold out</span>}
+                        </b>
+                        <span className="p">₹{i.price}</span>
+                      </div>
                     </button>
-                  )}
-                </div>
-              );
-            })}
-        </div>
-      ))}
+                    {i.draft ? (
+                      <button className="pub" onClick={() => setView({ check: i.id })} data-testid={`pub-${i.id}`}>
+                        Publish
+                      </button>
+                    ) : (
+                      <button
+                        className={`sw ${i.soldOut ? 'off' : ''}`}
+                        role="switch"
+                        aria-checked={!i.soldOut}
+                        aria-label={`${i.name} on the kiosk`}
+                        onClick={() => toggle(i)}
+                        data-testid={`sw-${i.id}`}
+                      >
+                        <span className="swlbl">{i.soldOut ? 'Off' : 'On'}</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        ))}
       {hidden.length > 0 && (
         <div className="mcat" data-testid="mcat-hidden">
           <div className="hidden-h">
@@ -233,9 +249,11 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
       <button className="histlink" onClick={p.openHistory} data-testid="open-history">
         Change history →
       </button>
+      {view && 'sections' in view && cat && <SectionsSheet {...p} cat={cat} close={done} changed={load} />}
       {view && 'add' in view && cat && (
         <DishSheet
           {...p}
+          section={view.add === true ? undefined : view.add}
           cat={cat}
           close={() => setView(null)}
           saved={(id) => {

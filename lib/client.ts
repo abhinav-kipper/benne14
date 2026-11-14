@@ -328,7 +328,12 @@ export const admin = {
       | { discard: string }
       | { hide: string }
       | { show: string }
-      | { order: string[] },
+      | { order: string[] }
+      | { section: { id?: string; name: string } }
+      | { removeSection: string }
+      | { hideSection: string }
+      | { showSection: string }
+      | { sectionOrder: string[] },
   ) =>
     call<{ dish?: CustomItem }>('/api/admin/dishes', {
       method: 'POST',

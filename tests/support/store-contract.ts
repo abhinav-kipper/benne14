@@ -182,7 +182,14 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
     });
 
     it("keeps the owner's menu edits, extras and history together", async () => {
-      expect(await s.getOverrides()).toEqual({ items: {}, options: {}, custom: [], hidden: [], order: [] });
+      expect(await s.getOverrides()).toEqual({
+        items: {},
+        options: {},
+        custom: [],
+        hidden: [],
+        order: [],
+        sections: {},
+      });
       await s.saveMenuEdit({
         itemId: 'masala-dosa',
         patch: { price: 219, name: 'Big Masala Dosa', soldOut: true },
@@ -233,6 +240,22 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(o.order).toEqual(['plain-dosa', dish.id, 'masala-dosa']);
       await s.saveLayout({ hidden: [] }, null);
       expect((await s.getOverrides()).order).toEqual(['plain-dosa', dish.id, 'masala-dosa']);
+
+      // sections: the owner's own, new names, order, hidden; a dish can sit in an owner-made section
+      const sections = {
+        custom: [{ id: 's-sweets01', name: 'Sweets' }],
+        names: { dosa: 'Dosa' },
+        order: ['drinks', 's-sweets01'],
+        hidden: ['idli'],
+      };
+      await s.saveLayout({ sections }, { kind: 'menu', subject: 'Sweets', after: 'New section' });
+      await s.saveDish({ ...dish, cat: 's-sweets01' }, null);
+      const withSections = await s.getOverrides();
+      expect(withSections.sections).toEqual(sections);
+      expect(withSections.order).toEqual(['plain-dosa', dish.id, 'masala-dosa']); // untouched
+      expect(withSections.custom![0].cat).toBe('s-sweets01');
+      await s.saveLayout({ sections: {} }, null);
+      expect((await s.getOverrides()).sections).toEqual({});
 
       await s.deleteDish(dish.id, { kind: 'menu', subject: dish.name, after: 'Draft discarded' });
       expect((await s.getOverrides()).custom).toEqual([]);
