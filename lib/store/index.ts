@@ -2,7 +2,7 @@
 // (and tests pass) with no database. Only server code imports this.
 import 'server-only';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
-import type { Overrides } from '../menu';
+import type { CustomItem, Overrides } from '../menu';
 import type { AdminEvent, GatewayPayment, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
 import { MemoryStore, StoreError } from './memory';
 import { SupabaseStore } from './supabase';
@@ -37,6 +37,12 @@ export interface Store {
   getOverrides(): Promise<Overrides>; // owner's menu changes; soldOut only for today
   // One menu edit: the dish's fields, any extras' prices and the history lines, saved together.
   saveMenuEdit(edit: MenuEdit): Promise<void>;
+  // The owner's own dishes and the menu's layout (migration 0009). getOverrides() carries them:
+  // custom (drafts included), hidden, order. Before 0009 is run there are none and these refuse (503).
+  saveDish(d: CustomItem, event: Omit<AdminEvent, 'at'> | null): Promise<void>; // creates or replaces by id
+  deleteDish(id: string, event: Omit<AdminEvent, 'at'>): Promise<void>; // 404 if there is no such dish
+  saveLayout(patch: { hidden?: string[]; order?: string[] }, event: Omit<AdminEvent, 'at'> | null): Promise<void>;
+  savePhoto(jpeg: Uint8Array): Promise<string>; // stores a dish photo, returns the URL to show it from
   addEvent(e: Omit<AdminEvent, 'at'>): Promise<void>;
   listEvents(limit?: number): Promise<AdminEvent[]>; // newest first
   // Discount codes, the kiosk switches and the customer list (migration 0005). Before it is run a

@@ -2,7 +2,8 @@
 // Pieces the dashboard screens share: formatting, the top bar, the report loader and the small charts.
 import { useEffect, useRef, useState } from 'react';
 import { admin, ApiError, usePoll, type Report } from '@/lib/client';
-import { photoOf, placeholderOf } from '@/lib/menu';
+import { useCatalog } from '@/components/Catalog';
+import { itemById, photoFor, placeholderOf } from '@/lib/menu';
 import type { OrderStatus } from '@/lib/orders';
 import type { Summary } from '@/lib/reports';
 
@@ -97,10 +98,15 @@ export function Split({ s }: { s: Summary }) {
 }
 
 export function DishRow({ d, max }: { d: Summary['dishes'][number]; max: number }) {
-  const src = photoOf(d.itemId);
+  const dish = itemById(d.itemId, useCatalog());
+  const src = photoFor(dish) ?? photoFor({ id: d.itemId });
   return (
     <div className="dish">
-      {src ? <img src={src} alt="" /> : <div className="ph">{placeholderOf(d.itemId)}</div>}
+      {src ? (
+        <img src={src} alt="" />
+      ) : (
+        <div className="ph">{dish?.custom ? d.name.split(' ').slice(0, 2).join(' ') : placeholderOf(d.itemId)}</div>
+      )}
       <div>
         <b>{d.name}</b>
         <small>{inr(d.amount)}</small>

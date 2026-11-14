@@ -1,6 +1,6 @@
 'use client';
 // Pieces the kiosk screens share: the cart line type, timings, the dish photo and two icons.
-import { photoOf, type MenuItem } from '@/lib/menu';
+import { photoFor, placeholderFor, type MenuItem } from '@/lib/menu';
 import type { CartLine } from '@/lib/pricing';
 
 export type Screen = 'home' | 'menu' | 'cart' | 'pay' | 'upi' | 'done';
@@ -21,12 +21,12 @@ export const DONE_GRACE_S = 30; // twice the menu's prompt: they may be mid-scan
 export const DONE_MORE_S = 60; // what "I need more time" adds
 
 export function Photo({ item, big }: { item: MenuItem; big?: boolean }) {
-  const src = photoOf(item.id);
+  const src = photoFor(item);
   return src ? (
     <img src={src} alt="" />
   ) : (
     <div className="nophoto" style={big ? { fontSize: 80 } : undefined}>
-      {item.placeholder ?? 'Coffee'}
+      {placeholderFor(item)}
     </div>
   );
 }

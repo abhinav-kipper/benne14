@@ -1430,3 +1430,261 @@
 .adm .range.inset {
   margin: 0;
 }
+
+/* ---- Menu: add a dish, drafts, hidden dishes, drag to reorder ---- */
+.adm .addrow {
+  margin: 14px 20px 0;
+  display: grid;
+}
+.adm .addrow .btn {
+  height: 50px;
+}
+.adm .actions.pad,
+.adm .was.pad {
+  padding: 0 20px;
+}
+.adm .was.pad {
+  margin-top: 12px;
+  font-size: 13px;
+}
+.adm .mi.mv {
+  grid-template-columns: 30px 1fr auto;
+  gap: 4px;
+  background: var(--bg);
+}
+.adm .mi.mv.held {
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 8px 22px rgba(60, 45, 20, 0.22);
+  border-radius: 12px;
+  border-bottom-color: transparent;
+}
+.adm .grip {
+  width: 30px;
+  height: 52px;
+  display: grid;
+  grid-template-columns: 4px 4px;
+  gap: 4px;
+  align-content: center;
+  justify-content: start;
+  touch-action: none; /* the finger drags the row, not the page */
+  cursor: grab;
+}
+.adm .grip i {
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--cream-3);
+}
+.adm .mi .tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--benne-fg);
+  margin-left: 8px;
+}
+.adm .mi.mv.draft {
+  background: #fff8e1;
+  margin: 0 -20px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.adm .mi .pub {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--benne-ink);
+  background: var(--benne);
+  border-radius: 10px;
+  padding: 11px 14px;
+}
+.adm .mi .back {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--benne-fg);
+  padding: 11px 4px;
+}
+.adm .hidden-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.adm .hidden-h span {
+  font-size: 13px;
+  color: var(--cream-3);
+  text-align: right;
+}
+.adm .mi.gone img,
+.adm .mi.gone .ph {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.adm .mi.gone b,
+.adm .mi.gone .p {
+  color: var(--cream-3);
+}
+.adm .field .photo {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+.adm .field .photo img,
+.adm .field .photo .ph {
+  width: 96px;
+  height: 96px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+.adm .field .photo .ph {
+  background: var(--s2);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--cream-3);
+}
+.adm .field .two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.adm .field .two .btn {
+  height: 44px;
+  font-size: 14px;
+}
+.adm .pick {
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.adm .pick button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 16px;
+}
+.adm .pick button + button {
+  border-top: 1px solid var(--line);
+}
+.adm .pick .r {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--cream-3);
+}
+.adm .pick .on .r {
+  box-shadow: inset 0 0 0 6px var(--cream);
+}
+.adm .pick small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--cream-3);
+  margin-top: 2px;
+}
+/* a draft as the kiosk will show it */
+.adm .kprev {
+  margin: 16px 20px 0;
+  background: var(--s2);
+  border-radius: 18px;
+  padding: 16px;
+}
+.adm .kprev .lbl {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-3);
+  margin-bottom: 10px;
+}
+.adm .kcard {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(60, 45, 20, 0.12);
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  min-height: 148px;
+}
+.adm .kcard img,
+.adm .kcard .ph {
+  width: 132px;
+  height: 100%;
+  min-height: 148px;
+  object-fit: cover;
+}
+.adm .kcard .ph {
+  background: var(--s3);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 8px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 20px;
+  text-transform: uppercase;
+  color: var(--benne-fg);
+}
+.adm .kcard .t {
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.adm .kcard b {
+  font-size: 19px;
+  line-height: 1.15;
+}
+.adm .kcard p {
+  font-size: 13.5px;
+  color: var(--cream-2);
+  margin-top: 5px;
+  line-height: 1.3;
+  flex: 1;
+}
+.adm .kcard .f {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.adm .kcard .pr {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 28px;
+  color: var(--benne-fg); /* as on the kiosk's menu rows */
+}
+.adm .kcard .plus {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1.5px solid var(--benne-fg);
+  color: var(--benne-fg);
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 700;
+}
+.adm .facts {
+  margin: 14px 20px 0;
+}
+.adm .facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14.5px;
+}
+.adm .facts span {
+  color: var(--cream-3);
+  white-space: nowrap;
+}
+.adm .facts b {
+  text-align: right;
+}

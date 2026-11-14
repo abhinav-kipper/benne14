@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic';
 // Public: it's what the kiosk shows anyway.
 export async function GET() {
   try {
-    return json(await getStore().getOverrides());
+    const o = await getStore().getOverrides();
+    // Drafts are the owner's own business until published (the dashboard reads /api/admin/dishes).
+    return json({ ...o, custom: (o.custom ?? []).filter((c) => c.live) });
   } catch (e) {
     return fail(e);
   }

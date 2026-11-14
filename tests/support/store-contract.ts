@@ -182,7 +182,7 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
     });
 
     it("keeps the owner's menu edits, extras and history together", async () => {
-      expect(await s.getOverrides()).toEqual({ items: {}, options: {} });
+      expect(await s.getOverrides()).toEqual({ items: {}, options: {}, custom: [], hidden: [], order: [] });
       await s.saveMenuEdit({
         itemId: 'masala-dosa',
         patch: { price: 219, name: 'Big Masala Dosa', soldOut: true },
@@ -200,6 +200,43 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       const events = await s.listEvents();
       expect(events.map((e) => e.kind)).toEqual(['refund', 'price']); // newest first
       expect(events[1]).toMatchObject({ subject: 'Big Masala Dosa', before: '₹209', after: '₹219' });
+    });
+
+    it("keeps the owner's own dishes, what is hidden and the order of the menu", async () => {
+      const dish = {
+        id: 'c-onion00001',
+        cat: 'dosa' as const,
+        name: 'Onion Benne Dosa',
+        desc: 'Crisp, with onion.',
+        price: 179,
+        groups: ['dosaExtras'],
+        photo: null,
+        live: false,
+      };
+      await s.saveDish(dish, null); // a draft leaves no history
+      expect((await s.getOverrides()).custom).toEqual([dish]);
+      expect(await s.listEvents()).toEqual([]);
+      await s.saveDish(
+        { ...dish, price: 189, live: true },
+        { kind: 'menu', subject: dish.name, after: 'Added to the menu' },
+      );
+      expect((await s.getOverrides()).custom).toEqual([{ ...dish, price: 189, live: true }]); // replaced, not doubled
+      expect((await s.listEvents())[0]).toMatchObject({ kind: 'menu', subject: 'Onion Benne Dosa' });
+
+      await s.saveLayout(
+        { hidden: ['thatte-idli'] },
+        { kind: 'menu', subject: 'Thatte Idli', after: 'Hidden from the menu' },
+      );
+      await s.saveLayout({ order: ['plain-dosa', dish.id, 'masala-dosa'] }, null);
+      const o = await s.getOverrides();
+      expect(o.hidden).toEqual(['thatte-idli']); // saving the order left the hidden list alone
+      expect(o.order).toEqual(['plain-dosa', dish.id, 'masala-dosa']);
+      await s.saveLayout({ hidden: [] }, null);
+      expect((await s.getOverrides()).order).toEqual(['plain-dosa', dish.id, 'masala-dosa']);
+
+      await s.deleteDish(dish.id, { kind: 'menu', subject: dish.name, after: 'Draft discarded' });
+      expect((await s.getOverrides()).custom).toEqual([]);
+      await expect(s.deleteDish(dish.id, { kind: 'menu', subject: 'x' })).rejects.toMatchObject({ status: 404 });
     });
 
     it('keeps discount codes, the kiosk switches and their history', async () => {
