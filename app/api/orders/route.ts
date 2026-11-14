@@ -1,3 +1,4 @@
+import { watchIsDue, watchQuietly } from '@/lib/watch';
 import { cleanCode, cleanPhone, usable, type DiscountRule } from '@/lib/discounts';
 import { priceOrder, type CartLine } from '@/lib/pricing';
 import { itemById, mergeCatalog } from '@/lib/menu';
@@ -116,6 +117,8 @@ export async function GET(req: Request) {
     if (view === 'today') return json(await store.listToday());
     if (view === 'collected') return json(await store.listCollected(8));
     const live = await store.listLive();
+    // The same poll keeps the owner's alerts current: the system check runs at most once a minute.
+    if (watchIsDue()) after(() => watchQuietly(store));
     // Payments still open are re-checked with the gateway after this answer is sent, so a customer who
     // pays after the kiosk moved on still gets their order (see lib/gateway.ts).
     if (paymentMode() === 'easebuzz') {

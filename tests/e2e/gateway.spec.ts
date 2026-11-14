@@ -279,3 +279,23 @@ test('kiosk: walking off before any QR appeared cancels the order, since nothing
   await expect(page.getByTestId('start')).toBeVisible();
   expect((await order(request, o.id)).status).toBe('cancelled');
 });
+
+test('a payment that needs a look opens one alert for the owner, announced once', async ({ request }) => {
+  const H2 = { 'x-staff-pin': PIN };
+  const system = async () =>
+    (await (await request.get('/api/admin/system', { headers: H2 })).json()) as {
+      problems: { key: string; level: string; text: string }[];
+      alerts: { key: string; text: string; clearedAt: string | null }[];
+    };
+  // the earlier tests in this file left a wrong-amount payment and a paid-after-cancel behind
+  const flagged = (await system()).problems.filter((p) => p.key.startsWith('pay:'));
+  expect(flagged.length).toBeGreaterThan(0);
+  expect(flagged[0]).toMatchObject({ level: 'bad' });
+  const from = { 'x-forwarded-for': '10.6.6.6' };
+  expect((await request.get('/api/watch', { headers: from })).ok()).toBe(true);
+  const first = (await system()).alerts.filter((a) => a.key.startsWith('pay:') && !a.clearedAt);
+  expect(first).toHaveLength(flagged.length);
+  expect(first[0].text).toContain('Payment needs a look');
+  expect((await request.get('/api/watch', { headers: from })).ok()).toBe(true); // a second check adds nothing
+  expect((await system()).alerts.filter((a) => a.key.startsWith('pay:'))).toHaveLength(flagged.length);
+});

@@ -1214,3 +1214,62 @@ test('system API: the page needs the PIN; the two open endpoints take only short
   for (let n = 0; n < 14; n++) if ((await log({ source: 'kiosk', message: `flood ${n}` })).status() === 429) refused++;
   expect(refused).toBeGreaterThan(0);
 });
+
+// ---- Alerts to the owner's phone ----
+test('notifications API: PIN, only real push services, a test reaches every subscribed phone', async ({ request }) => {
+  const push = (data: unknown, headers: Record<string, string> = H) =>
+    request.post('/api/admin/push', { data: data as object, headers });
+  expect((await request.get('/api/admin/push')).status()).toBe(401);
+  expect((await push({ test: true }, {})).status()).toBe(401);
+  const info = await (await request.get('/api/admin/push', { headers: H })).json();
+  expect(info.publicKey.length).toBeGreaterThan(80); // what a phone needs to subscribe; made once
+  expect((await (await request.get('/api/admin/push', { headers: H })).json()).publicKey).toBe(info.publicKey);
+
+  const keys = { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) };
+  for (const bad of [
+    {},
+    { subscribe: null },
+    { subscribe: { endpoint: 'https://evil.example/collect', keys } }, // not a push service: the server would post to it
+    { subscribe: { endpoint: 'http://fcm.googleapis.com/fcm/send/x', keys } },
+    { subscribe: { endpoint: 'https://169.254.169.254/latest', keys } },
+    { subscribe: { endpoint: 'https://phone1.push.invalid/x', keys: { p256dh: 'not base64 !!', auth: keys.auth } } },
+    { subscribe: { endpoint: 'https://phone1.push.invalid/x' } },
+    { unsubscribe: 7 },
+  ])
+    expect((await push(bad)).status(), JSON.stringify(bad).slice(0, 90)).toBe(400);
+
+  expect((await (await push({ test: true })).json()).sent).toBe(0); // no phone yet
+  expect((await (await push({ subscribe: { endpoint: 'https://phone1.push.invalid/x', keys } })).json()).phones).toBe(
+    1,
+  );
+  expect((await (await push({ subscribe: { endpoint: 'https://phone1.push.invalid/x', keys } })).json()).phones).toBe(
+    1,
+  );
+  expect((await (await push({ subscribe: { endpoint: 'https://phone2.push.invalid/y', keys } })).json()).phones).toBe(
+    2,
+  );
+  expect((await (await push({ test: true })).json()).sent).toBe(2);
+  expect((await (await push({ unsubscribe: 'https://phone1.push.invalid/x' })).json()).phones).toBe(1);
+  expect((await (await push({ test: true })).json()).sent).toBe(1);
+
+  // the check itself is open (the uptime job calls it) and says nothing about what it found
+  const w = await request.get('/api/watch', { headers: { 'x-forwarded-for': '10.8.8.8' } });
+  expect(w.status()).toBe(200);
+  expect(await w.json()).toEqual({ ok: true });
+  await push({ unsubscribe: 'https://phone2.push.invalid/y' });
+});
+
+test('the System page offers notifications for this phone and lists what was announced', async ({ page }) => {
+  await owner(page);
+  await page.getByTestId('sysline').click();
+  const notify = page.getByTestId('notify');
+  await expect(notify).toContainText('Alerts on this phone');
+  await expect(notify).toContainText('Only phones where this is switched on');
+  // this test browser can ask for them; whether a phone then gets one is the phone's own doing
+  await expect(
+    notify
+      .getByTestId('notify-on')
+      .or(notify.getByText('can’t show notifications'))
+      .or(notify.getByText('Notifications are blocked')),
+  ).toBeVisible();
+});

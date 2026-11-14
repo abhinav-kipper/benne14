@@ -11,7 +11,7 @@ section A are open.
 
 ## Up next
 
-- **Owner to do now: run `supabase/migrations/0012_system_watch.sql`** in Supabase (0001 to 0011 are done). Until it is run the System page lists no screens and no errors; everything else works.
+- **Owner to do now: run `supabase/migrations/0013_owner_alerts.sql`** in Supabase (0001 to 0012 are done), then open the owner app on your phone → System → Turn on notifications. Until the SQL is run that button answers with an error; everything else works.
 
 **The plan to launch is `docs/go-live.md`**: four stages, stage 1 is what must be done before the first real customer.
 
@@ -51,6 +51,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-14 — Fault tolerance, part 2b: alerts on the owner's phone. The owner app's System page has "Turn on notifications" (per phone, opt-in). A check that runs with the kitchen's and TV's polling (at most once a minute) and from the 15-minute uptime job opens an alert for each new problem and sends one notification per problem: a silent kiosk, kitchen screen or TV, a burst of errors, a payment that needs a look. Needs migration 0013. One new dependency: `web-push`.
 - 2026-11-14 — Fault tolerance, part 2a: the owner app has a System page. Every screen says "I'm here" each half minute (`/api/beat`), unhandled errors on screens and on the server are kept in `error_log` (`/api/log`), and the page lists the screens (online or silent), what needs a look (`lib/system.ts`) and the latest errors. One line on Today shows green or red. Needs migration 0012. Phone notifications are part 2b.
 - 2026-11-14 — Fault tolerance, part 1 (`docs/go-live.md` stage 2): the kiosk sends customers to the counter while the server or database can't be reached and comes back by itself; no request waits more than 12 s (database calls 8 s); a crashed screen says "One moment" and reloads (never in a loop); screens stay awake, reload at 4 am, and staff can restart one by holding the logo 5 s; the kitchen says across the screen when orders are not arriving and flashes an order nobody started for 3 minutes.
 - 2026-11-14 — New dish photos: all ten dishes (filter coffee now has one too) use large, clear stock photos from Pexels and Unsplash, 1400×1400, chosen to match each dish. Sources in `public/food/CREDITS.tsv`. The kiosk start screen, menu, dish sheet, TV banner, kitchen tray and reports all use them.

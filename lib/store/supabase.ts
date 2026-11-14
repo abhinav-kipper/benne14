@@ -2,7 +2,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import { optionKey, type CustomItem, type ExtrasLayout, type Overrides, type SectionsLayout } from '../menu';
-import type { LayoutPatch, MenuEdit } from './index';
+import type { LayoutPatch, MenuEdit, PushSub } from './index';
 import {
   canMove,
   tickProblem,
@@ -20,8 +20,8 @@ import {
   type OrderStatus,
   type PlaceOrderInput,
 } from '../orders';
-import { FORGET_MS, type Device, type DeviceKind, type ErrorEntry } from '../system';
-import { MAX_DEVICES, MAX_ERRORS, StoreError } from './memory';
+import { FORGET_MS, type Alert, type Device, type DeviceKind, type ErrorEntry } from '../system';
+import { MAX_DEVICES, MAX_ERRORS, MAX_SUBS, StoreError, sortAlerts } from './memory';
 
 interface Row {
   id: string;
@@ -734,6 +734,97 @@ export class SupabaseStore {
     if (missing(error)) return [];
     if (error) throw new StoreError(error.message, 500);
     return data as ErrorEntry[];
+  }
+
+  // Alerts to the owner's phone (migration 0013).
+  async listSubs(): Promise<PushSub[]> {
+    const { data, error } = await this.db.from('push_subs').select('endpoint,p256dh,auth').limit(MAX_SUBS);
+    if (missing(error)) return [];
+    if (error) throw new StoreError(error.message, 500);
+    return data as PushSub[];
+  }
+
+  async saveSub(s: PushSub) {
+    const { count, error: e0 } = await this.db.from('push_subs').select('endpoint', { count: 'exact', head: true });
+    if (missing(e0)) throw new StoreError('Notifications need a database update (migration 0013)', 503);
+    if ((count ?? 0) >= MAX_SUBS) throw new StoreError('Too many phones already have notifications on', 409);
+    const { error } = await this.db.from('push_subs').upsert({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth });
+    if (error) throw storeError(error);
+  }
+
+  async dropSub(endpoint: string) {
+    await this.db.from('push_subs').delete().eq('endpoint', endpoint);
+  }
+
+  async openAlert(a: Pick<Alert, 'key' | 'level' | 'text' | 'hint'>) {
+    const row = {
+      key: a.key,
+      level: a.level,
+      text: a.text,
+      hint: a.hint,
+      first_at: new Date().toISOString(),
+      cleared_at: null,
+    };
+    // a problem never seen before: the insert succeeds for exactly one caller
+    const ins = await this.db.from('alerts').insert(row).select('key');
+    if (!ins.error) return true;
+    if (ins.error.code !== '23505') return false; // table missing or unreachable: no alert, no notification
+    // seen before: reopen it only if it had been cleared (again, one caller wins)
+    const upd = await this.db.from('alerts').update(row).eq('key', a.key).not('cleared_at', 'is', null).select('key');
+    return !upd.error && (upd.data as unknown[]).length > 0;
+  }
+
+  async clearAlerts(keys: string[]) {
+    if (!keys.length) return;
+    await this.db
+      .from('alerts')
+      .update({ cleared_at: new Date().toISOString() })
+      .in('key', keys)
+      .is('cleared_at', null);
+  }
+
+  async listAlerts(limit = 30): Promise<Alert[]> {
+    const { data, error } = await this.db
+      .from('alerts')
+      .select('key,level,text,hint,first_at,cleared_at')
+      .order('first_at', { ascending: false })
+      .limit(200);
+    if (missing(error)) return [];
+    if (error) throw new StoreError(error.message, 500);
+    return sortAlerts(
+      (
+        data as {
+          key: string;
+          level: Alert['level'];
+          text: string;
+          hint: string | null;
+          first_at: string;
+          cleared_at: string | null;
+        }[]
+      ).map((r) => ({
+        key: r.key,
+        level: r.level,
+        text: r.text,
+        hint: r.hint,
+        firstAt: r.first_at,
+        clearedAt: r.cleared_at,
+      })),
+    ).slice(0, limit);
+  }
+
+  async getKey(name: string) {
+    const { data, error } = await this.db.from('app_keys').select('value').eq('name', name).maybeSingle();
+    if (error) return null;
+    return (data as { value: string } | null)?.value ?? null;
+  }
+
+  async setKeyOnce(name: string, value: string) {
+    const ins = await this.db.from('app_keys').insert({ name, value });
+    if (ins.error && ins.error.code !== '23505') {
+      if (missing(ins.error)) throw new StoreError('Notifications need a database update (migration 0013)', 503);
+      throw storeError(ins.error);
+    }
+    return (await this.getKey(name)) ?? value;
   }
 
   async appliedMigrations() {

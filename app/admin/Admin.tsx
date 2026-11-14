@@ -77,7 +77,7 @@ export default function Admin() {
         {tab === 'today' && (
           <Today {...ctx} live={live.orders ?? []} refreshLive={live.refresh} go={setTab} sys={sys} />
         )}
-        {tab === 'system' && <System sys={sys} back={() => setTab('today')} />}
+        {tab === 'system' && <System {...ctx} sys={sys} back={() => setTab('today')} />}
         {tab === 'orders' && <Orders {...ctx} refreshLive={live.refresh} />}
         {tab === 'menu' && <Menu {...ctx} openHistory={() => setTab('history')} />}
         {tab === 'offers' && <Offers {...ctx} />}

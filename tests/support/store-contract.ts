@@ -374,6 +374,34 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(await s.listErrors(1)).toHaveLength(1);
     });
 
+    it("keeps the phones that want alerts, the alerts themselves, and the app's own keys", async () => {
+      expect(await s.listSubs()).toEqual([]);
+      const phone = { endpoint: 'https://phone1.push.invalid/abc', p256dh: 'p'.repeat(40), auth: 'a'.repeat(20) };
+      await s.saveSub(phone);
+      await s.saveSub({ ...phone, auth: 'b'.repeat(20) }); // the same phone again: replaced, not doubled
+      expect(await s.listSubs()).toEqual([{ ...phone, auth: 'b'.repeat(20) }]);
+      await s.dropSub(phone.endpoint);
+      expect(await s.listSubs()).toEqual([]);
+
+      const a = { key: 'silent:kiosk', level: 'bad' as const, text: 'Kiosk has been silent', hint: 'Check the Wi-Fi' };
+      expect(await s.openAlert(a)).toBe(true);
+      expect(await s.openAlert(a)).toBe(false); // already open: announced once
+      expect(await s.openAlert({ ...a, key: 'errors', hint: null })).toBe(true);
+      await s.clearAlerts(['silent:kiosk', 'never-opened']);
+      const alerts = await s.listAlerts();
+      expect(alerts.map((x) => [x.key, !!x.clearedAt])).toEqual([
+        ['errors', false], // still going first
+        ['silent:kiosk', true],
+      ]);
+      expect(alerts[1]).toMatchObject({ text: 'Kiosk has been silent', hint: 'Check the Wi-Fi', level: 'bad' });
+      expect(await s.openAlert(a)).toBe(true); // it came back
+
+      expect(await s.getKey('vapid')).toBeNull();
+      expect(await s.setKeyOnce('vapid', 'first')).toBe('first');
+      expect(await s.setKeyOnce('vapid', 'second')).toBe('first');
+      expect(await s.getKey('vapid')).toBe('first');
+    });
+
     it('knows which migrations have run', async () => {
       expect([...(await s.appliedMigrations())].sort()).toEqual(MIGRATIONS);
     });

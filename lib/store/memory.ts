@@ -21,8 +21,8 @@ import {
 } from '../orders';
 import { DEFAULT_SETTINGS, type Customer, type DiscountCode, type KioskSettings } from '../discounts';
 import { optionKey, type CustomItem, type ExtrasLayout, type Overrides, type SectionsLayout } from '../menu';
-import type { LayoutPatch, MenuEdit } from './index';
-import { FORGET_MS, type Device, type DeviceKind, type ErrorEntry } from '../system';
+import type { LayoutPatch, MenuEdit, PushSub } from './index';
+import { FORGET_MS, type Alert, type Device, type DeviceKind, type ErrorEntry } from '../system';
 import { MIGRATIONS } from '../migrations';
 
 interface ItemRow {
@@ -36,6 +36,14 @@ interface ItemRow {
 // open endpoints (/api/beat and /api/log).
 export const MAX_DEVICES = 40;
 export const MAX_ERRORS = 500;
+export const MAX_SUBS = 20; // phones with notifications on
+// open alerts first (newest first), then the cleared ones (latest first)
+export const sortAlerts = (a: Alert[]) =>
+  a.sort(
+    (x, y) =>
+      Number(!!x.clearedAt) - Number(!!y.clearedAt) ||
+      (y.clearedAt ?? y.firstAt).localeCompare(x.clearedAt ?? x.firstAt),
+  );
 
 export class StoreError extends Error {
   constructor(
@@ -54,6 +62,9 @@ export class MemoryStore {
   private items = new Map<string, ItemRow>();
   private dishes = new Map<string, CustomItem>();
   private devices = new Map<string, Device>();
+  private subs = new Map<string, PushSub>();
+  private alerts = new Map<string, Alert>();
+  private keys = new Map<string, string>();
   private errors: ErrorEntry[] = [];
   private layout = {
     hidden: [] as string[],
@@ -363,6 +374,40 @@ export class MemoryStore {
 
   async listErrors(limit = 50) {
     return this.errors.slice(0, limit);
+  }
+
+  async listSubs() {
+    return [...this.subs.values()];
+  }
+  async saveSub(s: PushSub) {
+    if (!this.subs.has(s.endpoint) && this.subs.size >= MAX_SUBS) return;
+    this.subs.set(s.endpoint, { ...s });
+  }
+  async dropSub(endpoint: string) {
+    this.subs.delete(endpoint);
+  }
+  async openAlert(a: Pick<Alert, 'key' | 'level' | 'text' | 'hint'>) {
+    const was = this.alerts.get(a.key);
+    if (was && !was.clearedAt) return false;
+    this.alerts.set(a.key, { ...a, firstAt: new Date().toISOString(), clearedAt: null });
+    return true;
+  }
+  async clearAlerts(keys: string[]) {
+    const now = new Date().toISOString();
+    for (const k of keys) {
+      const a = this.alerts.get(k);
+      if (a && !a.clearedAt) this.alerts.set(k, { ...a, clearedAt: now });
+    }
+  }
+  async listAlerts(limit = 30) {
+    return sortAlerts([...this.alerts.values()]).slice(0, limit);
+  }
+  async getKey(name: string) {
+    return this.keys.get(name) ?? null;
+  }
+  async setKeyOnce(name: string, value: string) {
+    if (!this.keys.has(name)) this.keys.set(name, value);
+    return this.keys.get(name)!;
   }
 
   async appliedMigrations() {
