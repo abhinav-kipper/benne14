@@ -1,0 +1,60 @@
+# Go-live plan — Benne 14
+
+Written 2026-11-14 from `docs/state.md` and the three audits. What stands between the app as it is and a system the shop can run on every day. Tick items as they are done.
+
+Where things stand: every screen works end to end, UPI confirms by itself through Easebuzz, the owner controls the whole menu. It has **not** served a real customer: test mode is on, and the items in stage 1 are open.
+
+## Stage 1 — Before the first real customer
+
+Safety and money. None of this is visible to customers, all of it matters.
+
+- [ ] **Only the kiosk can place orders.** Today anyone who knows the web address can send orders to the kitchen. Fix: a key that only the shop's tablet holds, plus a limit on orders per minute. (`docs/audit.md` A1)
+- [ ] **Today's orders are not public.** The list of orders (names, items, totals) can be read without a PIN, and with an order's id an unpaid UPI order can be cancelled. Fix: PIN for the full list; the TV gets numbers only. (A2)
+- [ ] **A separate owner PIN.** One 4-digit PIN opens both the kitchen and the takings, prices and menu. Fix: a second, longer PIN for the owner app. (A3)
+- [ ] **New keys and PINs.** The staff PIN, the Supabase secret key and the Easebuzz key and salt were all pasted in chat. Change all of them before launch. Changing the Easebuzz pair also stops the old kiosk, so do it on the switch-over day. (owner + me)
+- [ ] **Test mode off** (`TEST_MODE=0`): cash stops counting as paid by itself and the ₹1 test dish disappears. (A8)
+- [ ] **Clean books.** Remove the test orders and test dishes, sections and extras made while trying things, so day one's report starts at zero. (`docs/accuracy-audit.md` A5)
+- [ ] **Payments proven with real money.** Set the Easebuzz webhook address; pay ₹1 from GPay, PhonePe and Paytm; refund one; confirm the money and the settlement show in the Easebuzz dashboard. (owner)
+- [ ] **What happens when the gateway is down.** The kiosk falls back to the shop's own QR and staff confirm by the soundbox. On that path the kitchen should not show "Paid" until the customer has tapped "I've paid". (A5) Also check the wording on the pay screen about money coming back. (A4)
+- [ ] **Server next to the database.** The server runs in the USA and the database elsewhere, so every tap waits about a second. Move the server to the database's region. Needs: the Supabase project's region. (A6)
+- [ ] **Paid hosting plans.** Vercel's free plan does not allow commercial use and has request limits; Supabase's free plan pauses the database when idle and keeps no backups. Both need the paid plan (about US$20 and US$25 a month). (A7, owner)
+- [ ] **A proper tax bill.** GSTIN, FSSAI number, shop address and a running invoice number on the phone bill. Needs the numbers, and the accountant's answer on whether menu prices include GST. (accuracy C1, ui U10)
+
+## Stage 2 — So a normal day cannot break it
+
+- [ ] **The tablets behave like appliances.** Kiosk tablet locked to the app (Android screen pinning or a kiosk browser), screen never sleeps, always on charge, restarts into the app. Same for the kitchen tablet and the TV. (audit B5)
+- [ ] **When the internet drops.** Today the screens say they are offline and recover by themselves, but no order can be placed. Decide the fallback: a phone hotspot as second Wi-Fi, and a paper pad at the counter. Write it on one page for staff.
+- [ ] **Someone is told when something fails.** Error and uptime alerts exist; decide whose phone they reach and test one.
+- [ ] **Backups and a restore drill.** With the paid Supabase plan, restore yesterday's backup once into a spare project to know it works.
+- [ ] **End of day.** A closing screen: takings by UPI, card and cash, a box to type the cash counted, the difference. (accuracy C5)
+- [ ] **A dry run.** One quiet afternoon with staff ordering as customers on the real tablet, TV and kitchen screen, paying real ₹1 orders, before the first real customer.
+- [ ] **One-page guides**: for the cook (chits, ticks, ready), the counter (cash, card, refunds) and the owner (menu, sold out, reports).
+
+## Stage 3 — Easier to work with
+
+- [ ] Kitchen chit says DINE IN or TAKEAWAY loudly, not with a small grey icon. (ui U19)
+- [ ] Bigger kitchen buttons for wet or gloved hands. (U20)
+- [ ] The TV shows dishes and prices when no order is ready, and chimes when one is. (U21, U22)
+- [ ] Veg mark and a "bestseller" cue on the kiosk. (U9)
+- [ ] The name box on the kiosk is not covered by the keyboard: check on the tablet. (U6)
+- [ ] Bigger tap targets in the owner app. (U23)
+- [ ] Owner can change the photo and section of the ten original dishes, not only of dishes they added.
+- [ ] The restaurant's own photos, one shoot, same plate and light. (U8)
+- [ ] Printed kitchen chit or customer receipt, if the shop wants paper (needs a printer choice).
+
+## Stage 4 — When it grows
+
+- [ ] Reports worked out in the database instead of loading every order (slow after about a year). (audit D7)
+- [ ] Refunds sent through Easebuzz from the owner app instead of recorded by hand.
+- [ ] A second outlet (nothing in the data says which shop an order belongs to). (D8)
+- [ ] Offers sent to the phone numbers customers left (WhatsApp or SMS), with an opt-out.
+- [ ] Live updates instead of asking the server every few seconds, if the request count becomes a cost.
+
+## Needed from the owner
+
+1. The Supabase project's region (Settings → General).
+2. GSTIN, FSSAI number, shop address; whether prices include GST.
+3. Go-ahead for the paid Vercel and Supabase plans.
+4. Tablet model and Android version; whether a receipt printer is wanted.
+5. Opening hours (the charts assume 8 am to 11 pm).
+6. A launch date to work back from.

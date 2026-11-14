@@ -11,33 +11,22 @@ section A are open.
 
 ## Up next
 
-- **Owner to do now: run `supabase/migrations/0011_owner_extras.sql`** in Supabase (0001 to 0010 are done). Until it is run, changes in the Extras & kitchen notes sheet answer with an error; the rest works as before.
+**The plan to launch is `docs/go-live.md`**: four stages, stage 1 is what must be done before the first real customer.
 
-0. **UI and customer-flow audit: `docs/ui-audit.md`** (2026-11-13). Round 1 (flow) is merged; round 2 (feel) is on `feat/ui-round-2`. Left: round 3 needs the owner (photos, veg marks, invoice numbers, keyboard check on the tablet), round 4 is the staff screens. The launch blockers below are on hold until then, not dropped.
-
-1. **Launch blockers: `docs/audit.md` section A** (not yet discussed with the owner): device key + rate
-   limit for placing orders, PIN on the order list, separate owner PIN, reword the "money comes back"
-   line, hide "Paid" until the customer taps, move the server region next to Supabase (need the
-   Supabase region), check hosting plans, `TEST_MODE=0`.
-2. **Owner to do**: run `supabase/migrations/0004_menu_edit_and_migration_log.sql`; rotate the Supabase
-   secret key and choose a new `STAFF_PIN` (both were shared in chat); delete merged branches on GitHub;
-   ₹1 UPI test from GPay, PhonePe and Paytm; try everything on the real tablet, TV and phone.
-3. **Add / remove dishes from the dashboard** (owner asked; questions pending: photo upload, new extras,
-   new sections, ordering). Moves the dish list into the database.
-4. **Automatic payment confirmation**: `docs/payments.md` (Paytm card-machine cloud integration is the
-   likeliest route; waiting on Paytm credentials).
-5. Discount codes (a code field in the cart, server-validated, a line on the bill).
-6. Real dish photos; real opening hours in `lib/shop.ts` (charts assume 8–23).
+1. **Stage 1, launch blockers** (`docs/audit.md` section A): kiosk-only ordering with a rate limit, PIN on the order list, a separate owner PIN, new keys and PINs (all were shared in chat), test mode off, test data cleared, real ₹1 payments, server region next to the database, paid hosting plans, GSTIN and invoice numbers on the bill.
+2. **Stage 2, reliability in the shop**: tablets locked to the app, an internet fallback, alerts to someone's phone, a backup restore drill, end-of-day cash count, a dry run with staff.
+3. **Stage 3, ease of use** (`docs/ui-audit.md` rounds 3 and 4): loud dine-in/takeaway on the chit, bigger kitchen buttons, TV adverts and chime, veg marks, the restaurant's own photos.
+4. **Owner to do**: answer the six questions at the end of `docs/go-live.md`; delete merged branches on GitHub.
 
 ## How things are (decisions worth knowing)
 
 - English only. Full menu prices; a discount only through a code the owner made. Order numbers are plain daily numbers (old "A-042" rows show as "42").
 - GST 5% on top, rounded to the nearest rupee and split CGST/SGST: bills have no round-off line.
 - Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen asks "Still there?" after 90 s and returns to start 30 s later; an untouched order is cleared after 60 s + a 15 s prompt (no Start over button).
-- UPI goes straight to the shop's Paytm UPI ID; the customer taps "I've paid" and staff confirm on the soundbox. Card and cash wait on the kitchen's "Collect payment" shelf.
+- UPI is confirmed by Easebuzz's payment gateway by itself (`docs/payments.md`); if the gateway is down the kiosk falls back to the shop's own QR and staff confirm on the soundbox. Card and cash wait on the kitchen's "Collect payment" shelf.
 - Test mode (on unless `TEST_MODE=0`): cash counts as paid, a ₹1 test item shows.
 - Owner dashboard is behind the kitchen's staff PIN for now (no separate login).
-- Menu = dishes in `lib/menu.ts` + the owner's overrides in the database. Sold out lasts for the day.
+- Menu = dishes in `lib/menu.ts` + everything the owner changes from the dashboard (own dishes, sections, extras, notes, hidden, order), merged by `mergeCatalog()`. Sold out lasts for the day.
 - Screens poll (no Realtime), pause when hidden, and reload themselves after a deploy.
 - Design rule: never flatten an approved design; compare against `main` side by side before pushing visual changes (see `CLAUDE.md`).
 
@@ -45,7 +34,7 @@ section A are open.
 
 - GST inclusive or exclusive? (v1 adds 5% on top.)
 - Tablet model / Android version; receipt printer; shop Wi-Fi reliability.
-- Real dish photos (current ones are Wikimedia placeholders; filter coffee has none).
+- The restaurant's own dish photos (current ones are stock photos, `public/food/CREDITS.tsv`).
 
 ## Gotchas
 
