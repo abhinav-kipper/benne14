@@ -4,6 +4,7 @@ import 'server-only';
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import type { CustomItem, ExtrasLayout, Overrides, SectionsLayout } from '../menu';
 import type { AdminEvent, GatewayPayment, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
+import type { Device, DeviceKind, ErrorEntry } from '../system';
 import { MemoryStore, StoreError } from './memory';
 import { SupabaseStore } from './supabase';
 
@@ -56,6 +57,12 @@ export interface Store {
   getSettings(): Promise<KioskSettings>;
   saveSettings(patch: Partial<KioskSettings>, events: Omit<AdminEvent, 'at'>[]): Promise<KioskSettings>;
   listCustomers(): Promise<Customer[]>; // phone numbers on paid orders, latest order first
+  // Watching the system (migration 0012). Before it is run these do nothing and list nothing:
+  // a screen saying "I'm here" must never be what breaks the screen.
+  beat(d: { id: string; kind: DeviceKind; screen: string | null; build: string | null }): Promise<void>;
+  listDevices(): Promise<Device[]>; // every screen seen in the last two weeks, most recent first
+  logError(e: Omit<ErrorEntry, 'at'>): Promise<void>;
+  listErrors(limit?: number): Promise<ErrorEntry[]>; // newest first
   appliedMigrations(): Promise<string[]>; // names recorded in schema_migrations ([] before 0004 is run)
 }
 

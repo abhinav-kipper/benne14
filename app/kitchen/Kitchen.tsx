@@ -24,6 +24,7 @@ import {
   useLiveOrders,
   useNightlyReload,
   useTodayOrders,
+  useWatch,
 } from '@/lib/client';
 
 const DOWN_AFTER_MS = 20_000;
@@ -156,6 +157,7 @@ export default function Kitchen() {
   useAutoReload(); // orders live on the server, so the kitchen can reload as soon as a new version is out
   useNightlyReload();
   useAwake();
+  useWatch('kitchen');
   const holdLogo = useHoldToReload();
   // A short blip only shows the small "reconnecting" note. After DOWN_AFTER_MS with no answer, new
   // orders are plainly not arriving: say so across the whole screen until the connection is back.

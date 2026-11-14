@@ -1926,3 +1926,139 @@
   font-size: 24px;
   color: var(--cream-3);
 }
+
+/* ---- System: is everything in the shop working ---- */
+.adm .sysline {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 32px);
+  margin: 16px 16px 0;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: var(--s1);
+  border: 1.5px solid var(--line);
+  text-align: left;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.adm .sysline i,
+.adm .dev i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--s3);
+}
+.adm .sysline.ok i,
+.adm .dev.on i {
+  background: var(--leaf);
+}
+.adm .sysline.warn i {
+  background: var(--benne);
+}
+.adm .sysline.bad {
+  border-color: rgba(209, 79, 43, 0.55);
+  background: #fdf0ec;
+}
+.adm .sysline.bad i,
+.adm .dev.off i {
+  background: var(--chilli);
+}
+.adm .sysline b {
+  font-size: 13px;
+  color: var(--benne-fg);
+  white-space: nowrap;
+}
+.adm .sysprob {
+  margin: 14px 20px 0;
+  display: grid;
+  gap: 8px;
+}
+.adm .prob {
+  border-radius: 12px;
+  padding: 13px 14px;
+  background: var(--s2);
+  border-left: 5px solid var(--cream-3);
+}
+.adm .prob b {
+  display: block;
+  font-size: 15px;
+}
+.adm .prob span {
+  display: block;
+  font-size: 13.5px;
+  color: var(--cream-2);
+  margin-top: 3px;
+  line-height: 1.35;
+}
+.adm .prob.ok {
+  border-left-color: var(--leaf);
+}
+.adm .prob.warn {
+  border-left-color: var(--benne);
+}
+.adm .prob.bad {
+  border-left-color: var(--chilli);
+  background: #fdf0ec;
+}
+.adm .dev {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.adm .dev b {
+  display: block;
+  font-size: 15.5px;
+}
+.adm .dev span {
+  font-size: 13.5px;
+  color: var(--cream-2);
+}
+.adm .dev.off span {
+  color: var(--chilli);
+  font-weight: 600;
+}
+.adm .errrow {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  align-items: start;
+}
+.adm .errrow .when {
+  color: var(--cream-2);
+}
+.adm .errrow .when small {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cream);
+}
+.adm .errrow .what {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.adm .errrow code {
+  display: block;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--s2);
+  font-size: 11.5px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  color: var(--cream-2);
+}
+.adm .sysfoot {
+  margin: 18px 20px 0;
+  font-size: 12.5px;
+  color: var(--cream-3);
+}

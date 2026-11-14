@@ -1108,3 +1108,109 @@ test('the start screen, the suggestions and the TV follow a hidden dish and a ne
   await dishes(request, { show: 'masala-tea' });
   await dishes(request, { hide: live.id });
 });
+
+// ---- System: which screens are alive, and what went wrong ----
+const system = async (r: APIRequestContext) =>
+  (await (await r.get('/api/admin/system', { headers: H })).json()) as {
+    devices: { id: string; kind: string; screen: string | null; build: string | null; seenAt: string }[];
+    errors: { source: string; message: string; detail: string | null }[];
+    problems: { level: string; text: string }[];
+    build: string;
+  };
+
+test('the owner app shows which screens are alive, and an error a screen ran into', async ({
+  page,
+  request,
+  browser,
+}) => {
+  // a kiosk and a kitchen screen open in the shop
+  const kiosk = await (await browser.newContext({ viewport: { width: 800, height: 1280 } })).newPage();
+  await kiosk.goto('/kiosk');
+  await kiosk.getByTestId('start').click();
+  const kctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await kctx.addInitScript((pin) => localStorage.setItem('benne14.staffPin', pin), PIN);
+  const kitchen = await kctx.newPage();
+  await kitchen.goto('/kitchen');
+  await expect
+    .poll(
+      async () =>
+        (await system(request)).devices
+          .map((d) => d.kind)
+          .sort()
+          .join(','),
+      { timeout: 10_000 },
+    )
+    .toContain('kiosk,kitchen');
+  const sys = await system(request);
+  const k = sys.devices.find((d) => d.kind === 'kiosk')!;
+  expect(k.id).toMatch(/^[a-z0-9]{8,24}$/);
+  expect(k.build).toBe(sys.build); // it says which version it runs
+
+  // a screen crashes: it restarts itself, and the owner can see what happened
+  const crash = await (await browser.newContext()).newPage();
+  await crash.goto('/crash-test?boom=1');
+  await expect(crash.getByTestId('recover')).toBeVisible();
+  await expect
+    .poll(async () => (await system(request)).errors.some((e) => e.message.includes('crash test')), { timeout: 8000 })
+    .toBe(true);
+  await crash.context().close();
+
+  await owner(page);
+  const line = page.getByTestId('sysline');
+  await expect(line).toBeVisible();
+  await line.click();
+  const sysPage = page.getByTestId('system');
+  await expect(sysPage.getByTestId('dev-kiosk').first()).toContainText('Online');
+  await expect(sysPage.getByTestId('dev-kitchen').first()).toContainText('Online');
+  await expect(sysPage.getByTestId('dev-board').first()).toBeVisible(); // the TV has its line, connected or not
+  const row = sysPage.getByTestId('errrow').filter({ hasText: 'crash test' }).first();
+  await expect(row).toContainText('screen crashed');
+  await row.click();
+  await expect(row.locator('code')).toBeVisible(); // the detail, for whoever fixes it
+  await kiosk.context().close();
+  await kctx.close();
+});
+
+test('system API: the page needs the PIN; the two open endpoints take only short, well-formed reports', async ({
+  request,
+}) => {
+  expect((await request.get('/api/admin/system')).status()).toBe(401);
+  // its own address: the other tests' screens share this server, and the brake counts per address
+  const from = { 'x-forwarded-for': '10.7.7.7' };
+  const beat = (data: unknown) => request.post('/api/beat', { data: data as object, headers: from });
+  const log = (data: unknown) => request.post('/api/log', { data: data as object, headers: from });
+  for (const bad of [
+    {},
+    { id: 'kiosk0000001' },
+    { id: 'kiosk0000001', kind: 'toaster' },
+    { id: 'BAD ID!', kind: 'kiosk' },
+    { id: 7, kind: 'kiosk' },
+  ])
+    expect((await beat(bad)).status(), JSON.stringify(bad)).toBe(400);
+  for (const bad of [
+    {},
+    { source: 'kiosk' },
+    { source: 'kiosk', message: '   ' },
+    { source: 'elsewhere', message: 'x' },
+    { source: 'server', message: 'fake server error' },
+  ])
+    expect((await log(bad)).status(), JSON.stringify(bad)).toBe(400);
+  // what is stored is clipped, however much is sent
+  expect(
+    (await beat({ id: 'tv0000000001', kind: 'board', screen: 'x'.repeat(500), build: 'y'.repeat(500) })).ok(),
+  ).toBe(true);
+  expect(
+    (await log({ source: 'board', message: 'm'.repeat(5000), detail: 'd'.repeat(50_000), device: 'not an id' })).ok(),
+  ).toBe(true);
+  const sys = await system(request);
+  const tv = sys.devices.find((d) => d.id === 'tv0000000001')!;
+  expect(tv.screen).toHaveLength(24);
+  expect(tv.build).toHaveLength(64);
+  const e = sys.errors.find((x) => x.source === 'board')!;
+  expect(e.message).toHaveLength(300);
+  expect(e.detail).toHaveLength(2000);
+  // a flood from one address is slowed down
+  let refused = 0;
+  for (let n = 0; n < 14; n++) if ((await log({ source: 'kiosk', message: `flood ${n}` })).status() === 429) refused++;
+  expect(refused).toBeGreaterThan(0);
+});

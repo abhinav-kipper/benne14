@@ -1,11 +1,14 @@
 'use client';
 // Today at a glance: takings vs yesterday, payments waiting, the kitchen right now, what's selling.
 import { useState } from 'react';
-import { api } from '@/lib/client';
+import { api, type SystemReport } from '@/lib/client';
+import { SystemLine } from './System';
 import { istDay, type Order, type OrderStatus } from '@/lib/orders';
 import { Bar, DishRow, Hours, Split, dayLabel, inr, time, useReport, type Ctx, type Tab } from './shared';
 
-export function Today(p: Ctx & { live: Order[]; refreshLive: () => void; go: (t: Tab) => void }) {
+export function Today(
+  p: Ctx & { live: Order[]; refreshLive: () => void; go: (t: Tab) => void; sys: SystemReport | null },
+) {
   const today = istDay();
   const { r, err } = useReport(p, today, today, 15_000);
   const s = r?.current,
@@ -65,6 +68,7 @@ export function Today(p: Ctx & { live: Order[]; refreshLive: () => void; go: (t:
         </div>
         {s && <Split s={s} />}
       </div>
+      <SystemLine sys={p.sys} open={() => p.go('system')} />
 
       {due.length > 0 && (
         <div className="sec">

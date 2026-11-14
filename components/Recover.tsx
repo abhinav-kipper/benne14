@@ -3,6 +3,7 @@
 // then it reloads itself. Nobody in the shop has a keyboard to press refresh. If it keeps failing
 // (three times in a minute) it stops reloading and asks for staff, so it can't loop forever.
 import { useEffect, useState } from 'react';
+import { reportError } from '@/lib/client';
 
 const KEY = 'benne14.crashes';
 const TRIES = 3;
@@ -13,6 +14,18 @@ export function Recover({ error }: { error: unknown }) {
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
     console.error('screen crashed', error);
+    const at = window.location.pathname.split('/')[1];
+    const source =
+      at === 'kitchen'
+        ? 'kitchen'
+        : at === 'board'
+          ? 'board'
+          : at === 'admin'
+            ? 'owner'
+            : at === 'r'
+              ? 'bill'
+              : 'kiosk';
+    reportError(source, error, 'screen crashed');
     let recent: number[] = [];
     try {
       recent = (JSON.parse(sessionStorage.getItem(KEY) ?? '[]') as number[]).filter((t) => Date.now() - t < WINDOW_MS);

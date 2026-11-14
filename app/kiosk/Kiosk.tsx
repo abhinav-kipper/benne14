@@ -2,7 +2,7 @@
 // The kiosk: holds the cart and which screen is showing; each screen lives in ./screens.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CatalogProvider, useMenu } from '@/components/Catalog';
-import { api, ApiError, newKey, useAutoReload, useAwake, useNightlyReload, useServerUp } from '@/lib/client';
+import { api, ApiError, newKey, useAutoReload, useAwake, useNightlyReload, useServerUp, useWatch } from '@/lib/client';
 import { cleanPhone, type DiscountRule, type KioskSettings } from '@/lib/discounts';
 import { PAIRING, notesFor } from '@/lib/menu';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
@@ -87,6 +87,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   useAutoReload(screen === 'home'); // pick up a new version between customers, never mid-order
   useNightlyReload(screen === 'home');
   useAwake();
+  useWatch('kiosk', screen);
   // While the shop can't take an order (Wi-Fi or database down) customers are sent to the counter.
   // Not on the payment and order-number screens: an order that exists must be seen through.
   const up = useServerUp(screen !== 'upi' && screen !== 'done');

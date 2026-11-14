@@ -13,4 +13,5 @@ export const MIGRATIONS = [
   '0009_owner_dishes',
   '0010_owner_sections',
   '0011_owner_extras',
+  '0012_system_watch',
 ];

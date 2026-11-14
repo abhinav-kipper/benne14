@@ -20,7 +20,8 @@ import {
   type OrderStatus,
   type PlaceOrderInput,
 } from '../orders';
-import { StoreError } from './memory';
+import { FORGET_MS, type Device, type DeviceKind, type ErrorEntry } from '../system';
+import { MAX_DEVICES, MAX_ERRORS, StoreError } from './memory';
 
 interface Row {
   id: string;
@@ -658,6 +659,81 @@ export class SupabaseStore {
       );
       if (rows.length < 1000) return out;
     }
+  }
+
+  // Watching the system. None of these may ever throw into a screen: a failed "I'm here" or a
+  // failed error report is dropped (and before migration 0012 they simply do nothing).
+  async beat(d: { id: string; kind: DeviceKind; screen: string | null; build: string | null }) {
+    const now = new Date().toISOString();
+    const upd = await this.db
+      .from('devices')
+      .update({ kind: d.kind, screen: d.screen, build: d.build, seen_at: now })
+      .eq('id', d.id)
+      .select('id');
+    if (upd.error || (upd.data as unknown[]).length) return;
+    // a screen never seen before: let it in unless the table is full
+    const { count } = await this.db.from('devices').select('id', { count: 'exact', head: true });
+    if ((count ?? 0) >= MAX_DEVICES) {
+      await this.db
+        .from('devices')
+        .delete()
+        .lt('seen_at', new Date(Date.now() - FORGET_MS).toISOString());
+      return;
+    }
+    await this.db.from('devices').insert({ id: d.id, kind: d.kind, screen: d.screen, build: d.build });
+  }
+
+  async listDevices(): Promise<Device[]> {
+    const { data, error } = await this.db
+      .from('devices')
+      .select('id,kind,screen,build,first_seen,seen_at')
+      .gt('seen_at', new Date(Date.now() - FORGET_MS).toISOString())
+      .order('seen_at', { ascending: false })
+      .limit(MAX_DEVICES);
+    if (missing(error)) return [];
+    if (error) throw new StoreError(error.message, 500);
+    return (
+      data as {
+        id: string;
+        kind: DeviceKind;
+        screen: string | null;
+        build: string | null;
+        first_seen: string;
+        seen_at: string;
+      }[]
+    ).map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      screen: r.screen,
+      build: r.build,
+      firstSeen: r.first_seen,
+      seenAt: r.seen_at,
+    }));
+  }
+
+  async logError(e: Omit<ErrorEntry, 'at'>) {
+    const { data, error } = await this.db
+      .from('error_log')
+      .insert({ source: e.source, message: e.message, detail: e.detail, build: e.build, device: e.device })
+      .select('id')
+      .maybeSingle();
+    // keep the newest MAX_ERRORS: ids only grow, so everything this far behind the new row goes
+    if (!error && data)
+      await this.db
+        .from('error_log')
+        .delete()
+        .lt('id', (data as { id: number }).id - MAX_ERRORS);
+  }
+
+  async listErrors(limit = 50): Promise<ErrorEntry[]> {
+    const { data, error } = await this.db
+      .from('error_log')
+      .select('at,source,message,detail,build,device')
+      .order('id', { ascending: false })
+      .limit(limit);
+    if (missing(error)) return [];
+    if (error) throw new StoreError(error.message, 500);
+    return data as ErrorEntry[];
   }
 
   async appliedMigrations() {
