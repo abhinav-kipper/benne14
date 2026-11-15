@@ -8,7 +8,7 @@ import { reportError } from '@/lib/client';
 const KEY = 'benne14.crashes';
 const TRIES = 3;
 const WINDOW_MS = 60_000;
-export const RELOAD_AFTER_MS = 4000;
+const RELOAD_AFTER_MS = 4000;
 
 export function Recover({ error }: { error: unknown }) {
   const [stuck, setStuck] = useState(false);

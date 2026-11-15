@@ -541,13 +541,6 @@
   color: var(--cream-3);
   text-decoration: line-through;
 }
-.adm .daytot {
-  margin: 14px 20px 0;
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--cream-3);
-}
 
 /* sheets */
 .adm .scrim {
@@ -866,11 +859,6 @@
 .adm .field .was {
   font-size: 12px;
   color: var(--cream-3);
-  margin-top: 6px;
-}
-.adm .field .preview {
-  font-size: 13px;
-  color: var(--cream-2);
   margin-top: 6px;
 }
 .adm .extras .x {

@@ -29,7 +29,7 @@ export interface Problem {
 }
 
 export const BEAT_MS = 30_000; // how often a screen says "I'm here"
-export const QUIET_MS = 2 * 60_000; // no word for this long = that screen is off, asleep or offline
+const QUIET_MS = 2 * 60_000; // no word for this long = that screen is off, asleep or offline
 export const FORGET_MS = 14 * 24 * 3600_000; // a screen not seen for two weeks is gone (replaced tablet)
 const KIND_NAME: Record<DeviceKind, string> = {
   kiosk: 'Kiosk',

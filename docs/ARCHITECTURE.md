@@ -19,7 +19,12 @@ lib/orders.ts                       order model, status rules, IST day helpers
 lib/reports.ts                      dashboard numbers and CSV, pure functions over orders
 lib/store/                          storage: memory.ts (dev, tests) and supabase.ts (production), one interface
 lib/client.ts                       browser API calls and polling hooks
-lib/server.ts, lib/admin.ts         request helpers: JSON bodies, staff PIN + lockout, input cleaning
+lib/server.ts, lib/admin.ts         request helpers: JSON bodies, the two PINs + lockout, input cleaning
+lib/kioskkey.ts                     the signed key a set-up kiosk tablet sends with every order
+lib/easebuzz.ts, lib/gateway.ts     the payment gateway; settle() is the one place a payment is confirmed
+lib/system.ts, watch.ts, push.ts    what is wrong right now, the check that runs it, phone notifications
+components/Recover.tsx              "One moment" and a reload when a screen crashes
+scripts/                            serve-local.sh, stop-server.sh (local runs that never touch the real database)
 supabase/migrations/                SQL, run by hand in order; logged in schema_migrations
 ```
 
@@ -57,29 +62,39 @@ refuses it (409) if the order moved on, so two tablets can't undo each other.
 - **Unfinished orders stay live for 6 hours** regardless of date; history and reports are per IST day.
 - **Open screens reload themselves after a deploy** (`/api/version` vs the build they loaded); the kiosk
   only on its start screen.
-- **Staff PIN** in the `x-staff-pin` header guards kitchen actions and the whole dashboard API, with a
-  lockout after 30 wrong tries per address per 10 minutes.
+- **Three locks.** The staff PIN (`x-staff-pin`, 4 digits) guards kitchen actions; the owner PIN
+  (6 digits, same header) guards `/api/admin/*` and also works wherever the staff PIN does; a kiosk key
+  (`x-kiosk-key`, given once to a tablet in exchange for the staff PIN) is needed to place an order.
+  Wrong PINs lock an address out after 30 tries in 10 minutes.
 
 ## API
 
 | Route | Who | What |
 |---|---|---|
-| `POST /api/orders` | kiosk | place an order |
-| `GET /api/orders` (`?view=today`, `?view=collected`) | kitchen, TV, dashboard | live orders / today's history / last collected numbers |
-| `GET /api/orders/[id]`, `/upi` | kiosk, phone | one order; its UPI QR while unpaid |
-| `POST /api/orders/[id]/claim` | kiosk | "I've paid" or cancel, only while the QR is open |
-| `POST /api/orders/[id]/status` | staff PIN | move an order |
-| `GET /api/menu` | all screens | the owner's menu changes |
-| `/api/admin/*` | staff PIN | report, CSV export, menu edit, refund, change history |
-| `GET /api/health`, `/api/version` | anyone | setup check (no secrets); running build |
+| `POST /api/orders` | kiosk key | place an order (120 a minute per tablet) |
+| `GET /api/orders` (`?view=today`, `?view=collected`) | open | live orders / today's history / last collected numbers |
+| `GET /api/orders/[id]`, `/upi` | open (needs the order id) | one order; its UPI QR while unpaid |
+| `POST /api/orders/[id]/gateway` | open (needs the order id) | start an Easebuzz payment, or ask whether it is paid |
+| `POST /api/orders/[id]/claim` | open (needs the order id) | "I've paid" or cancel, only while unpaid |
+| `POST /api/orders/[id]/pay` | mock payments only | "Simulate payment" in tests and demos |
+| `POST /api/orders/[id]/status`, `/given` | staff PIN | move an order; tick dishes as given |
+| `GET /api/kiosk`, `POST /api/kiosk` | open / staff PIN | kiosk switches; set a tablet up as the kiosk |
+| `GET`/`POST /api/staff` | open, rate-limited | PIN lengths; check a typed PIN |
+| `GET /api/menu`, `/api/popular` | open | the owner's menu changes (no drafts); best-seller ids |
+| `POST /api/discounts/check` | open, rate-limited | does this code work (for display only) |
+| `/api/admin/*` | owner PIN | reports, CSV, menu, dishes, extras, photos, offers, customers, refunds, system page, notifications |
+| `POST /api/beat`, `/api/log` | open, rate-limited | a screen says "I'm here"; a screen reports an error |
+| `GET /api/watch` | open, rate-limited | run the system check now (the uptime job) |
+| `/api/payments/easebuzz/webhook`, `/return` | Easebuzz | payment messages; never trusted on their own |
+| `GET /api/health`, `/api/version`, `/api/ping`, `/api/qr` | open | setup check (no secrets); running build; is the server up; QR for a bill link |
 
 Known gaps in who may call what are tracked in `docs/audit.md` section A.
 
 ## Payments
 
-Direct UPI to the shop's own Paytm UPI ID with a per-order QR; staff confirm on the soundbox. Card and
-cash are confirmed at the counter. `PAYMENTS=mock` swaps in a fake payee for tests. Details and the
-route to automatic confirmation: `docs/payments.md`.
+Production runs `PAYMENTS=easebuzz`: UPI is confirmed by the gateway by itself (section "Payment
+gateway" below). If the gateway does not answer, the kiosk offers card and cash only. Card and cash
+are confirmed at the counter. `PAYMENTS=mock` swaps in a fake payee for tests. Details: `docs/payments.md`.
 
 ## Tests and delivery
 

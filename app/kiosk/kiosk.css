@@ -1368,16 +1368,6 @@
   background: var(--s1);
   border: 1px solid var(--line);
 }
-.k-upi .pulse {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--benne);
-  box-shadow:
-    0 0 0 6px rgba(245, 197, 66, 0.2),
-    0 0 0 12px rgba(245, 197, 66, 0.08);
-  animation: pulse 1.4s ease-in-out infinite;
-}
 @keyframes pulse {
   50% {
     box-shadow:

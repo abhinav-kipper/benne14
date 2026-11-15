@@ -326,7 +326,7 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
   );
 }
 
-export function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; saved: () => void }) {
+function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; saved: () => void }) {
   const { item, cat } = p;
   const [price, setPrice] = useState(String(item.price));
   const [name, setName] = useState(item.name);

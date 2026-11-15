@@ -184,7 +184,7 @@ export async function fetchStatus(c: EasebuzzConfig, orderId: string): Promise<T
 }
 
 const na = (v: string | undefined) => (v && v !== 'NA' ? v : null);
-export function readTxn(row: Record<string, string>): TxnStatus {
+function readTxn(row: Record<string, string>): TxnStatus {
   return {
     state: stateOf(row.status),
     status: row.status,

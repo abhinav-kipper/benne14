@@ -22,8 +22,8 @@ export const dayLabel = (
   d: string,
   opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'short' },
 ) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-IN', { ...opts, timeZone: 'UTC' });
-export const hourLabel = (h: number) => (h % 12 || 12) + (h < 12 ? ' am' : ' pm');
-export const hourTick = (h: number) => String(h % 12 || 12);
+const hourLabel = (h: number) => (h % 12 || 12) + (h < 12 ? ' am' : ' pm');
+const hourTick = (h: number) => String(h % 12 || 12);
 
 export interface Ctx {
   pin: string;
