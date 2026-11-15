@@ -4,6 +4,8 @@ import { FORGET_MS, type Alert, type Device, type DeviceKind, type ErrorEntry } 
 import { MAX_DEVICES, MAX_ERRORS, MAX_SUBS, StoreError, sortAlerts } from '../memory';
 import { missing, storeError, type Db } from './shared';
 
+// None of these may ever throw into a screen: a failed "I'm here" or a failed error report is
+// dropped (and before migration 0012 they simply do nothing).
 export async function beat(db: Db, d: { id: string; kind: DeviceKind; screen: string | null; build: string | null }) {
   const now = new Date().toISOString();
   const upd = await db
