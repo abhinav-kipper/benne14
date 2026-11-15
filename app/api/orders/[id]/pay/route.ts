@@ -3,7 +3,8 @@ import { fail, isOrderId, json, notFound, paymentsAreMock } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
 
-// Mock payment confirmation (UPI scanned / card tapped). Replaced by the Razorpay webhook in M6.
+// Mock payment confirmation for tests and demos (PAYMENTS=mock only). Real UPI is confirmed by
+// settle() in lib/gateway.ts.
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!paymentsAreMock()) return json({ error: 'Real payments are confirmed by the provider' }, 403);
   try {

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Customer, DiscountCode, DiscountRule, KioskSettings } from './discounts';
 import type { CartLine } from './pricing';
-import type { Alert, Device, ErrorEntry, Problem } from './system';
+import { BEAT_MS, type Alert, type Device, type ErrorEntry, type Problem } from './system';
 import type { CustomItem, Overrides } from './menu';
 import type { AdminEvent, Order, OrderEvent, OrderStatus, OrderType, PayMethod } from './orders';
 import type { Summary } from './reports';
@@ -539,7 +539,7 @@ export function useNightlyReload(safe = true) {
 }
 
 // Staff's way to unstick a screen with no keyboard: hold the logo for five seconds and it reloads.
-export const HOLD_RELOAD_MS = 5000;
+const HOLD_RELOAD_MS = 5000;
 export function useHoldToReload() {
   const t = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const stop = useCallback(() => clearTimeout(t.current), []);
@@ -612,7 +612,7 @@ export function useWatch(kind: 'kiosk' | 'kitchen' | 'board' | 'owner', screen =
       body: JSON.stringify({ id, kind, screen: showing.current, build: BUILD_ID }),
       signal: AbortSignal.timeout(8000),
     }).catch(() => {});
-  }, 30_000);
+  }, BEAT_MS);
   useEffect(() => {
     const onError = (e: ErrorEvent) => reportError(kind, e.error ?? e.message, showing.current);
     const onReject = (e: PromiseRejectionEvent) => reportError(kind, e.reason, showing.current);

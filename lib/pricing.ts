@@ -12,7 +12,7 @@ export const GST_RATE = GST_PERCENT / 100;
 
 // GST on a whole-rupee taxable value, in whole rupees: 5%, rounded half-up.
 export const gstOn = (taxable: number) => Math.floor((taxable * GST_PERCENT + 50) / 100);
-export const MAX_QTY = 20;
+const MAX_QTY = 20;
 
 export interface CartLine {
   itemId: string;

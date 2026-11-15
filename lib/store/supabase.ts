@@ -52,7 +52,7 @@ interface Row {
   refund_amount?: string | number | null;
 }
 
-export const PHOTO_BUCKET = 'dish-photos';
+const PHOTO_BUCKET = 'dish-photos';
 const DB_TIMEOUT_MS = 8000;
 interface DishRow {
   id: string;

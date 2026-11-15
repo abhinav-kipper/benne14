@@ -11,14 +11,13 @@ section A are open.
 
 ## Up next
 
-- **Owner to do now: set `OWNER_PIN` (six digits) in Vercel and redeploy**; until then the owner app still opens with the staff PIN and the System page says so. After the next deploy the kiosk tablet asks for the staff PIN once.
-
 **The plan to launch is `docs/go-live.md`**: four stages, stage 1 is what must be done before the first real customer.
 
-1. **Stage 1, launch blockers** (`docs/audit.md` section A): kiosk-only ordering with a rate limit, PIN on the order list, a separate owner PIN, new keys and PINs (all were shared in chat), test mode off, test data cleared, real ₹1 payments, server region next to the database, paid hosting plans, GSTIN and invoice numbers on the bill.
-2. **Stage 2, reliability in the shop**: tablets locked to the app, an internet fallback, alerts to someone's phone, a backup restore drill, end-of-day cash count, a dry run with staff.
-3. **Stage 3, ease of use** (`docs/ui-audit.md` rounds 3 and 4): loud dine-in/takeaway on the chit, bigger kitchen buttons, TV adverts and chime, veg marks, the restaurant's own photos.
-4. **Owner to do**: answer the six questions at the end of `docs/go-live.md`; delete merged branches on GitHub.
+1. **Stage 1, still open**: new keys and PINs (all were shared in chat), test mode off, test data cleared, real ₹1 payments and the Easebuzz webhook, paid hosting plans, GSTIN and invoice numbers on the bill, Tokyo or Mumbai for the database. Done: kiosk-only ordering, owner PIN, gateway-down fallback, server next to the database.
+2. **Stage 2, still open**: tablets locked to the app, an internet fallback for staff, a backup restore drill, end-of-day cash count, a dry run with staff, one-page guides. Done: self-healing screens, System page, phone notifications.
+3. **Features picked from `docs/feature-research.md`** (owner to choose): kitchen marks a dish sold out, pause ordering with opening hours, a wait time.
+4. **Stage 3, ease of use** (`docs/ui-audit.md` rounds 3 and 4): loud dine-in/takeaway on the chit, bigger kitchen buttons, TV adverts and chime, veg marks, the restaurant's own photos.
+5. **Owner to do**: answer the questions at the end of `docs/go-live.md`; delete merged branches on GitHub (about 30); decide on the nine waiting Dependabot updates.
 
 ## How things are (decisions worth knowing)
 
@@ -41,16 +40,17 @@ section A are open.
 ## Gotchas
 
 - The Claude environment has the live Supabase keys: anything run locally can hit the real DB. For local runs blank them (`NEXT_PUBLIC_SUPABASE_URL= SUPABASE_SECRET_KEY=`); e2e already does and refuses otherwise.
-- Don't stop servers with `pkill -f next…` / a loop whose pattern appears in the same command line: it kills the shell. Put the loop in a script file and run the file.
+- Local servers: `scripts/serve-local.sh` and `scripts/stop-server.sh` (never `pkill -f next…`: it kills the shell).
 - Every branch gets a preview at `https://benne14-git-<branch-with-dashes>-abhinav-mudgal-s-projects.vercel.app`; previews share the production database.
 - This session can't delete GitHub branches or run downloaded binaries; database integration tests run only in CI (the `db` job).
 
 - Free-tier Supabase pauses after inactivity; `/api/health` then shows a 521/522. Restore it in the dashboard.
 - e2e tests blank the Supabase vars and refuse to run unless the store is `memory`, so they never write to the real DB.
-- Locally, `PW_CHROMIUM=/opt/pw-browsers/chromium npm run e2e` uses a preinstalled Chromium.
+- How to run e2e and compare screens in a Claude session: `CLAUDE.md`, last section.
 
 ## Done
 
+- 2026-11-15 — Clean-up: unused helpers and CSS removed, docs corrected (PINs, kiosk key, Easebuzz, the API table), `docs/README.md` lists every doc, pre-build plans moved to `docs/history/`, `scripts/serve-local.sh` and `scripts/stop-server.sh` added, `CLAUDE.md` now holds how to work with the owner and how to run things in a session.
 - 2026-11-15 — When Easebuzz does not answer, the kiosk no longer shows the shop's own QR: the UPI order is released and the pay screen offers card and cash, with UPI greyed out for two minutes before it is tried again (owner's call: the printed QR at the counter is the backup). Feature study of TastyIgniter, Petpooja and the kiosk vendors in `docs/feature-research.md`.
 - 2026-11-14 — Security locks (`docs/go-live.md` stage 1): orders are accepted only from a tablet staff have set up as the kiosk (staff PIN once, the tablet then holds a signed key; at most 120 orders a minute per tablet), and the owner app takes its own six-digit `OWNER_PIN` (the staff PIN no longer opens it once that is set; the owner PIN still does everything the staff PIN does). The TV and the public order list are unchanged (owner's call).
 - 2026-11-14 — Fault tolerance, part 2b: alerts on the owner's phone. The owner app's System page has "Turn on notifications" (per phone, opt-in). A check that runs with the kitchen's and TV's polling (at most once a minute) and from the 15-minute uptime job opens an alert for each new problem and sends one notification per problem: a silent kiosk, kitchen screen or TV, a burst of errors, a payment that needs a look. Needs migration 0013. One new dependency: `web-push`.

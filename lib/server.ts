@@ -84,7 +84,7 @@ export function staffOk(req: Request): boolean {
   const pin = sent(req);
   return !!pin && ((!!staffPin() && pin === staffPin()) || (!!ownerPin() && pin === ownerPin()));
 }
-export function ownerOk(req: Request): boolean {
+function ownerOk(req: Request): boolean {
   return ownerPin() ? sent(req) === ownerPin() : staffOk(req);
 }
 

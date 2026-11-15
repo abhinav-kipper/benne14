@@ -110,7 +110,7 @@ const MOVES: Record<string, string> = {
 };
 const REASONS = ['Wrong order', 'Customer left', 'Food issue', 'Paid twice'];
 
-export function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: Order) => void }) {
+function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: Order) => void }) {
   const { o } = p;
   const [refunding, setRefunding] = useState(false);
   const [reason, setReason] = useState<string | null>(null);

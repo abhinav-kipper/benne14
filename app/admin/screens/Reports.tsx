@@ -6,7 +6,7 @@ import { addDays, istDay } from '@/lib/orders';
 import { Bar, Hours, Split, dayLabel, inr, inr2, useReport, type Ctx } from './shared';
 
 type Range = 'day' | 'week' | 'month' | 'custom';
-export function rangeFor(kind: Range, anchor: string, custom: { from: string; to: string }) {
+function rangeFor(kind: Range, anchor: string, custom: { from: string; to: string }) {
   if (kind === 'day') return { from: anchor, to: anchor };
   if (kind === 'week') return { from: addDays(anchor, -6), to: anchor };
   if (kind === 'month') {
@@ -17,7 +17,7 @@ export function rangeFor(kind: Range, anchor: string, custom: { from: string; to
   }
   return custom;
 }
-export function stepAnchor(kind: Range, anchor: string, dir: 1 | -1) {
+function stepAnchor(kind: Range, anchor: string, dir: 1 | -1) {
   if (kind === 'day') return addDays(anchor, dir);
   if (kind === 'week') return addDays(anchor, 7 * dir);
   const d = new Date(Date.parse(anchor.slice(0, 8) + '01T00:00:00Z'));

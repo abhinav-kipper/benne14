@@ -10,7 +10,7 @@ export function adminDenied(req: Request) {
   return r === 'ok' ? null : staffDenied(r);
 }
 
-export const MAX_RANGE_DAYS = 366;
+const MAX_RANGE_DAYS = 366;
 
 // ?from=YYYY-MM-DD&to=YYYY-MM-DD, at most a year.
 export function rangeOf(req: Request) {

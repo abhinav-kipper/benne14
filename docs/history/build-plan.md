@@ -1,4 +1,4 @@
-> **History.** This is the plan written before the build (October 2026). Much of it changed along the way
+> **History.** Moved here from `docs/BUILD_PLAN.md`. This is the plan written before the build (October 2026). Much of it changed along the way
 > (no Realtime, no `order_items` table, menu overrides instead of menu tables, direct UPI instead of
 > Razorpay, English only). For how the app actually works see `docs/ARCHITECTURE.md`; for what's next,
 > `docs/state.md` and `docs/audit.md`.

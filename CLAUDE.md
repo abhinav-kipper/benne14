@@ -1,10 +1,10 @@
 # Claude Code working notes — Benne 14
 
-Self-order kiosk, kitchen display, TV order board and owner admin for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram). Built for the owner (the user's brother). Live status: `docs/state.md` (read it every session). How it works: `docs/ARCHITECTURE.md`. Payments: `docs/payments.md`. What is left before launch: `docs/go-live.md`. What other systems do that we don't: `docs/feature-research.md`. Open issues and what's fixed: `docs/audit.md` (system), `docs/ui-audit.md` (UI and customer flow) and `docs/accuracy-audit.md` (money, order numbers, reports); tick items as they merge.
+Self-order kiosk, kitchen display, TV order board and owner app for **Benne 14 — Authentic Bangalore Dosa** (Indirapuram). Built for the owner (the user's brother). Read `docs/state.md` every session; `docs/go-live.md` is the plan to launch; `docs/README.md` lists every other doc and what it is for. Tick audit items (`docs/audit.md`, `ui-audit.md`, `accuracy-audit.md`) as they merge.
 
 ## Stack
 
-Next.js 15 (App Router, TS strict) · Supabase (Postgres with RLS; server-only access, no Realtime or Auth yet) · Vercel · CSS variables + one CSS file per surface, scoped by a root class · ESLint + Prettier · Vitest + Playwright. Payments behind a `PaymentProvider` interface: direct UPI in production, `MockProvider` in tests.
+Next.js 15 (App Router, TS strict) · Supabase (Postgres with RLS; server-only access, no Realtime or Auth yet) · Vercel · CSS variables + one CSS file per surface, scoped by a root class · ESLint + Prettier · Vitest + Playwright. Payments: Easebuzz gateway in production (`PAYMENTS=easebuzz`), mock in tests (`PAYMENTS=mock`). Phone notifications by web push.
 
 ## Layout
 
@@ -12,9 +12,13 @@ Next.js 15 (App Router, TS strict) · Supabase (Postgres with RLS; server-only a
 app/kiosk  app/admin                 Kiosk.tsx / Admin.tsx hold state; one file per screen in screens/
 app/kitchen  app/board  app/r/[id]   kitchen display, TV board, phone bill
 app/api/...                          route handlers: the only code that touches the database
-components/                          Fit (scaled fixed-size designs), PinGate, Catalog (menu state via context)
+components/                          Fit (scaled fixed-size designs), PinGate, Catalog (menu state via context), Recover (crash screen)
 lib/menu.ts  pricing.ts  orders.ts   menu in code + owner overrides (mergeCatalog), pricing + GST, order model
-lib/reports.ts  admin.ts  server.ts  dashboard numbers, input cleaning, PIN + lockout
+lib/reports.ts  admin.ts  server.ts  dashboard numbers, input cleaning, PINs + lockout + rate limits
+lib/client.ts                        every browser API call and hook (usePoll, useWatch, useServerUp…)
+lib/gateway.ts  easebuzz.ts          payments; lib/kioskkey.ts the kiosk's signed key
+lib/system.ts  watch.ts  push.ts     System page rules, the check that runs them, notifications
+scripts/                             serve-local.sh, stop-server.sh
 lib/store/{memory,supabase}.ts       storage behind one interface; both pass tests/support/store-contract.ts
 supabase/migrations/                 SQL, run by hand in Supabase in order; listed in lib/migrations.ts
 tests/unit  tests/integration  tests/e2e  tests/smoke
@@ -53,3 +57,19 @@ Commands: `npm run dev` · `npm run check` (typecheck, lint, format check, unit 
 - Test the preview on the real device (tablet/TV) before merging to `main`.
 - Commits: imperative, one short sentence; body explains why.
 - Update `docs/state.md` at the end of each milestone (Done log with date + one-line outcome).
+- Docs: one fact in one file; edit in place when something stops being true; a new doc gets a row in `docs/README.md`.
+
+## Working with the owner
+
+- Not a programmer and often on a phone: plain language, no jargon, short reports.
+- Ask before deciding anything they would notice: yes/no questions with a suggested answer.
+- Never merge without their word. Paste migration SQL inline in the chat (they can't open files on the phone).
+- Changing anything on a Vercel preview changes the real database (previews share it). Deleting data needs an explicit go-ahead.
+
+## Running things in a Claude session
+
+- The session may hold the live Supabase keys. Local servers must blank them: use `scripts/serve-local.sh [port]` (in-memory store, mock payments, staff PIN 2468, owner PIN 246810). e2e already blanks them and refuses otherwise.
+- Stop servers with `scripts/stop-server.sh`, in its own command. Never `pkill -f next`: it kills the shell.
+- e2e here: `rm -rf .next && PW_CHROMIUM=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome npm run e2e -- --trace off` (add `--project=flow|test-mode|robustness|admin|gateway` for one suite). The real-Postgres store tests run only in CI: wait for that job before merging store changes.
+- Side-by-side compare: `git worktree add ../benne14-main main`, serve each with `scripts/serve-local.sh` on its own port, screenshot both with the same data.
+- Tests that hit a rate-limited open endpoint send their own `x-forwarded-for`.

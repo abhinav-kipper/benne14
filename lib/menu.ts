@@ -63,7 +63,7 @@ export interface KitchenNote {
   hidden?: boolean; // only in the owner's full catalog
 }
 
-export const CATEGORIES: Category[] = [
+const CATEGORIES: Category[] = [
   { id: 'dosa', name: 'Dosas' },
   { id: 'idli', name: 'Idli & Vada' },
   { id: 'drinks', name: 'Coffee & Tea' },
@@ -106,7 +106,7 @@ export const GROUPS: Record<string, ModGroup> = {
 
 const FRIED = ['ghee-podi-benne-dosa', 'masala-dosa', 'plain-benne-dosa', 'plain-dosa', 'medu-vada'];
 
-export const NOTES: KitchenNote[] = [
+const NOTES: KitchenNote[] = [
   // Steamed idlis have no oil and can't be crisp: these two are for dosas and vada.
   { id: 'less-oil', label: 'Less oil', tone: 'less', items: FRIED },
   { id: 'extra-crisp', label: 'Extra crisp', tone: 'add', items: FRIED },
@@ -233,7 +233,7 @@ export const placeholderFor = (item: Pick<MenuItem, 'id' | 'name' | 'placeholder
   !item ? '' : item.custom ? item.name.split(' ').slice(0, 2).join(' ') : (item.placeholder ?? 'Coffee');
 // Items the kiosk shows: test-only ones appear only in test mode.
 export const visibleItems = (testMode: boolean, cat: Catalog) => cat.items.filter((i) => testMode || !i.testOnly);
-export const photoOf = (id: string) => (PHOTOS.has(id) ? `/food/${id}.jpg` : undefined);
+const photoOf = (id: string) => (PHOTOS.has(id) ? `/food/${id}.jpg` : undefined);
 
 // ---- Catalog: the dishes above plus the owner's changes from the dashboard ----
 // The dishes, groups and photos live in this file; the owner can change a dish's name, description,
@@ -297,9 +297,6 @@ export interface ExtrasLayout {
   notes?: { id: string; label: string; tone: Tone | null; cats: string[] }[];
   hiddenNotes?: string[];
 }
-export const isExtraId = (id: unknown): id is string => typeof id === 'string' && /^x-[a-z0-9]{6,12}$/.test(id);
-export const isSetId = (id: unknown): id is string => typeof id === 'string' && /^g-[a-z0-9]{6,12}$/.test(id);
-export const isNoteId = (id: unknown): id is string => typeof id === 'string' && /^n-[a-z0-9]{6,12}$/.test(id);
 
 export interface Overrides {
   items: Record<string, ItemOverride>;
