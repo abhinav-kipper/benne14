@@ -1,9 +1,9 @@
-// Runs the store contract against the real SupabaseStore, talking to a real Postgres through
+// Runs the store contract against the real Supabase store, talking to a real Postgres through
 // PostgREST (what Supabase's REST API is). CI starts both and runs the migrations (see the `db` job
 // in .github/workflows/ci.yml). Skipped when DB_TEST_URL isn't set, e.g. on a laptop.
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { SupabaseStore } from '@/lib/store/supabase';
+import { supabaseStore } from '@/lib/store/supabase';
 import { storeContract } from '../support/store-contract';
 
 const URL_ = process.env.DB_TEST_URL; // PostgREST, e.g. http://localhost:3000
@@ -54,12 +54,12 @@ describe.skipIf(!URL_)('Supabase store on a real database', () => {
 
   storeContract('supabase', async () => {
     await wipe();
-    return new SupabaseStore(URL_!, key('service_role'), bare);
+    return supabaseStore(URL_!, key('service_role'), bare);
   });
 
   it('keeps orders private: the public (anon) key sees nothing and cannot place orders', async () => {
     await wipe();
-    const s = new SupabaseStore(URL_!, key('service_role'), bare);
+    const s = supabaseStore(URL_!, key('service_role'), bare);
     const { priceOrder } = await import('@/lib/pricing');
     await s.placeOrder({
       key: 'private-check-0001',

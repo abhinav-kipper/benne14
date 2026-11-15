@@ -6,7 +6,7 @@ import type { CustomItem, ExtrasLayout, Overrides, SectionsLayout } from '../men
 import type { AdminEvent, GatewayPayment, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
 import type { Alert, Device, DeviceKind, ErrorEntry } from '../system';
 import { MemoryStore, StoreError } from './memory';
-import { SupabaseStore } from './supabase';
+import { supabaseStore } from './supabase';
 
 export interface Store {
   readonly kind: 'memory' | 'supabase';
@@ -115,7 +115,7 @@ export function getStore(): Store {
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (key?.startsWith('sb_publishable_'))
     throw new StoreError('SUPABASE_SECRET_KEY holds the publishable key; use the sb_secret_ key', 503);
-  if (url && key) return (store = new SupabaseStore(url, key));
+  if (url && key) return (store = supabaseStore(url, key));
   // On Vercel every request can land on a different instance, so in-memory orders would vanish.
   if (process.env.VERCEL)
     throw new StoreError('Database not configured: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY', 503);

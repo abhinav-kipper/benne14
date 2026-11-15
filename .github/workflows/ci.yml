@@ -70,7 +70,7 @@ jobs:
             postgrest/postgrest:v12.2.3
           for i in $(seq 1 30); do curl -sf http://localhost:3000/ > /dev/null && exit 0; sleep 1; done
           docker logs postgrest; exit 1
-      # The same store contract the in-memory store passes, now through lib/store/supabase.ts
+      # The same store contract the in-memory store passes, now through lib/store/supabase/
       - run: npm run test:db
       - if: failure()
         run: docker logs postgrest

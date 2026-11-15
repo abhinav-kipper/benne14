@@ -31,6 +31,6 @@ Notes:
 - Customer names could carry control/direction-override characters onto the TV → stripped.
 
 ## Known gaps (not covered yet)
-- `lib/store/supabase.ts` itself (the supabase-js calls) is only exercised by the smoke checks, not in CI.
+- `lib/store/supabase/` itself (the supabase-js calls) is only exercised by the smoke checks, not in CI.
 - Orders still on the rail at midnight IST drop off the kitchen (the live list is "today" only). Fine while the shop closes before midnight.
 - The PIN lockout is per server instance (in memory); a determined attacker spread over many instances gets more tries. Move it to the database if that matters.
