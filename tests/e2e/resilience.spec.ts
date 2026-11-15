@@ -316,8 +316,12 @@ test('staff can restart any screen by holding the logo for five seconds', async 
     await logo.dispatchEvent('pointerup'); // a short press does nothing
     expect(await page.evaluate(() => (window as unknown as { mark?: boolean }).mark)).toBe(true);
     await logo.dispatchEvent('pointerdown');
+    // The page reloads under us: a look that lands mid-reload throws, so count it as "not yet".
     await expect
-      .poll(() => page.evaluate(() => (window as unknown as { mark?: boolean }).mark), { timeout: 9000 })
+      .poll(
+        () => page.evaluate(() => (window as unknown as { mark?: boolean }).mark).catch(() => 'reloading' as const),
+        { timeout: 9000 },
+      )
       .toBeUndefined();
   }
 });
