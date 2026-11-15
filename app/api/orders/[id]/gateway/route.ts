@@ -16,7 +16,8 @@ const LINK_MS = 14 * 60_000;
 // The kiosk's UPI screen talks to the payment gateway through here (no PIN: only the kiosk knows the
 // order id, as with /claim).
 //  { action: 'start' } → how to show the payment for this order:
-//      { kind: 'direct' }            the shop's own QR, staff confirm (no gateway, or it didn't answer)
+//      { kind: 'direct' }            the shop's own QR, staff confirm (only when no gateway is configured)
+//      { kind: 'down' }              the gateway did not answer: no UPI on the kiosk for now, card or cash
 //      { kind: 'page', url }         Easebuzz's payment page, shown in a frame
 //      { kind: 'qr', svg }           a QR we draw from Easebuzz's UPI link (seamless mode)
 //  { action: 'check' } → { order, state }: asks Easebuzz whether it is paid, and if so sends the order
@@ -63,9 +64,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       if (started.size > 500) started.delete(started.keys().next().value!); // bound memory
       return json(view);
     } catch (e) {
-      // The gateway is down or refused: the customer can still pay to the shop's own QR.
-      console.error('Easebuzz start failed, falling back to the direct QR', e);
-      return json({ kind: 'direct' });
+      // The gateway is down or refused. No QR from the app then (owner's call): the kiosk sends the
+      // customer to card or cash, and the shop's printed QR at the counter is there for staff to use.
+      console.error('Easebuzz start failed: the kiosk offers card and cash', e);
+      return json({ kind: 'down' });
     }
   } catch (e) {
     return fail(e);

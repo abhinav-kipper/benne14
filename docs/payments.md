@@ -57,7 +57,7 @@ Transaction API V2.1, Transaction Webhook). Read on 2026-11-14.
     a payment reference. The webhook and the kiosk's 3-second check both end in that same function.
   - Wrong amount, or paid after the order was cancelled: the order is **not** marked paid and a
     "payment" line appears in the dashboard's change history so the owner can refund.
-  - Easebuzz down or refusing: the kiosk falls back to the shop's own QR and "I've paid".
+  - Easebuzz down or refusing: the kiosk releases the UPI order and offers card and cash only; UPI is greyed out for two minutes, then tried again. No QR from the app on this path (the shop's printed QR at the counter is the backup).
 - **No countdown with the gateway (owner's call, 2026-11-14):** the kiosk waits for the payment. Easebuzz
   reports where the customer is (`preinitiated` → `initiated` page open → `pending` QR on screen →
   `success`). After 4 quiet minutes the kiosk asks "Still there?" (30 s); if nobody answers it goes back

@@ -25,7 +25,7 @@ section A are open.
 - English only. Full menu prices; a discount only through a code the owner made. Order numbers are plain daily numbers (old "A-042" rows show as "42").
 - GST 5% on top, rounded to the nearest rupee and split CGST/SGST: bills have no round-off line.
 - Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen asks "Still there?" after 90 s and returns to start 30 s later; an untouched order is cleared after 60 s + a 15 s prompt (no Start over button).
-- UPI is confirmed by Easebuzz's payment gateway by itself (`docs/payments.md`); if the gateway is down the kiosk falls back to the shop's own QR and staff confirm on the soundbox. Card and cash wait on the kitchen's "Collect payment" shelf.
+- UPI is confirmed by Easebuzz's payment gateway by itself (`docs/payments.md`); if the gateway is down the kiosk offers card and cash only (the shop's printed QR at the counter is the backup). Card and cash wait on the kitchen's "Collect payment" shelf.
 - Test mode (on unless `TEST_MODE=0`): cash counts as paid, a ₹1 test item shows.
 - Two PINs: `STAFF_PIN` for the kitchen and for setting a tablet up as the kiosk, `OWNER_PIN` (six digits) for the owner app. The owner PIN also works wherever the staff PIN does.
 - Menu = dishes in `lib/menu.ts` + everything the owner changes from the dashboard (own dishes, sections, extras, notes, hidden, order), merged by `mergeCatalog()`. Sold out lasts for the day.
@@ -51,6 +51,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-15 — When Easebuzz does not answer, the kiosk no longer shows the shop's own QR: the UPI order is released and the pay screen offers card and cash, with UPI greyed out for two minutes before it is tried again (owner's call: the printed QR at the counter is the backup). Feature study of TastyIgniter, Petpooja and the kiosk vendors in `docs/feature-research.md`.
 - 2026-11-14 — Security locks (`docs/go-live.md` stage 1): orders are accepted only from a tablet staff have set up as the kiosk (staff PIN once, the tablet then holds a signed key; at most 120 orders a minute per tablet), and the owner app takes its own six-digit `OWNER_PIN` (the staff PIN no longer opens it once that is set; the owner PIN still does everything the staff PIN does). The TV and the public order list are unchanged (owner's call).
 - 2026-11-14 — Fault tolerance, part 2b: alerts on the owner's phone. The owner app's System page has "Turn on notifications" (per phone, opt-in). A check that runs with the kitchen's and TV's polling (at most once a minute) and from the 15-minute uptime job opens an alert for each new problem and sends one notification per problem: a silent kiosk, kitchen screen or TV, a burst of errors, a payment that needs a look. Needs migration 0013. One new dependency: `web-push`.
 - 2026-11-14 — Fault tolerance, part 2a: the owner app has a System page. Every screen says "I'm here" each half minute (`/api/beat`), unhandled errors on screens and on the server are kept in `error_log` (`/api/log`), and the page lists the screens (online or silent), what needs a look (`lib/system.ts`) and the latest errors. One line on Today shows green or red. Needs migration 0012. Phone notifications are part 2b.

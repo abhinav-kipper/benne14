@@ -2030,3 +2030,9 @@
   display: grid;
   place-items: center;
 }
+
+/* UPI is not answering: the tile stays in place, greyed, and says where to pay instead */
+.k-pay .tile.upi.off {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
