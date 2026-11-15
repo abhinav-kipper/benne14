@@ -12,6 +12,7 @@ export async function GET() {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'missing',
     supabaseKey: keyKind(),
     staffPin: process.env.STAFF_PIN ? 'set' : 'missing',
+    ownerPin: process.env.OWNER_PIN ? 'set' : 'not set: the owner app opens with the staff PIN',
     payments: paymentMode(),
     testMode: isTestMode() ? 'on: cash counts as paid' : 'off',
     build: BUILD_ID.slice(0, 12),

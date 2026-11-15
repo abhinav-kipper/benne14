@@ -7,7 +7,7 @@ import { cleanName, isCheckoutKey, isPaid, istDay, storedKey, type OrderType, ty
 import { after } from 'next/server';
 import { ordersToRecheck, recheck } from '@/lib/gateway';
 import { getStore } from '@/lib/store';
-import { fail, json, paymentMode, readJson } from '@/lib/server';
+import { fail, json, kioskOk, limited, paymentMode, readJson } from '@/lib/server';
 import { isTestMode } from '@/lib/testmode';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +15,11 @@ export const dynamic = 'force-dynamic';
 // Kiosk checkout. The body carries item ids and choices only; prices come from the server's menu.
 export async function POST(req: Request) {
   try {
+    // Only a tablet staff have set up as the kiosk may place orders (lib/kioskkey.ts), and no screen
+    // places more than a very busy counter could: 120 a minute (retries of one order count too).
+    if (!kioskOk(req)) return json({ error: 'This screen is not set up as the kiosk yet' }, 401);
+    if (limited(`order:${req.headers.get('x-kiosk-key')}`, 120, 60_000))
+      return json({ error: 'Too many orders at once. Wait a moment and try again.' }, 429);
     const b = (await readJson(req)) as {
       key?: unknown;
       type?: unknown;

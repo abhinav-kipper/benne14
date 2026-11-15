@@ -2020,3 +2020,13 @@
   font-size: var(--t-lg);
   color: var(--cream-2);
 }
+
+/* A tablet that has not been set up as the kiosk yet: staff type the staff PIN once. */
+.k-setup {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+}

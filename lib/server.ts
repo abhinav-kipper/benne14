@@ -2,6 +2,7 @@
 import 'server-only';
 import { NextResponse } from 'next/server';
 import { OrderError } from './pricing';
+import { checkKioskKey, makeKioskKey } from './kioskkey';
 import { FailureLimiter } from './ratelimit';
 import { getStore } from './store';
 import { StoreError } from './store/memory';
@@ -70,28 +71,44 @@ export function limited(key: string, max: number, ms: number): boolean {
   return ++h.n > max;
 }
 
-// Staff actions (kitchen, counter) need the shop PIN. In production STAFF_PIN must be set;
-// for local demos on the in-memory store it falls back to 1414.
+// Two PINs. The staff PIN opens the kitchen screen and sets a tablet up as the kiosk. The owner PIN
+// (OWNER_PIN, six digits) opens the owner app: takings, prices, the menu, refunds. The owner PIN
+// also does everything the staff PIN does. Until OWNER_PIN is set the owner app still opens with
+// the staff PIN, so nothing locks anyone out on the day this ships (the System page says so).
+// In production STAFF_PIN must be set; for local demos on the in-memory store it falls back to 1414.
+// trim(): a PIN pasted into Vercel with a trailing space or newline would otherwise never match.
+export const staffPin = () => (process.env.STAFF_PIN ?? (process.env.NODE_ENV === 'production' ? '' : '1414')).trim();
+export const ownerPin = () => (process.env.OWNER_PIN ?? '').trim();
+const sent = (req: Request) => req.headers.get('x-staff-pin')?.trim() ?? '';
 export function staffOk(req: Request): boolean {
-  // trim(): a PIN pasted into Vercel with a trailing space or newline would otherwise never match.
-  const pin = (process.env.STAFF_PIN ?? (process.env.NODE_ENV === 'production' ? '' : '1414')).trim();
-  return !!pin && req.headers.get('x-staff-pin')?.trim() === pin;
+  const pin = sent(req);
+  return !!pin && ((!!staffPin() && pin === staffPin()) || (!!ownerPin() && pin === ownerPin()));
+}
+export function ownerOk(req: Request): boolean {
+  return ownerPin() ? sent(req) === ownerPin() : staffOk(req);
 }
 
-// staffOk plus a lockout after repeated wrong PINs from one address (a 4-digit PIN is otherwise
-// guessable in minutes). 'locked' → 429.
+// A lockout after repeated wrong PINs from one address (a short PIN is otherwise guessable in
+// minutes). 'locked' → 429.
 // 30 per 10 minutes: the shop's tablets share one Wi-Fi address, so the limit must survive a few
 // fumbled PINs across devices, while 10,000 guesses still take over two days.
 const pinFailures = new FailureLimiter(30, 10 * 60_000);
 export const clientKey = (req: Request) =>
   req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.headers.get('x-real-ip') || 'local';
-export function staffCheck(req: Request): 'ok' | 'bad' | 'locked' {
+function pinCheck(req: Request, ok: (r: Request) => boolean): 'ok' | 'bad' | 'locked' {
   const key = clientKey(req);
   if (pinFailures.locked(key)) return 'locked';
-  if (staffOk(req)) return 'ok';
+  if (ok(req)) return 'ok';
   pinFailures.fail(key);
   return 'bad';
 }
+export const staffCheck = (req: Request) => pinCheck(req, staffOk);
+export const ownerCheck = (req: Request) => pinCheck(req, ownerOk);
+
+// Is this request from a tablet staff have set up as the kiosk? (lib/kioskkey.ts)
+const keyExtra = () => process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+export const kioskOk = (req: Request) => checkKioskKey(req.headers.get('x-kiosk-key'), staffPin(), keyExtra());
+export const newKioskKey = () => makeKioskKey(staffPin(), keyExtra());
 export const staffDenied = (r: 'bad' | 'locked') =>
   r === 'locked'
     ? json({ error: 'Too many wrong PINs. Wait 10 minutes and try again.' }, 429)

@@ -8,9 +8,9 @@ Where things stand: every screen works end to end, UPI confirms by itself throug
 
 Safety and money. None of this is visible to customers, all of it matters.
 
-- [ ] **Only the kiosk can place orders.** Today anyone who knows the web address can send orders to the kitchen. Fix: a key that only the shop's tablet holds, plus a limit on orders per minute. (`docs/audit.md` A1)
-- [ ] **Today's orders are not public.** The list of orders (names, items, totals) can be read without a PIN, and with an order's id an unpaid UPI order can be cancelled. Fix: PIN for the full list; the TV gets numbers only. (A2)
-- [ ] **A separate owner PIN.** One 4-digit PIN opens both the kitchen and the takings, prices and menu. Fix: a second, longer PIN for the owner app. (A3)
+- [x] **Only the kiosk can place orders** (2026-11-14: staff PIN once per tablet, then a signed key; 120 orders a minute at most). Today anyone who knows the web address can send orders to the kitchen. Fix: a key that only the shop's tablet holds, plus a limit on orders per minute. (`docs/audit.md` A1)
+- [ ] **Today's orders are not public** (owner on 2026-11-14: leave for now). The list of orders (names, items, totals) can be read without a PIN, and with an order's id an unpaid UPI order can be cancelled. Fix: PIN for the full list; the TV gets numbers only. (A2)
+- [x] **A separate owner PIN** (2026-11-14: `OWNER_PIN`, six digits; still to set in Vercel). One 4-digit PIN opens both the kitchen and the takings, prices and menu. Fix: a second, longer PIN for the owner app. (A3)
 - [ ] **New keys and PINs.** The staff PIN, the Supabase secret key and the Easebuzz key and salt were all pasted in chat. Change all of them before launch. Changing the Easebuzz pair also stops the old kiosk, so do it on the switch-over day. (owner + me)
 - [ ] **Test mode off** (`TEST_MODE=0`): cash stops counting as paid by itself and the ₹1 test dish disappears. (A8)
 - [ ] **Clean books.** Remove the test orders and test dishes, sections and extras made while trying things, so day one's report starts at zero. (`docs/accuracy-audit.md` A5)

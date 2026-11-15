@@ -38,6 +38,16 @@ async function call<T>(url: string, init?: RequestInit & { timeoutMs?: number })
 // qr: a QR drawn from the gateway's UPI link. The last two confirm by themselves.
 export type GatewayView = { kind: 'direct' } | { kind: 'page'; url: string } | { kind: 'qr'; svg: string };
 
+const KIOSK_KEY = 'benne14.kioskKey';
+function kioskHeader(): Record<string, string> {
+  try {
+    const k = localStorage.getItem(KIOSK_KEY);
+    return k ? { 'x-kiosk-key': k } : {};
+  } catch {
+    return {};
+  }
+}
+
 export const api = {
   placeOrder: (b: {
     key: string;
@@ -48,9 +58,20 @@ export const api = {
     code?: string | null;
     phone?: string | null;
     expectTotal?: number; // the total the customer was shown; the server refuses if its own differs
-  }) => call<Order>('/api/orders', { method: 'POST', body: JSON.stringify(b) }),
+  }) => call<Order>('/api/orders', { method: 'POST', body: JSON.stringify(b), headers: kioskHeader() }),
   // What the cart asks for (the owner's switches), and whether a code works for this cart.
-  kiosk: () => call<KioskSettings>('/api/kiosk'),
+  // enrolled: is this tablet set up as the shop's kiosk (see lib/kioskkey.ts)?
+  kiosk: () => call<KioskSettings & { enrolled: boolean }>('/api/kiosk', { headers: kioskHeader() }),
+  // Staff set this tablet up as the kiosk: the PIN is typed once and the tablet keeps a key.
+  enrolKiosk: async (pin: string) => {
+    const { key } = await call<{ key: string }>('/api/kiosk', { method: 'POST', headers: { 'x-staff-pin': pin } });
+    try {
+      localStorage.setItem(KIOSK_KEY, key);
+    } catch {
+      // no storage: the tablet will ask again after a reload
+    }
+  },
+  pinDigits: () => call<{ staffDigits: number; ownerDigits: number }>('/api/staff'),
   popular: () => call<{ ids: string[] }>('/api/popular'),
   checkCode: (code: string, lines: CartLine[]) =>
     call<{ rule: DiscountRule; amount: number; short: number }>('/api/discounts/check', {
@@ -62,7 +83,11 @@ export const api = {
   today: () => call<Order[]>('/api/orders?view=today'),
   collected: () => call<{ id: string; token: string }[]>('/api/orders?view=collected'),
   menu: () => call<Overrides>('/api/menu'),
-  checkPin: (pin: string) => call<{ ok: true }>('/api/staff', { method: 'POST', headers: { 'x-staff-pin': pin } }),
+  checkPin: (pin: string, who: 'staff' | 'owner' = 'staff') =>
+    call<{ ok: true }>(`/api/staff${who === 'owner' ? '?for=owner' : ''}`, {
+      method: 'POST',
+      headers: { 'x-staff-pin': pin },
+    }),
   claim: (id: string, action: 'paid' | 'cancel') =>
     call<Order>(`/api/orders/${id}/claim`, { method: 'POST', body: JSON.stringify({ action }) }),
   mockPay: (id: string) => call<Order>(`/api/orders/${id}/pay`, { method: 'POST' }),
