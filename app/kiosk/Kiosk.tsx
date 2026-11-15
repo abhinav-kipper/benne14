@@ -23,6 +23,8 @@ const sameChoices = (a: CartLine, b: CartLine) =>
   JSON.stringify(a.choices) === JSON.stringify(b.choices) &&
   JSON.stringify([...a.notes].sort()) === JSON.stringify([...b.notes].sort());
 
+const UPI_RETRY_MS = 2 * 60_000;
+
 export default function Kiosk({ mock = false, testMode = false }: { mock?: boolean; testMode?: boolean }) {
   const [screen, setScreen] = useState<Screen>('home');
   const [type, setType] = useState<OrderType | null>(null); // asked at the end, in the cart
@@ -36,6 +38,9 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   // Has staff set this tablet up as the shop's kiosk? null until the server has said. Only a clear
   // "no" shows the PIN pad: a failed request must not lock a working kiosk.
   const [enrolled, setEnrolled] = useState<boolean | null>(null);
+  // UPI went unanswered a moment ago: the pay screen offers card and cash only until this time,
+  // then tries UPI again (the gateway is usually back within minutes).
+  const [upiOffUntil, setUpiOffUntil] = useState(0);
   const [popular, setPopular] = useState<string[]>([]); // best sellers, for the cart's suggestions
   const [orderId, setOrderId] = useState<string | null>(null);
   const [placed, setPlaced] = useState<Order | null>(null);
@@ -250,6 +255,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             type={type}
             name={name}
             onBack={() => setScreen('cart')}
+            noUpi={Date.now() < upiOffUntil}
             onChoose={async (m: PayMethod) => {
               let o: Order;
               try {
@@ -286,6 +292,13 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
               setScreen('pay');
             }}
             onCancel={reset}
+            onDown={() => {
+              checkoutKey.current = newKey();
+              setOrderId(null);
+              setPlaced(null);
+              setUpiOffUntil(Date.now() + UPI_RETRY_MS);
+              setScreen('pay');
+            }}
           />
         )}
         {screen === 'done' && orderId && <Done orderId={orderId} first={placed} onDone={reset} />}

@@ -175,7 +175,10 @@ test('kiosk: a failed payment says so, and another way to pay still works', asyn
   expect((await order(request, o.id)).status).toBe('cancelled'); // the UPI attempt is closed, not left open
 });
 
-test('kiosk: if the gateway is down, the shop’s own QR and "I’ve paid" take over', async ({ page, request }) => {
+test('kiosk: if the gateway is down, UPI steps aside and the customer pays by card or cash', async ({
+  page,
+  request,
+}) => {
   await request.post(`${FAKE}/__down`, { data: { on: true } });
   try {
     await page.setViewportSize({ width: 800, height: 1280 });
@@ -187,14 +190,23 @@ test('kiosk: if the gateway is down, the shop’s own QR and "I’ve paid" take 
     await page.getByTestId('takeaway').click();
     await page.getByTestId('continue-to-pay').click();
     await page.getByTestId('pay-upi').click();
-    await expect(page.getByTestId('i-paid')).toBeEnabled();
-    await expect(page.getByTestId('gateway-page')).toHaveCount(0);
-    await expect(page.locator('.k-upi .qrcard img')).toBeVisible();
-    const o = (await (await request.get('/api/orders?view=today')).json())[0];
-    expect((await gateway(request, o.id, 'check')).state).toBe('waiting'); // can't tell: never "failed" by mistake
-    await page.getByTestId('i-paid').click();
+    // back on the pay screen: no QR of any kind, UPI greyed out with a plain reason
+    const upi = page.getByTestId('pay-upi');
+    await expect(upi).toBeDisabled();
+    await expect(upi).toContainText('Not working right now');
+    await expect(upi).toContainText('card or cash');
+    await expect(page.locator('.k-upi')).toHaveCount(0);
+    // the UPI order that could not be paid is released, not left waiting in the kitchen
+    const today = async () =>
+      (await (await request.get('/api/orders?view=today')).json()) as { id: string; status: string }[];
+    await expect.poll(async () => (await today())[0].status).toBe('cancelled');
+    const first = (await today())[0];
+    // cash goes through as usual, as a new order
+    await page.getByTestId('pay-cash').click();
     await expect(page.getByTestId('token')).toBeVisible();
-    expect((await order(request, o.id)).status).toBe('awaiting_cash'); // staff confirm on the soundbox, as before
+    const paid = (await (await request.get('/api/orders?view=today')).json())[0];
+    expect(paid.id).not.toBe(first.id);
+    expect(paid).toMatchObject({ payMethod: 'cash', status: 'awaiting_cash' });
   } finally {
     await request.post(`${FAKE}/__down`, { data: { on: false } });
   }

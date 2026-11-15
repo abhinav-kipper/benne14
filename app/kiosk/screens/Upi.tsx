@@ -15,12 +15,14 @@ export function Upi({
   onPaid,
   onOther,
   onCancel,
+  onDown,
 }: {
   order: Order;
   mock: boolean;
   onPaid: () => void;
   onOther: () => void;
   onCancel: () => void;
+  onDown: () => void; // UPI can't be taken right now: back to card and cash
 }) {
   const live = useOrder(order.id, 1500);
   const [left, setLeft] = useState(300);
@@ -34,7 +36,7 @@ export function Upi({
     api
       .gatewayStart(order.id)
       .then((v) => live && setView(v))
-      .catch(() => live && setView({ kind: 'direct' }));
+      .catch(() => live && setView({ kind: 'down' })); // couldn't even ask: same as the gateway being down
     return () => {
       live = false;
     };
@@ -97,6 +99,10 @@ export function Upi({
   useEffect(() => {
     if (left === 0 && view?.kind === 'direct') drop(onCancel);
   }, [left, view]); // eslint-disable-line react-hooks/exhaustive-deps
+  // UPI isn't working: release this order and go back to the other ways to pay.
+  useEffect(() => {
+    if (view?.kind === 'down') drop(onDown);
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
   // Nobody answered "Still there?". If a QR was on screen it may yet be paid: leave the order waiting
   // (the kitchen screen keeps checking it) and just free the kiosk. If no QR ever appeared, nothing can
   // be paid, so the order is cancelled.

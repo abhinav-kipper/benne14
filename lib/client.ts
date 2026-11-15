@@ -34,9 +34,11 @@ async function call<T>(url: string, init?: RequestInit & { timeoutMs?: number })
   return body as T;
 }
 
-// direct: the shop's own QR, staff confirm. page: the gateway's payment page in a frame.
-// qr: a QR drawn from the gateway's UPI link. The last two confirm by themselves.
-export type GatewayView = { kind: 'direct' } | { kind: 'page'; url: string } | { kind: 'qr'; svg: string };
+// direct: the shop's own QR, staff confirm (only when no gateway is set up). page: the gateway's
+// payment page in a frame. qr: a QR drawn from the gateway's UPI link; those two confirm by
+// themselves. down: the gateway is not answering, so the kiosk offers card and cash instead.
+export type GatewayView =
+  { kind: 'direct' } | { kind: 'page'; url: string } | { kind: 'qr'; svg: string } | { kind: 'down' };
 
 const KIOSK_KEY = 'benne14.kioskKey';
 function kioskHeader(): Record<string, string> {

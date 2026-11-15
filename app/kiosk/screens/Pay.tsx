@@ -15,6 +15,7 @@ export function Pay({
   name,
   onBack,
   onChoose,
+  noUpi = false,
 }: {
   priced: ReturnType<typeof priceOrder>;
   lines: Line[];
@@ -22,6 +23,7 @@ export function Pay({
   name: string;
   onBack: () => void;
   onChoose: (m: PayMethod) => Promise<void>;
+  noUpi?: boolean; // UPI is not answering right now: card and cash only
 }) {
   const catalog = useCatalog();
   const [busy, setBusy] = useState<PayMethod | null>(null);
@@ -76,11 +78,20 @@ export function Pay({
           </div>
         </div>
       </div>
-      <button className="tile upi" onClick={() => choose('upi')} disabled={!!busy} data-testid="pay-upi">
-        <span className="lead">{busy === 'upi' ? 'Getting your QR ready…' : 'Most people pay this way'}</span>
+      <button
+        className={`tile upi ${noUpi ? 'off' : ''}`}
+        onClick={() => choose('upi')}
+        disabled={!!busy || noUpi}
+        data-testid="pay-upi"
+      >
+        <span className="lead">
+          {noUpi ? 'Not working right now' : busy === 'upi' ? 'Getting your QR ready…' : 'Most people pay this way'}
+        </span>
         <span className="big">UPI</span>
-        <span className="alt">Scan with any UPI app</span>
-        <span className="apps">Google Pay, PhonePe, Paytm, BHIM or any UPI app</span>
+        <span className="alt">{noUpi ? 'Please pay by card or cash below' : 'Scan with any UPI app'}</span>
+        <span className="apps">
+          {noUpi ? 'You pay at the counter. Sorry for the trouble.' : 'Google Pay, PhonePe, Paytm, BHIM or any UPI app'}
+        </span>
         <svg viewBox="0 0 250 312" fill="none" stroke="currentColor" strokeWidth="8" strokeLinejoin="round">
           <rect x="40" y="6" width="170" height="300" rx="28" />
           <path d="M100 26h50" strokeLinecap="round" />
