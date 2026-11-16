@@ -18,7 +18,7 @@ Safety and money. None of this is visible to customers, all of it matters.
 - [x] **What happens when the gateway is down** (2026-11-15): the kiosk offers card and cash only; no QR from the app on that path, so nothing is taken on trust. The shop's printed QR at the counter is the backup.
 - [x] **Server next to the database** (Tokyo, `vercel.json`, 2026-11-14). Still open: move both to Mumbai before launch? The server runs in the USA and the database elsewhere, so every tap waits about a second. The database is in Tokyo (`ap-northeast-1`). What costs time is the server talking to the database (three or four times per order), not the customer talking to the server, so the server belongs next to the database: Tokyo (`hnd1`) now, a one-line change. Best for Delhi in the long run is both in Mumbai, which means moving the database to a new Supabase project in `ap-south-1`: easiest before launch, while there is no real data. (A6)
 - [ ] **Paid hosting plans** (owner agreed on 2026-11-14 to upgrade both). Vercel's free plan does not allow commercial use and has request limits; Supabase's free plan pauses the database when idle and keeps no backups. Both need the paid plan (about US$20 and US$25 a month). (A7, owner)
-- [ ] **A proper tax bill.** GSTIN, FSSAI number, shop address and a running invoice number on the phone bill. Needs the numbers, and the accountant's answer on whether menu prices include GST. (accuracy C1, ui U10)
+- [x] **A proper tax bill** (2026-11-16): GSTIN, FSSAI number, shop address and a running invoice number on the phone bill (`docs/tax-invoice.md`). Still needed from the accountant: regular or composition scheme, and whether the legal name must be printed. (accuracy C1, ui U10)
 
 ## Stage 2 — So a normal day cannot break it
 

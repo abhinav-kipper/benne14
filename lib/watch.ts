@@ -44,6 +44,7 @@ export async function systemReport(store: Store) {
       missingMigrations: missing,
       testMode,
       ownerPinSet: !!ownerPin(),
+      fssaiFeePaidUpto: SHOP.fssai.feePaidUpto,
       payments: events
         .filter((e) => e.kind === 'payment')
         .map((e) => ({ at: e.at, subject: e.subject, note: e.note ?? e.after })),

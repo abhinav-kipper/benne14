@@ -18,6 +18,8 @@ import {
   type OrderEvent,
   type OrderStatus,
   type PlaceOrderInput,
+  financialYear,
+  invoiceNumber,
 } from '../orders';
 import { DEFAULT_SETTINGS, type Customer, type DiscountCode, type KioskSettings } from '../discounts';
 import { optionKey, type CustomItem, type ExtrasLayout, type Overrides, type SectionsLayout } from '../menu';
@@ -69,6 +71,14 @@ export class MemoryStore {
   private keys = new Map<string, string>();
   private errors: ErrorEntry[] = [];
   private timings: Timing[] = [];
+  private invoices = new Map<string, number>(); // financial year → last invoice number given
+  // The next invoice number, as the database's trigger gives it: at the moment an order is paid.
+  private invoice(paidAt: string) {
+    const fy = financialYear(paidAt);
+    const n = (this.invoices.get(fy) ?? 0) + 1;
+    this.invoices.set(fy, n);
+    return invoiceNumber(fy, n);
+  }
   private layout = {
     hidden: [] as string[],
     order: [] as string[],
@@ -179,6 +189,7 @@ export class MemoryStore {
       status: to,
       updatedAt: now,
       paidAt: o.paidAt ?? (to === 'new' ? now : null),
+      invoiceNo: o.invoiceNo ?? (to === 'new' && !o.paidAt ? this.invoice(now) : null),
       readyAt: to === 'ready' ? now : to === 'cooking' ? null : o.readyAt,
     };
     this.orders.set(id, next);
@@ -205,7 +216,15 @@ export class MemoryStore {
     if (isPaid(o)) return o; // already paid (this payment again, or staff got there first)
     if (o.status === 'cancelled') throw new StoreError(`Order ${o.token} is cancelled and can't take a payment`, 409);
     const now = new Date().toISOString();
-    const next: Order = { ...o, status: 'new', updatedAt: now, paidAt: now, payGateway: p.gateway, payRef: p.ref };
+    const next: Order = {
+      ...o,
+      status: 'new',
+      updatedAt: now,
+      paidAt: now,
+      invoiceNo: this.invoice(now),
+      payGateway: p.gateway,
+      payRef: p.ref,
+    };
     this.orders.set(id, next);
     const name = p.gateway[0].toUpperCase() + p.gateway.slice(1);
     this.log(id, {

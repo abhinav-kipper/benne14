@@ -29,6 +29,7 @@ export interface Row {
   created_at: string;
   updated_at: string;
   paid_at: string | null;
+  invoice_no?: string | null; // from migration 0015
   ready_at: string | null;
   refunded_at?: string | null;
   refund_reason?: string | null;
@@ -108,6 +109,7 @@ export const toOrder = (r: Row): Order => ({
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   paidAt: r.paid_at,
+  invoiceNo: r.invoice_no ?? null,
   readyAt: r.ready_at,
   refundedAt: r.refunded_at ?? null,
   refundReason: r.refund_reason ?? null,

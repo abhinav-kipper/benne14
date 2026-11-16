@@ -3,7 +3,7 @@
 // so the two can't drift apart. Nothing here depends on the clock.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MIGRATIONS } from '@/lib/migrations';
-import type { PlaceOrderInput } from '@/lib/orders';
+import { financialYear, invoiceNumber, type PlaceOrderInput } from '@/lib/orders';
 import { priceOrder } from '@/lib/pricing';
 import type { Store } from '@/lib/store';
 
@@ -59,6 +59,36 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(await s.findByCheckout(key.slice(0, -1))).toBeNull(); // and so is a shorter one
       const old = await s.placeOrder({ ...input(), key: `${key}-old` }); // stored before fingerprints existed
       expect(await s.findByCheckout(`${key}-old`)).toMatchObject({ order: { id: old.id }, fingerprint: null });
+    });
+
+    it('gives an invoice number when an order is paid: one unbroken run, never changed, never for an unpaid order', async () => {
+      const a = await s.placeOrder(input('cash'));
+      const b = await s.placeOrder(input('upi'));
+      const c = await s.placeOrder(input('card'));
+      expect([a, b, c].map((o) => o.invoiceNo ?? null)).toEqual([null, null, null]); // not paid yet
+      // paid in another order than they were placed: invoice numbers follow the payments
+      const cPaid = await s.setStatus(c.id, 'new');
+      const bPaid = await s.confirmPayment(b.id, { gateway: 'easebuzz', ref: 'E1', bankRef: null });
+      const fy = financialYear(cPaid.paidAt!);
+      expect(cPaid.invoiceNo).toBe(invoiceNumber(fy, 1));
+      expect(bPaid.invoiceNo).toBe(invoiceNumber(fy, 2));
+      // the walk-away never gets one, and leaves no gap
+      await s.setStatus(a.id, 'cancelled');
+      expect((await s.getOrder(a.id))!.invoiceNo ?? null).toBeNull();
+      const d = await s.placeOrder(input('cash'));
+      expect((await s.setStatus(d.id, 'new')).invoiceNo).toBe(invoiceNumber(fy, 3));
+      // nothing that happens later changes it: cooking, a repeat of the payment, a refund
+      await s.setStatus(c.id, 'cooking');
+      await s.confirmPayment(b.id, { gateway: 'easebuzz', ref: 'E1', bankRef: null });
+      await s.refund(c.id, 'Wrong order');
+      expect((await s.getOrder(c.id))!.invoiceNo).toBe(invoiceNumber(fy, 1));
+      expect((await s.getOrder(b.id))!.invoiceNo).toBe(invoiceNumber(fy, 2));
+      // ten paid at the same moment: ten different numbers, none skipped
+      const many = await Promise.all(Array.from({ length: 10 }, () => s.placeOrder(input('cash'))));
+      const paid = await Promise.all(many.map((o) => s.setStatus(o.id, 'new')));
+      expect(paid.map((o) => o.invoiceNo).sort()).toEqual(
+        Array.from({ length: 10 }, (_, i) => invoiceNumber(fy, 4 + i)),
+      );
     });
 
     it('moves an order through the kitchen and refuses impossible or stale moves', async () => {

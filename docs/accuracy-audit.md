@@ -84,7 +84,7 @@ wrong order or a wrong report today. **Medium** = correct today, but nothing sto
 
 ## C. For the owner and the accountant (Decide)
 
-- [ ] **C1 Invoice numbers.** The bill carries the daily order number (1, 2, 3… every day). A GST
+- [x] **C1 Invoice numbers** (2026-11-16, migration 0015, `docs/tax-invoice.md`). The bill carries the daily order number (1, 2, 3… every day). A GST
   tax invoice needs a number that is unique and consecutive within the financial year, plus GSTIN
   and address (`docs/ui-audit.md` U10). Proposal: a separate invoice number given when the order is
   paid, gap-free, e.g. `B14/26-27/000123`; cancelled and unpaid orders never get one.
