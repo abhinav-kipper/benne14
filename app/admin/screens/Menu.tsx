@@ -5,6 +5,7 @@ import { admin, ApiError } from '@/lib/client';
 import { TEST_CAT, mergeCatalog, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
 import { SectionsSheet } from './Sections';
 import { Check, DishSheet, HideButton, SetPicker } from './Dish';
+import { PhotoField } from './PhotoField';
 import { ExtrasSheet } from './Extras';
 import { Bar, type Ctx } from './shared';
 
@@ -332,6 +333,9 @@ function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; s
   const [name, setName] = useState(item.name);
   const [desc, setDesc] = useState(item.desc);
   const [group, setGroup] = useState<string | null>(item.groups[0] ?? null);
+  // The owner's own photo of this dish, if they took one; null = the photo that came with the app.
+  const [photo, setPhoto] = useState<string | null>(item.photo ?? null);
+  const [uploading, setUploading] = useState(false);
   // prices of the extras that came with the app; the owner's own are edited in the Extras sheet
   const extras = item.groups
     .map((g) => cat.groups[g])
@@ -375,6 +379,7 @@ function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; s
       if (Object.keys(patch).length > 1) await admin.saveItem(p.pin, patch); // one request: all of it or none
       if (group !== (item.groups[0] ?? null))
         await admin.extrasChange(p.pin, { dishSets: { itemId: item.id, sets: group ? [group] : [] } });
+      if (photo !== (item.photo ?? null)) await admin.menuChange(p.pin, { photo: { itemId: item.id, url: photo } });
       p.saved();
     } catch (e) {
       p.onAuthError(e);
@@ -393,6 +398,21 @@ function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; s
             <div className="disp ttl">{item.name}</div>
           </div>
         </div>
+        <PhotoField
+          {...p}
+          photo={photo ?? photoFor({ id: item.id })}
+          onPhoto={setPhoto}
+          onError={setErr}
+          disabled={busy}
+          onBusy={setUploading}
+          hint="Your own photo of this dish. Hold the phone level, plate in the middle."
+        >
+          {photo && (
+            <button className="linkbtn" onClick={() => setPhoto(null)} disabled={busy} data-testid="ed-photo-reset">
+              Use the original photo
+            </button>
+          )}
+        </PhotoField>
         <div className="field">
           <label htmlFor="ed-price">Price</label>
           <div className="money">
@@ -462,7 +482,7 @@ function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; s
         </div>
         {err && <div className="err">{err}</div>}
         <div className="actions">
-          <button className="btn y" onClick={save} disabled={busy} data-testid="ed-save">
+          <button className="btn y" onClick={save} disabled={busy || uploading} data-testid="ed-save">
             {busy ? 'Saving…' : 'Save'}
           </button>
           <button className="btn o" onClick={p.close}>

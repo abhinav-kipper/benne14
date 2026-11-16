@@ -110,6 +110,30 @@ describe("the owner's own dishes, hidden dishes and the order of the menu", () =
   });
 });
 
+describe("the owner's own photo of a dish that came with the app", () => {
+  const o = (photos: Record<string, string>): Overrides => ({ items: {}, options: {}, extras: { photos } });
+  const own = 'https://shop.test/storage/v1/object/public/dish-photos/a.jpg';
+
+  it('replaces the photo that came with the app, on that dish only', () => {
+    const cat = mergeCatalog(o({ 'masala-dosa': own }));
+    expect(photoFor(itemById('masala-dosa', cat))).toBe(own);
+    expect(photoFor(itemById('plain-dosa', cat))).toBe('/food/plain-dosa.jpg');
+    expect(photoFor(itemById('masala-dosa', mergeCatalog(o({}))))).toBe('/food/masala-dosa.jpg'); // taken away: the original
+  });
+
+  it('changes nothing else about the dish, and cannot touch the payment test or an unknown dish', () => {
+    const { photo: _p, ...withOwn } = itemById('masala-dosa', mergeCatalog(o({ 'masala-dosa': own })))!;
+    const { photo: _q, ...plain } = itemById('masala-dosa', BASE_CATALOG)!;
+    expect(withOwn).toEqual(plain);
+    const all = mergeCatalog(o({ 'test-1': own, 'no-such-dish': own }), true);
+    expect(itemById('test-1', all)?.photo).toBeUndefined();
+    expect(all.items.some((i) => i.id === 'no-such-dish')).toBe(false);
+    // the order is priced exactly as before
+    const line = [{ itemId: 'masala-dosa', qty: 1, choices: {}, notes: [] }];
+    expect(priceOrder(line, mergeCatalog(o({ 'masala-dosa': own }))).total).toBe(priceOrder(line).total);
+  });
+});
+
 describe("the owner's sections", () => {
   const lay = {
     custom: [{ id: 's-sweets01', name: 'Sweets' }],

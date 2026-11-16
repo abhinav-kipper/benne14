@@ -678,6 +678,74 @@ test('owner hides a dish and brings it back; a hidden dish cannot be ordered', a
   expect((await orderIt(request, 'thatte-idli')).ok()).toBe(true);
 });
 
+test('owner changes the photo of a dish that came with the app; the kiosk shows it; the original can come back', async ({
+  page,
+  request,
+  browser,
+}) => {
+  const srcOnKiosk = async () => {
+    const kiosk = await browser.newPage({ viewport: { width: 800, height: 1280 } });
+    await kiosk.goto('/kiosk');
+    await kiosk.getByTestId('start').click();
+    const src = await kiosk.getByTestId('item-mallige-idli').locator('img').first().getAttribute('src');
+    await kiosk.close();
+    return src;
+  };
+  expect(await srcOnKiosk()).toBe('/food/mallige-idli.jpg');
+  const priceBefore = (await (await order(request, 'mallige-idli')).json()).total;
+
+  await owner(page);
+  await page.getByTestId('tab-menu').click();
+  await page.getByTestId('mi-mallige-idli').locator('.open').click();
+  const sheet = page.getByTestId('edit-sheet');
+  await expect(sheet.getByTestId('dish-photo')).toHaveAttribute('src', '/food/mallige-idli.jpg'); // what it has now
+  await expect(sheet.getByTestId('ed-photo-reset')).toHaveCount(0); // nothing to go back to yet
+  await sheet.getByTestId('dish-file').setInputFiles('public/food/thatte-idli.jpg');
+  await expect(sheet.getByTestId('dish-photo')).toHaveAttribute('src', /^data:image\/jpeg/, { timeout: 10_000 });
+  await sheet.getByTestId('ed-save').click();
+  await expect(sheet).toHaveCount(0);
+  // the owner's list, the public menu and the kiosk all show the new photo; nothing else changed
+  await expect(page.getByTestId('mi-mallige-idli').locator('img')).toHaveAttribute('src', /^data:image\/jpeg/);
+  const menu = await publicMenu(request);
+  expect(menu.extras.photos['mallige-idli']).toMatch(/^data:image\/jpeg/);
+  expect(await srcOnKiosk()).toMatch(/^data:image\/jpeg/);
+  expect((await (await order(request, 'mallige-idli')).json()).total).toBe(priceBefore);
+  const log = await (await request.get('/api/admin/events', { headers: H })).json();
+  expect(log[0]).toMatchObject({ kind: 'menu', subject: 'Mallige Idli', after: 'New photo' });
+
+  // back to the original
+  await page.getByTestId('mi-mallige-idli').locator('.open').click();
+  await sheet.getByTestId('ed-photo-reset').click();
+  await expect(sheet.getByTestId('dish-photo')).toHaveAttribute('src', '/food/mallige-idli.jpg');
+  await sheet.getByTestId('ed-save').click();
+  await expect(sheet).toHaveCount(0);
+  expect((await publicMenu(request)).extras.photos?.['mallige-idli']).toBeUndefined();
+  expect(await srcOnKiosk()).toBe('/food/mallige-idli.jpg');
+});
+
+test('photo of a built-in dish: needs the owner PIN, a real dish and a photo this app stored', async ({ request }) => {
+  const send = (photo: unknown, headers: Record<string, string> = H) => dishes(request, { photo }, headers);
+  // (wrong PINs count towards the lockout of an address: these come from one of their own)
+  const elsewhere = { 'x-forwarded-for': '10.44.0.9' };
+  expect((await send({ itemId: 'masala-dosa', url: null }, elsewhere)).status()).toBe(401);
+  expect((await send({ itemId: 'masala-dosa', url: null }, { ...elsewhere, 'x-staff-pin': STAFF_PIN })).status()).toBe(
+    401,
+  );
+  for (const bad of [
+    null,
+    'masala-dosa',
+    { itemId: 'no-such-dish', url: null },
+    { itemId: 'test-1', url: null }, // the payment test dish is not the owner's to change
+    { itemId: 'masala-dosa', url: 'https://example.com/someone-elses.jpg' },
+    { itemId: 'masala-dosa', url: '/food/plain-dosa.jpg' },
+    { itemId: 'masala-dosa', url: 'javascript:alert(1)' },
+    { itemId: 'masala-dosa', url: 42 },
+  ])
+    expect((await send(bad)).status(), JSON.stringify(bad)).toBe(400);
+  expect((await send({ itemId: 'masala-dosa', url: null })).status()).toBe(200); // nothing to undo is fine
+  expect((await publicMenu(request)).extras?.photos?.['masala-dosa']).toBeUndefined();
+});
+
 test('dishes API: PIN, bad input, drafts, photos', async ({ request }) => {
   const good = { cat: 'idli', name: 'Rava Idli', desc: 'Soft.', price: 99, groups: ['idliExtras'], photo: null };
   expect((await request.get('/api/admin/dishes')).status()).toBe(401);
