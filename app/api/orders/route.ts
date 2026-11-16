@@ -58,17 +58,22 @@ async function place(req: Request) {
       .update(JSON.stringify([b.type, b.payMethod, name, phone, code, b.lines]))
       .digest('hex')
       .slice(0, 24);
-    const before = await store.findByCheckout(b.key);
+    // (The menu and the owner's switches are asked for in the same breath: they are needed for any
+    // new order, and reading them together saves the customer two round trips to the database.)
+    const [before, overrides, settings] = await Promise.all([
+      store.findByCheckout(b.key),
+      store.getOverrides(),
+      phone || code ? store.getSettings() : null,
+    ]);
     if (before && before.fingerprint === fingerprint) return json(before.order, 201);
 
     // Price from the menu as the owner set it (prices, sold out today), never from the request.
-    const catalog = mergeCatalog(await store.getOverrides());
+    const catalog = mergeCatalog(overrides);
     const out = (b.lines as CartLine[])
       .map((l) => itemById((l as Partial<CartLine> | null)?.itemId ?? '', catalog))
       .find((i) => i?.soldOut);
     if (out) return json({ error: `Sorry, ${out.name} just sold out. Please remove it from your order.` }, 409);
     // The owner's switches decide what is taken: a code or a number sent while its switch is off is not used.
-    const settings = phone || code ? await store.getSettings() : null;
     let rule: DiscountRule | null = null;
     if (code) {
       const found = settings!.codes ? await store.getCode(code) : null;

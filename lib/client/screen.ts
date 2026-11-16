@@ -59,25 +59,35 @@ export function chime(ctx: AudioContext | null, notes = [880, 1320]) {
 }
 
 // Can the shop take an order right now (server reachable, database answering)? Asked every 10 s.
-// One failed answer can be a blip; two in a row means down. The first good answer means up again.
-export function useServerUp(on = true) {
+// One failed answer can be a blip; two in a row, at least five seconds apart, means down. The first
+// good answer means up again.
+const DOWN_AFTER_MS = 5000;
+export function useServerUp(on = true): [up: boolean, seen: () => void] {
   const [up, setUp] = useState(true);
   const fails = useRef(0);
+  const firstFail = useRef(0);
+  // Anything else that just got an answer from the server may say so: it is up.
+  const seen = useCallback(() => {
+    fails.current = 0;
+    setUp(true);
+  }, []);
   usePoll(
     async () => {
       try {
         await call<{ ok: boolean }>('/api/ping', { timeoutMs: 6000 });
-        fails.current = 0;
-        setUp(true);
+        seen();
       } catch {
-        if (++fails.current >= 2) setUp(false);
+        if (!fails.current) firstFail.current = Date.now();
+        // Two failures, and not in the same breath: a phone or tablet that has just woken up can fail
+        // twice within a second before its Wi-Fi is back, and that is not the shop being down.
+        if (++fails.current >= 2 && Date.now() - firstFail.current >= DOWN_AFTER_MS) setUp(false);
         return false;
       }
     },
     10_000,
     on,
   );
-  return up;
+  return [up, seen];
 }
 
 // Keep the screen on: a kiosk, kitchen display or TV that dims or sleeps is a screen out of service.

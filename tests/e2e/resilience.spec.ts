@@ -235,6 +235,51 @@ test('kiosk: when the shop cannot take orders, customers are sent to the counter
   await expect(page.getByTestId('item-masala-tea')).toBeVisible();
 });
 
+test('kiosk: a slow moment while an order is being placed never flashes "order at the counter"', async ({ page }) => {
+  await page.clock.install();
+  await kioskTo(page);
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('continue-to-pay').click();
+  // the server answers nothing for a while: the order is held, and the "are you there?" checks fail
+  let release = () => {};
+  const held = new Promise<void>((r) => (release = r));
+  await page.route('**/api/orders', async (r) => {
+    if (r.request().method() !== 'POST') return r.continue();
+    await held;
+    await r.continue();
+  });
+  await page.route('**/api/ping', (r) => r.abort('internetdisconnected'));
+  await page.getByTestId('pay-cash').click();
+  await page.clock.runFor(11_000); // well under the 12 s an order may take, long enough for the checks to fail
+  await expect(page.getByTestId('counter-please')).toHaveCount(0); // the customer still sees their own order going through
+  await expect(page.getByTestId('pay-cash')).toBeDisabled();
+  release();
+  await expect(page.getByTestId('token')).toBeVisible(); // straight to the order number, no detour
+  await expect(page.getByTestId('counter-please')).toHaveCount(0);
+});
+
+test('kiosk: two failed checks in the same second (a tablet waking up) are not an outage', async ({ page }) => {
+  await page.clock.install();
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await expect(page.getByTestId('start')).toBeVisible();
+  let pings = 0;
+  await page.route('**/api/ping', (r) => {
+    pings++;
+    return r.abort('internetdisconnected');
+  });
+  // the tablet wakes: the browser says "online" twice before the Wi-Fi really is
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('online'));
+    window.dispatchEvent(new Event('online'));
+  });
+  await expect.poll(() => pings).toBeGreaterThanOrEqual(2);
+  await page.clock.runFor(1000);
+  await expect(page.getByTestId('counter-please')).toHaveCount(0);
+  await page.clock.runFor(25_000); // still nothing after that: now it is an outage
+  await expect(page.getByTestId('counter-please')).toBeVisible();
+});
+
 test('kiosk: a customer mid-order keeps their cart through an outage', async ({ page }) => {
   await page.clock.install();
   await kioskTo(page);
