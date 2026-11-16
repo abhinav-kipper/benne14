@@ -50,6 +50,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-15 — The three biggest files split with no change in behaviour: the browser client (`lib/client/`), the kitchen screen (`app/kitchen/` parts) and the Supabase store (`lib/store/supabase/`, one file per area). Code moved, not rewritten.
 - 2026-11-15 — Clean-up: unused helpers and CSS removed, docs corrected (PINs, kiosk key, Easebuzz, the API table), `docs/README.md` lists every doc, pre-build plans moved to `docs/history/`, `scripts/serve-local.sh` and `scripts/stop-server.sh` added, `CLAUDE.md` now holds how to work with the owner and how to run things in a session.
 - 2026-11-15 — When Easebuzz does not answer, the kiosk no longer shows the shop's own QR: the UPI order is released and the pay screen offers card and cash, with UPI greyed out for two minutes before it is tried again (owner's call: the printed QR at the counter is the backup). Feature study of TastyIgniter, Petpooja and the kiosk vendors in `docs/feature-research.md`.
 - 2026-11-14 — Security locks (`docs/go-live.md` stage 1): orders are accepted only from a tablet staff have set up as the kiosk (staff PIN once, the tablet then holds a signed key; at most 120 orders a minute per tablet), and the owner app takes its own six-digit `OWNER_PIN` (the staff PIN no longer opens it once that is set; the owner PIN still does everything the staff PIN does). The TV and the public order list are unchanged (owner's call).

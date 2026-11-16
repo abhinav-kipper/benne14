@@ -10,16 +10,16 @@ Next.js 15 (App Router, TS strict) · Supabase (Postgres with RLS; server-only a
 
 ```
 app/kiosk  app/admin                 Kiosk.tsx / Admin.tsx hold state; one file per screen in screens/
-app/kitchen  app/board  app/r/[id]   kitchen display, TV board, phone bill
+app/kitchen  app/board  app/r/[id]   kitchen display (Kitchen.tsx + Chit, Pass, Tray, History, hooks), TV board, phone bill
 app/api/...                          route handlers: the only code that touches the database
 components/                          Fit (scaled fixed-size designs), PinGate, Catalog (menu state via context), Recover (crash screen)
 lib/menu.ts  pricing.ts  orders.ts   menu in code + owner overrides (mergeCatalog), pricing + GST, order model
 lib/reports.ts  admin.ts  server.ts  dashboard numbers, input cleaning, PINs + lockout + rate limits
-lib/client.ts                        every browser API call and hook (usePoll, useWatch, useServerUp…)
+lib/client/                          every browser API call and hook, one file per concern; import from '@/lib/client'
 lib/gateway.ts  easebuzz.ts          payments; lib/kioskkey.ts the kiosk's signed key
 lib/system.ts  watch.ts  push.ts     System page rules, the check that runs them, notifications
 scripts/                             serve-local.sh, stop-server.sh
-lib/store/{memory,supabase}.ts       storage behind one interface; both pass tests/support/store-contract.ts
+lib/store/memory.ts  supabase/       storage behind one interface (supabase/ has one file per area); both pass tests/support/store-contract.ts
 supabase/migrations/                 SQL, run by hand in Supabase in order; listed in lib/migrations.ts
 tests/unit  tests/integration  tests/e2e  tests/smoke
 ```
@@ -49,6 +49,7 @@ Commands: `npm run dev` · `npm run check` (typecheck, lint, format check, unit 
 - Secrets only from env (`.env.local`, Vercel, cloud environment settings). Never commit or paste keys.
 - Every feature: at least one unit test (logic) and one Playwright test (user-visible flow). API inputs also get a bad-input case in `tests/e2e/api.spec.ts`; anything that talks to the network gets a failure case in `tests/e2e/resilience.spec.ts`.
 - No new dependency without a one-line reason in the PR.
+- Keep files small and about one thing. When a screen or module passes about 400 lines, split it the way `app/kitchen/` and `lib/client/` are split: move code, don't rewrite it, and keep the import path the same.
 
 ## Workflow
 

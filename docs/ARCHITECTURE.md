@@ -7,7 +7,7 @@ to route handlers under `app/api`; the handlers are the only code that touches t
 
 ```
 app/kiosk/Kiosk.tsx + screens/      kiosk: cart + screen switching; one file per screen
-app/kitchen/Kitchen.tsx             kitchen display
+app/kitchen/Kitchen.tsx + parts     kitchen display: Chit, Pass (payments + ready), Tray, History, hooks, icons
 app/board/Board.tsx                 TV order board
 app/r/[id]/Receipt.tsx              phone bill + live status
 app/admin/Admin.tsx + screens/      owner dashboard: PIN gate + tabs; one file per tab
@@ -17,8 +17,8 @@ lib/menu.ts                         the dishes, extras and notes, in code + merg
 lib/pricing.ts                      prices a cart: extras, 5% GST rounded to the rupee
 lib/orders.ts                       order model, status rules, IST day helpers
 lib/reports.ts                      dashboard numbers and CSV, pure functions over orders
-lib/store/                          storage: memory.ts (dev, tests) and supabase.ts (production), one interface
-lib/client.ts                       browser API calls and polling hooks
+lib/store/                          storage: memory.ts (dev, tests) and supabase/ (production: orders, menu, events, offers, system), one interface
+lib/client/                         browser side: http, api (screens), admin (owner app), poll, screen (self-care), watch
 lib/server.ts, lib/admin.ts         request helpers: JSON bodies, the two PINs + lockout, input cleaning
 lib/kioskkey.ts                     the signed key a set-up kiosk tablet sends with every order
 lib/easebuzz.ts, lib/gateway.ts     the payment gateway; settle() is the one place a payment is confirmed
