@@ -15,4 +15,5 @@ export const MIGRATIONS = [
   '0011_owner_extras',
   '0012_system_watch',
   '0013_owner_alerts',
+  '0014_tech_page',
 ];

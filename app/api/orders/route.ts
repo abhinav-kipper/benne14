@@ -7,13 +7,14 @@ import { cleanName, isCheckoutKey, isPaid, istDay, storedKey, type OrderType, ty
 import { after } from 'next/server';
 import { ordersToRecheck, recheck } from '@/lib/gateway';
 import { getStore } from '@/lib/store';
-import { fail, json, kioskOk, limited, paymentMode, readJson } from '@/lib/server';
+import { fail, json, kioskOk, limited, paymentMode, readJson, timed } from '@/lib/server';
 import { isTestMode } from '@/lib/testmode';
 
 export const dynamic = 'force-dynamic';
 
 // Kiosk checkout. The body carries item ids and choices only; prices come from the server's menu.
-export async function POST(req: Request) {
+export const POST = (req: Request) => timed('order.place', () => place(req));
+async function place(req: Request) {
   try {
     // Only a tablet staff have set up as the kiosk may place orders (lib/kioskkey.ts), and no screen
     // places more than a very busy counter could: 120 a minute (retries of one order count too).
@@ -115,7 +116,8 @@ export async function POST(req: Request) {
 
 // Live orders for the kitchen and the board. ?view=today: today's full history, newest first.
 // ?view=collected: just the last few collected order numbers (the TV's "Collected" row).
-export async function GET(req: Request) {
+export const GET = (req: Request) => timed('orders.list', () => list(req), true);
+async function list(req: Request) {
   try {
     const store = getStore();
     const view = new URL(req.url).searchParams.get('view');

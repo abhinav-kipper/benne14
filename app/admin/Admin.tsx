@@ -6,6 +6,7 @@ import { CatalogProvider, useMenu } from '@/components/Catalog';
 import { PinGate, OWNER_PIN_KEY as PIN_KEY } from '@/components/PinGate';
 import { admin, api, ApiError, useLiveOrders, usePoll, useWatch, type SystemReport } from '@/lib/client';
 import { System } from './screens/System';
+import { Tech } from './screens/Tech';
 import { History } from './screens/History';
 import { Menu } from './screens/Menu';
 import { Offers } from './screens/Offers';
@@ -84,7 +85,8 @@ export default function Admin() {
         {tab === 'today' && (
           <Today {...ctx} live={live.orders ?? []} refreshLive={live.refresh} go={setTab} sys={sys} />
         )}
-        {tab === 'system' && <System {...ctx} sys={sys} back={() => setTab('today')} />}
+        {tab === 'system' && <System {...ctx} sys={sys} back={() => setTab('today')} openTech={() => setTab('tech')} />}
+        {tab === 'tech' && <Tech {...ctx} back={() => setTab('system')} />}
         {tab === 'orders' && <Orders {...ctx} refreshLive={live.refresh} />}
         {tab === 'menu' && <Menu {...ctx} openHistory={() => setTab('history')} />}
         {tab === 'offers' && <Offers {...ctx} />}
@@ -95,7 +97,11 @@ export default function Admin() {
             <button
               key={t}
               className={
-                tab === t || (t === 'menu' && tab === 'history') || (t === 'today' && tab === 'system') ? 'on' : ''
+                tab === t ||
+                (t === 'menu' && tab === 'history') ||
+                (t === 'today' && (tab === 'system' || tab === 'tech'))
+                  ? 'on'
+                  : ''
               }
               onClick={() => setTab(t)}
               data-testid={`tab-${t}`}

@@ -50,6 +50,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-16 — Technical page in the owner app (System → Technical detail), for whoever looks after the system: how long placing an order, kitchen taps and Easebuzz calls take, errors grouped with a count, payments and orders that are stuck, the database's size, and a "Copy report" button that copies all of it as text to paste into a chat. Needs migration 0014. Everything stays inside the app: no outside service.
 - 2026-11-15 — The three biggest files split with no change in behaviour: the browser client (`lib/client/`), the kitchen screen (`app/kitchen/` parts) and the Supabase store (`lib/store/supabase/`, one file per area). Code moved, not rewritten.
 - 2026-11-15 — Clean-up: unused helpers and CSS removed, docs corrected (PINs, kiosk key, Easebuzz, the API table), `docs/README.md` lists every doc, pre-build plans moved to `docs/history/`, `scripts/serve-local.sh` and `scripts/stop-server.sh` added, `CLAUDE.md` now holds how to work with the owner and how to run things in a session.
 - 2026-11-15 — When Easebuzz does not answer, the kiosk no longer shows the shop's own QR: the UPI order is released and the pay screen offers card and cash, with UPI greyed out for two minutes before it is tried again (owner's call: the printed QR at the counter is the backup). Feature study of TastyIgniter, Petpooja and the kiosk vendors in `docs/feature-research.md`.

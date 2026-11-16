@@ -43,6 +43,7 @@ describe.skipIf(!URL_)('Supabase store on a real database', () => {
       'menu_layout?id=not.is.null',
       'devices?id=not.is.null',
       'error_log?id=not.is.null',
+      'timings?id=not.is.null',
       'push_subs?endpoint=not.is.null',
       'alerts?key=not.is.null',
       'app_keys?name=not.is.null',

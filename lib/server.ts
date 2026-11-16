@@ -1,12 +1,13 @@
 // Small helpers for API route handlers.
 import 'server-only';
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { OrderError } from './pricing';
 import { checkKioskKey, makeKioskKey } from './kioskkey';
 import { FailureLimiter } from './ratelimit';
 import { getStore } from './store';
 import { StoreError } from './store/memory';
 import { clip } from './system';
+import { SLOW_MS } from './tech';
 import { BUILD_ID } from './version';
 
 export const json = (data: unknown, status = 200) =>
@@ -54,6 +55,32 @@ function recordServerError(e: unknown) {
       .catch(() => {});
   } catch {
     // no store: nothing to record it in
+  }
+}
+
+// How long a step took, kept for the owner app's technical page (lib/tech.ts). `slowOnly` is for
+// steps that run all day (polling): they are recorded only when slow or failed. Recording happens
+// after the answer has gone out and can never fail the step it measures.
+export async function timed<T>(op: string, run: () => Promise<T>, slowOnly = false): Promise<T> {
+  const start = Date.now();
+  let ok = false;
+  try {
+    const out = await run();
+    ok = !(out instanceof Response) || out.status < 500;
+    return out;
+  } finally {
+    const ms = Date.now() - start;
+    if (!slowOnly || !ok || ms >= SLOW_MS) {
+      const save = () =>
+        getStore()
+          .logTiming({ op, ms, ok, build: BUILD_ID })
+          .catch(() => {});
+      try {
+        after(save);
+      } catch {
+        void save(); // outside a request (tests): just don't wait for it
+      }
+    }
   }
 }
 

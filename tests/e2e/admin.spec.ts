@@ -1119,6 +1119,57 @@ const system = async (r: APIRequestContext) =>
     build: string;
   };
 
+test('the technical page shows speed, grouped errors and a report to copy; it needs the owner PIN', async ({
+  page,
+  request,
+  context,
+}) => {
+  expect((await request.get('/api/admin/tech')).status()).toBe(401);
+  expect((await request.get('/api/admin/tech', { headers: { 'x-staff-pin': STAFF_PIN } })).status()).toBe(401);
+  // an order is placed and started, and the same thing goes wrong twice on a screen
+  const o = await (await order(request, 'masala-dosa')).json();
+  await request.post(`/api/orders/${o.id}/status`, { data: { to: 'cooking' }, headers: H });
+  const ip = { 'x-forwarded-for': '10.9.8.7' };
+  for (let n = 0; n < 2; n++)
+    await request.post('/api/log', {
+      data: { source: 'kiosk', message: 'tech page test error', detail: 'at line 7', device: 'kiosk0000009' },
+      headers: ip,
+    });
+  await expect
+    .poll(async () => {
+      const r = await (await request.get('/api/admin/tech', { headers: H })).json();
+      return r.speed.map((s: { op: string }) => s.op).join(',');
+    })
+    .toContain('order.move');
+  const r = await (await request.get('/api/admin/tech', { headers: H })).json();
+  expect(r.speed.find((s: { op: string }) => s.op === 'order.place').count).toBeGreaterThan(0);
+  expect(r.errors.find((e: { message: string }) => e.message === 'tech page test error').count).toBe(2);
+  expect(r.db.rows.orders).toBeGreaterThan(0);
+  expect(JSON.stringify(r)).not.toContain(PIN);
+
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await owner(page);
+  await page.getByTestId('sysline').click();
+  await page.getByTestId('open-tech').click();
+  const tech = page.getByTestId('tech');
+  await expect(tech.getByTestId('speed-order.place')).toContainText('Placing an order');
+  await expect(tech.getByTestId('speed-order.place')).toContainText('usually');
+  const group = tech.getByTestId('errgroup').filter({ hasText: 'tech page test error' });
+  await expect(group).toContainText('2 times');
+  await group.click();
+  await expect(group.locator('code')).toContainText('at line 7');
+  await expect(tech.getByTestId('tech-db')).toContainText('updates run');
+  await tech.getByTestId('copy-report').click();
+  await expect(tech.getByTestId('copy-report')).toHaveText('Copied');
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text).toContain('Benne 14 technical report');
+  expect(text).toContain('x2 [kiosk] tech page test error');
+  expect(text).toContain('order.place:');
+  expect(text).not.toContain(PIN);
+  await tech.getByRole('button', { name: 'Back to System' }).click();
+  await expect(page.getByTestId('system')).toBeVisible();
+});
+
 test('the owner app shows which screens are alive, and an error a screen ran into', async ({
   page,
   request,

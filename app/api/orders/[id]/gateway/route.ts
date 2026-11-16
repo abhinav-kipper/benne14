@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 import { easebuzzConfig, startPayment } from '@/lib/easebuzz';
 import { settle } from '@/lib/gateway';
 import { getStore } from '@/lib/store';
-import { fail, isOrderId, json, notFound, paymentMode, readJson } from '@/lib/server';
+import { fail, isOrderId, json, notFound, paymentMode, readJson, timed } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +35,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (action === 'check') {
       if (!cfg) return json({ order, state: 'waiting' });
       try {
-        return json((await settle(id)) ?? { order, state: 'waiting' });
+        return json((await timed('pay.check', () => settle(id), true)) ?? { order, state: 'waiting' });
       } catch (e) {
         console.error('Easebuzz status check failed', e);
         return json({ order, state: 'waiting' }); // can't tell right now: keep waiting, the webhook may still come
@@ -47,7 +47,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (again && Date.now() - again.at < LINK_MS) return json(again.view);
     try {
       const back = new URL('/api/payments/easebuzz/return', req.url).toString();
-      const s = await startPayment(cfg, order, back);
+      const s = await timed('pay.start', () => startPayment(cfg, order, back));
       const view: View =
         s.kind === 'page'
           ? { kind: 'page', url: s.url }
