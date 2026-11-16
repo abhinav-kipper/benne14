@@ -24,6 +24,7 @@ import { optionKey, type CustomItem, type ExtrasLayout, type Overrides, type Sec
 import type { LayoutPatch, MenuEdit, PushSub } from './index';
 import { FORGET_MS, type Alert, type Device, type DeviceKind, type ErrorEntry } from '../system';
 import { MIGRATIONS } from '../migrations';
+import type { DbStats, Timing } from '../tech';
 
 interface ItemRow {
   name: string | null;
@@ -36,6 +37,7 @@ interface ItemRow {
 // open endpoints (/api/beat and /api/log).
 export const MAX_DEVICES = 40;
 export const MAX_ERRORS = 500;
+export const MAX_TIMINGS = 5000; // about a week of a busy counter
 export const MAX_SUBS = 20; // phones with notifications on
 // open alerts first (newest first), then the cleared ones (latest first)
 export const sortAlerts = (a: Alert[]) =>
@@ -66,6 +68,7 @@ export class MemoryStore {
   private alerts = new Map<string, Alert>();
   private keys = new Map<string, string>();
   private errors: ErrorEntry[] = [];
+  private timings: Timing[] = [];
   private layout = {
     hidden: [] as string[],
     order: [] as string[],
@@ -374,6 +377,22 @@ export class MemoryStore {
 
   async listErrors(limit = 50) {
     return this.errors.slice(0, limit);
+  }
+
+  async logTiming(t: Omit<Timing, 'at'>) {
+    this.timings.unshift({ ...t, at: new Date().toISOString() });
+    this.timings.length = Math.min(this.timings.length, MAX_TIMINGS);
+  }
+  async listTimings(limit = MAX_TIMINGS) {
+    return this.timings.slice(0, limit);
+  }
+  async dbStats(): Promise<DbStats> {
+    const orders = [...this.orders.values()];
+    return {
+      bytes: null,
+      rows: { orders: orders.length, error_log: this.errors.length, timings: this.timings.length },
+      firstOrder: orders.map((o) => o.createdAt).sort()[0] ?? null,
+    };
   }
 
   async listSubs() {

@@ -374,6 +374,23 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(await s.listErrors(1)).toHaveLength(1);
     });
 
+    it('keeps how long steps took, newest first, and knows the size of what it holds', async () => {
+      expect(await s.listTimings()).toEqual([]);
+      await s.logTiming({ op: 'order.place', ms: 420, ok: true, build: 'v1' });
+      await s.logTiming({ op: 'pay.start', ms: 9000, ok: false, build: null });
+      const timings = await s.listTimings();
+      expect(timings.map((t) => [t.op, t.ms, t.ok, t.build])).toEqual([
+        ['pay.start', 9000, false, null],
+        ['order.place', 420, true, 'v1'],
+      ]);
+      expect(Date.parse(timings[0].at)).toBeGreaterThan(0);
+      expect(await s.listTimings(1)).toHaveLength(1);
+      const db = await s.dbStats();
+      expect(db.rows.timings).toBe(2);
+      expect(db.rows.orders).toBeGreaterThanOrEqual(0);
+      if (s.kind === 'supabase') expect(db.bytes).toBeGreaterThan(0);
+    });
+
     it("keeps the phones that want alerts, the alerts themselves, and the app's own keys", async () => {
       expect(await s.listSubs()).toEqual([]);
       const phone = { endpoint: 'https://phone1.push.invalid/abc', p256dh: 'p'.repeat(40), auth: 'a'.repeat(20) };

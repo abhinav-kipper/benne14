@@ -5,6 +5,7 @@ import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import type { CustomItem, ExtrasLayout, Overrides, SectionsLayout } from '../menu';
 import type { AdminEvent, GatewayPayment, Order, OrderEvent, OrderStatus, PlaceOrderInput } from '../orders';
 import type { Alert, Device, DeviceKind, ErrorEntry } from '../system';
+import type { DbStats, Timing } from '../tech';
 import { MemoryStore, StoreError } from './memory';
 import { supabaseStore } from './supabase';
 
@@ -63,6 +64,11 @@ export interface Store {
   listDevices(): Promise<Device[]>; // every screen seen in the last two weeks, most recent first
   logError(e: Omit<ErrorEntry, 'at'>): Promise<void>;
   listErrors(limit?: number): Promise<ErrorEntry[]>; // newest first
+  // The technical page (migration 0014). Before it is run: nothing is kept, nothing is listed, and
+  // the database's size is unknown. Like the two above, logTiming never throws.
+  logTiming(t: Omit<Timing, 'at'>): Promise<void>;
+  listTimings(limit?: number): Promise<Timing[]>; // newest first
+  dbStats(): Promise<DbStats>;
   // Alerts to the owner's phone (migration 0013). Before it is run: no phones, no alerts, no keys.
   listSubs(): Promise<PushSub[]>;
   saveSub(s: PushSub): Promise<void>;

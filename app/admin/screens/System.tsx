@@ -37,7 +37,12 @@ export function SystemLine({ sys, open }: { sys: SystemReport | null; open: () =
   );
 }
 
-export function System({ sys, back, ...ctx }: Ctx & { sys: SystemReport | null; back: () => void }) {
+export function System({
+  sys,
+  back,
+  openTech,
+  ...ctx
+}: Ctx & { sys: SystemReport | null; back: () => void; openTech: () => void }) {
   const [open, setOpen] = useState<number | null>(null);
   const now = sys ? Date.parse(sys.now) : 0;
   return (
@@ -163,6 +168,9 @@ export function System({ sys, back, ...ctx }: Ctx & { sys: SystemReport | null; 
             Version {sys.build.slice(0, 7)} · database {sys.store === 'supabase' ? 'connected' : 'in memory'} · UPI by{' '}
             {sys.payments === 'easebuzz' ? 'Easebuzz' : sys.payments === 'mock' ? 'test payments' : 'the shop’s own QR'}
           </div>
+          <button className="techlink" onClick={openTech} data-testid="open-tech">
+            Technical detail ›
+          </button>
         </>
       )}
     </section>

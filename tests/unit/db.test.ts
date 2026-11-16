@@ -388,6 +388,20 @@ describe('database (supabase/migrations)', () => {
       await db.exec('delete from push_subs; delete from alerts; delete from app_keys');
     });
 
+    it('timings take only well-formed rows, and the size of the database is for the server alone (0014)', async () => {
+      await db.query("insert into timings (op, ms, ok, build) values ('order.place', 420, true, 'v1')");
+      await expect(db.query("insert into timings (op, ms, ok) values ('Order Place!', 1, true)")).rejects.toThrow();
+      await expect(db.query("insert into timings (op, ms, ok) values ('order.place', -1, true)")).rejects.toThrow();
+      const stats = await db.query<{ s: { bytes: number; timings: number; orders: number } }>('select db_stats() s');
+      expect(stats.rows[0].s.timings).toBe(1);
+      expect(Number(stats.rows[0].s.bytes)).toBeGreaterThan(0);
+      const can = await db.query<{ anon: boolean; auth: boolean; t: boolean }>(
+        "select has_function_privilege('anon', 'public.db_stats()', 'execute') anon, has_function_privilege('authenticated', 'public.db_stats()', 'execute') auth, has_table_privilege('anon', 'public.timings', 'select') t",
+      );
+      expect(can.rows[0]).toEqual({ anon: false, auth: false, t: false });
+      await db.exec('delete from timings');
+    });
+
     it('logs every change of state by itself, in order', async () => {
       const o = await place('log-order-1', 'upi');
       for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'])

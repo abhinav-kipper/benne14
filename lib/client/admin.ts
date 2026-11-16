@@ -1,6 +1,7 @@
 // What the owner app asks the server; every call carries the owner PIN.
 import type { Customer, DiscountCode, KioskSettings } from '../discounts';
 import { type Alert, type Device, type ErrorEntry, type Problem } from '../system';
+import type { TechReport } from '../tech';
 import type { CustomItem, Overrides } from '../menu';
 import type { AdminEvent, Order, OrderEvent } from '../orders';
 import type { Summary } from '../reports';
@@ -85,6 +86,7 @@ export const admin = {
       headers: pinHeader(pin),
     }),
   system: (pin: string) => call<SystemReport>('/api/admin/system', { headers: pinHeader(pin) }),
+  tech: (pin: string) => call<TechReport>('/api/admin/tech', { headers: pinHeader(pin) }),
   pushInfo: (pin: string) =>
     call<{ publicKey: string; phones: number }>('/api/admin/push', { headers: pinHeader(pin) }),
   pushChange: (pin: string, b: { subscribe: PushSubscriptionJSON } | { unsubscribe: string } | { test: true }) =>

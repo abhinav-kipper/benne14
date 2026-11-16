@@ -1,7 +1,8 @@
 // Watching the system: screens' heartbeats, errors, phone subscriptions, alerts, stored keys, migrations.
 import type { PushSub } from '../index';
 import { FORGET_MS, type Alert, type Device, type DeviceKind, type ErrorEntry } from '../../system';
-import { MAX_DEVICES, MAX_ERRORS, MAX_SUBS, StoreError, sortAlerts } from '../memory';
+import type { DbStats, Timing } from '../../tech';
+import { MAX_DEVICES, MAX_ERRORS, MAX_SUBS, MAX_TIMINGS, StoreError, sortAlerts } from '../memory';
 import { missing, storeError, type Db } from './shared';
 
 // None of these may ever throw into a screen: a failed "I'm here" or a failed error report is
@@ -170,4 +171,47 @@ export async function appliedMigrations(db: Db) {
   const { data, error } = await db.from('schema_migrations').select('name');
   if (error) return []; // the table arrives with migration 0004
   return (data as { name: string }[]).map((r) => r.name);
+}
+
+// The technical page. A timing that cannot be saved is dropped: measuring must never fail a request.
+export async function logTiming(db: Db, t: Omit<Timing, 'at'>) {
+  const { data, error } = await db
+    .from('timings')
+    .insert({ op: t.op, ms: t.ms, ok: t.ok, build: t.build })
+    .select('id')
+    .maybeSingle();
+  // keep the newest MAX_TIMINGS: ids only grow, so everything this far behind the new row goes
+  if (!error && data && (data as { id: number }).id % 50 === 0)
+    await db
+      .from('timings')
+      .delete()
+      .lt('id', (data as { id: number }).id - MAX_TIMINGS);
+}
+
+export async function listTimings(db: Db, limit = MAX_TIMINGS): Promise<Timing[]> {
+  const out: Timing[] = [];
+  // Supabase returns at most 1000 rows per request: page through.
+  for (let from = 0; from < limit; from += 1000) {
+    const { data, error } = await db
+      .from('timings')
+      .select('at,op,ms,ok,build')
+      .order('id', { ascending: false })
+      .range(from, Math.min(limit, from + 1000) - 1);
+    if (missing(error)) return [];
+    if (error) throw new StoreError(error.message, 500);
+    out.push(...(data as Timing[]));
+    if ((data ?? []).length < 1000) break;
+  }
+  return out;
+}
+
+export async function dbStats(db: Db): Promise<DbStats> {
+  const { data, error } = await db.rpc('db_stats');
+  // before migration 0014 there is no such function: size unknown, nothing counted
+  if (error || !data) return { bytes: null, rows: {}, firstOrder: null };
+  const { bytes, first_order, ...rows } = data as { bytes: number; first_order: string | null } & Record<
+    string,
+    number
+  >;
+  return { bytes: Number(bytes), rows, firstOrder: first_order ?? null };
 }

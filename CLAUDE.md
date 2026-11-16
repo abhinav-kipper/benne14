@@ -18,6 +18,7 @@ lib/reports.ts  admin.ts  server.ts  dashboard numbers, input cleaning, PINs + l
 lib/client/                          every browser API call and hook, one file per concern; import from '@/lib/client'
 lib/gateway.ts  easebuzz.ts          payments; lib/kioskkey.ts the kiosk's signed key
 lib/system.ts  watch.ts  push.ts     System page rules, the check that runs them, notifications
+lib/tech.ts                          technical page: step timings, grouped errors, the report to paste
 scripts/                             serve-local.sh, stop-server.sh
 lib/store/memory.ts  supabase/       storage behind one interface (supabase/ has one file per area); both pass tests/support/store-contract.ts
 supabase/migrations/                 SQL, run by hand in Supabase in order; listed in lib/migrations.ts
@@ -66,6 +67,11 @@ Commands: `npm run dev` · `npm run check` (typecheck, lint, format check, unit 
 - Ask before deciding anything they would notice: yes/no questions with a suggested answer.
 - Never merge without their word. Paste migration SQL inline in the chat (they can't open files on the phone).
 - Changing anything on a Vercel preview changes the real database (previews share it). Deleting data needs an explicit go-ahead.
+
+## Debugging a live problem
+
+- Ask the owner for the technical report first: owner app → System → Technical detail → Copy report, pasted into the chat. It has the build, settings as on/off, what needs a look, every screen, step timings, grouped errors with stack traces, stuck payments and kitchen pace, and the database's size. Rules in `lib/tech.ts`.
+- A step worth watching gets `timed('area.step', fn)` from `lib/server.ts` (third argument `true` for anything that runs all day: only slow or failed runs are kept) and a name in `OP_NAME`.
 
 ## Running things in a Claude session
 

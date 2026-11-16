@@ -2059,3 +2059,29 @@
   color: var(--cream-2);
   font-weight: 600;
 }
+
+/* the way into the technical page, and the report shown when the clipboard is not available */
+.adm .techlink {
+  margin: 10px 20px 0;
+  padding: 6px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cream-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.adm .reporttext {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--s2);
+  color: var(--cream);
+  font:
+    11.5px/1.45 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  resize: vertical;
+}
