@@ -294,6 +294,7 @@ export interface ExtrasLayout {
   hidden?: string[]; // "set:extra" switched off
   sets?: { id: string; name: string }[]; // sets of extras the owner made
   dishSets?: Record<string, string[]>; // a dish that came with the app → the sets it offers now
+  photos?: Record<string, string>; // a dish that came with the app → the owner's own photo of it (a URL)
   notes?: { id: string; label: string; tone: Tone | null; cats: string[] }[];
   hiddenNotes?: string[];
 }
@@ -377,6 +378,8 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
     .map((i, n) => {
       const x = o.items[i.id];
       const it: MenuItem = { ...i, groups: sets(i.custom ? i.groups : (ex.dishSets?.[i.id] ?? i.groups)) };
+      // the owner's own photo of a dish that came with the app (photoFor() falls back to the one in /food)
+      if (!i.custom && !i.testOnly && ex.photos?.[i.id]) it.photo = ex.photos[i.id];
       if (hidden.has(i.id)) it.hidden = true;
       if (x) {
         it.soldOut = !!x.soldOut;

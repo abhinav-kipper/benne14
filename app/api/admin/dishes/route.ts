@@ -45,6 +45,7 @@ function cleanPhoto(v: unknown, store: Store): string | null {
 // { section: { id?, name } }  add a section, or rename one   { removeSection: id }  an empty one the owner added
 // { hideSection: id } / { showSection: id }  a section and its dishes off / back on the kiosk
 // { sectionOrder: [ids] }  the sections in the owner's order
+// { photo: { itemId, url } }  the owner's own photo for a dish that came with the app; url null = the original
 export async function POST(req: Request) {
   const denied = adminDenied(req);
   if (denied) return denied;
@@ -107,6 +108,22 @@ export async function POST(req: Request) {
       return json({ dish });
     }
 
+    if (b.photo !== undefined) {
+      const ph = b.photo as { itemId?: unknown; url?: unknown } | null;
+      if (!ph || typeof ph !== 'object') return json({ error: 'Bad photo' }, 400);
+      const it = all.find((i) => i.id === ph.itemId);
+      if (!it) return json({ error: 'Unknown dish' }, 400);
+      if (it.custom) return json({ error: 'Change this dish’s photo from its own sheet' }, 400);
+      const url = cleanPhoto(ph.url, store);
+      const photos = { ...(o.extras?.photos ?? {}) };
+      if (url) photos[it.id] = url;
+      else delete photos[it.id];
+      await store.saveLayout(
+        { extras: { ...(o.extras ?? {}), photos } },
+        { kind: 'menu', subject: it.name, after: url ? 'New photo' : 'Back to the original photo' },
+      );
+      return json({});
+    }
     if (b.publish !== undefined) {
       const d = find(b.publish);
       if (!d) return json({ error: 'No such dish' }, 404);

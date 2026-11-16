@@ -59,7 +59,8 @@ export const admin = {
       | { removeSection: string }
       | { hideSection: string }
       | { showSection: string }
-      | { sectionOrder: string[] },
+      | { sectionOrder: string[] }
+      | { photo: { itemId: string; url: string | null } },
   ) =>
     call<{ dish?: CustomItem }>('/api/admin/dishes', {
       method: 'POST',

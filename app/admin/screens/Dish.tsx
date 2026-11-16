@@ -1,24 +1,13 @@
 'use client';
 // The owner's own dishes: the sheet to add or edit one (with a photo), the "check, then publish"
 // page for a draft, and the hide button every dish's sheet ends with.
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { admin, ApiError } from '@/lib/client';
 import { TEST_CAT, notesFor, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
+import { PhotoField } from './PhotoField';
 import type { Ctx } from './shared';
 
 const say = (e: unknown, what: string) => (e instanceof ApiError ? e.message : `${what}: no internet.`);
-
-// A phone photo is several megabytes; the kiosk shows it a few hundred pixels wide. Shrink it here,
-// so the upload is quick on the shop's connection and every stored photo is a plain JPEG.
-async function shrink(file: File, max = 1000): Promise<Blob> {
-  const img = await createImageBitmap(file, { imageOrientation: 'from-image' });
-  const k = Math.min(1, max / Math.max(img.width, img.height));
-  const c = document.createElement('canvas');
-  c.width = Math.round(img.width * k);
-  c.height = Math.round(img.height * k);
-  c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
-  return new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error('no image'))), 'image/jpeg', 0.85));
-}
 
 // What a set of extras is called in the picker: its extras, as the customer reads them.
 const groupLine = (cat: Catalog, id: string) => {
@@ -116,24 +105,10 @@ export function DishSheet(
   const [photo, setPhoto] = useState<string | null>(item?.photo ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<'photo' | 'save' | null>(null);
-  const take = useRef<HTMLInputElement>(null);
-  const choose = useRef<HTMLInputElement>(null);
   const n = Number(price);
   const priceOk = /^\d+$/.test(price) && n >= 1 && n <= 100000;
   const live = !!item && !item.draft;
 
-  const pickPhoto = async (f: File | undefined) => {
-    if (!f) return;
-    setBusy('photo');
-    setErr(null);
-    try {
-      setPhoto((await admin.photo(p.pin, await shrink(f))).url);
-    } catch (e) {
-      p.onAuthError(e);
-      setErr(e instanceof ApiError ? e.message : 'That photo could not be used. Try another.');
-    }
-    setBusy(null);
-  };
   const save = async () => {
     if (!name.trim()) return setErr('The dish needs a name');
     if (!priceOk) return setErr('Price must be a whole number of rupees');
@@ -169,41 +144,15 @@ export function DishSheet(
             <div className="disp ttl">{name.trim() || 'New dish'}</div>
           </div>
         </div>
-        <div className="field">
-          <label>Photo</label>
-          <div className="photo">
-            {photo ? <img src={photo} alt="" data-testid="dish-photo" /> : <div className="ph">No photo</div>}
-            <div>
-              <div className="two">
-                <button className="btn o" disabled={!!busy} onClick={() => take.current?.click()}>
-                  Take photo
-                </button>
-                <button className="btn o" disabled={!!busy} onClick={() => choose.current?.click()}>
-                  Choose
-                </button>
-              </div>
-              <div className="was">
-                {busy === 'photo' ? 'Uploading…' : 'Hold the phone level, plate in the middle. No photo is fine too.'}
-              </div>
-            </div>
-          </div>
-          <input
-            ref={take}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            onChange={(e) => pickPhoto(e.target.files?.[0])}
-          />
-          <input
-            ref={choose}
-            type="file"
-            accept="image/*"
-            hidden
-            data-testid="dish-file"
-            onChange={(e) => pickPhoto(e.target.files?.[0])}
-          />
-        </div>
+        <PhotoField
+          {...p}
+          photo={photo}
+          onPhoto={setPhoto}
+          onError={setErr}
+          disabled={!!busy}
+          onBusy={(up) => setBusy(up ? 'photo' : null)}
+          hint="Hold the phone level, plate in the middle. No photo is fine too."
+        />
         <div className="field">
           <label htmlFor="dish-name">Name on the kiosk</label>
           <input

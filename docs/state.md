@@ -50,6 +50,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-16 — The owner can change the photo of the dishes that came with the app (Menu → a dish → Photo: take or choose), and bring the original back. No database update needed.
 - 2026-11-16 — The phone bill is a tax invoice: the shop's name, address, GSTIN and FSSAI registration number, a running invoice number given at payment (`B14/26-27/000123`, migration 0015), SAC code, place of supply, the shop's phone, and a refund line. The bills CSV has the invoice number; the owner app shows what is printed on every bill and reminds the owner before the FSSAI fee date. Rules, sources and two questions for the accountant: `docs/tax-invoice.md`.
 - 2026-11-16 — Owner's report from the phone: paying by UPI was slow and "Please order at the counter" flashed before the QR. The counter screen no longer shows while an order is on its way, two failed checks within the same five seconds no longer count as an outage, and an order now reads the menu and its other prerequisites from the database together instead of one after another. How slow the real steps are will show on the technical page once migration 0014 is run.
 - 2026-11-16 — Tests for what only shows up over time, under load and on phones: one whole shop day checked across every screen and report, a 150-order rush and a long kitchen shift, the owner app and the bill on an Android phone and an iPhone, the 4 am restart, and one night across midnight. No change to the app.
