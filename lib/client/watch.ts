@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { BEAT_MS } from '../system';
 import { BUILD_ID } from '../version';
+import { timeLimit } from './http';
 import { usePoll } from './poll';
 
 const DEVICE_KEY = 'benne14.device';
@@ -58,7 +59,7 @@ export function useWatch(kind: 'kiosk' | 'kitchen' | 'board' | 'owner', screen =
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, kind, screen: showing.current, build: BUILD_ID }),
-      signal: AbortSignal.timeout(8000),
+      signal: timeLimit(8000),
     }).catch(() => {});
   }, BEAT_MS);
   useEffect(() => {

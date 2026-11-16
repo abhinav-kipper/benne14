@@ -251,6 +251,28 @@ test('reports: today vs yesterday on the dashboard, CSV downloads for the CA', a
   expect(text).toContain('Food issue');
 });
 
+test('a request that never comes back does not leave the owner app on "Loading" for good', async ({ page }) => {
+  // On a phone a request can be frozen with the app and never answer, time limit and all.
+  const silent = { report: 1, system: 1 }; // how many calls to each get no answer at all
+  const neverAnswers = (path: string, which: keyof typeof silent) =>
+    page.route(path, (r) => (silent[which]-- > 0 ? new Promise<void>(() => {}) : r.continue()));
+  await page.clock.install();
+  await neverAnswers('**/api/admin/report**', 'report');
+  await neverAnswers('**/api/admin/system', 'system');
+  await owner(page);
+  await expect(page.getByTestId('today-takings')).toHaveText('…');
+  await page.clock.runFor(15_000);
+  await expect(page.getByTestId('today-takings')).toHaveText('…'); // still within what a slow request may take
+  await page.clock.runFor(8_000); // past it: the app gives up on that call and asks again
+  await expect(page.getByTestId('today-takings')).toContainText('₹', { timeout: 10_000 });
+  await expect(page.getByTestId('sysline')).not.toContainText('Checking', { timeout: 10_000 });
+  // and the Reports tab, which asks only once per range, recovers the same way
+  silent.report = 1;
+  await page.getByTestId('tab-reports').click();
+  await page.clock.runFor(22_000);
+  await expect(page.getByTestId('gst')).toContainText('Taxable value', { timeout: 10_000 });
+});
+
 test('the kiosk keeps working with the last menu if the menu can’t load', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.route('**/api/menu', (r) => r.abort('internetdisconnected'));

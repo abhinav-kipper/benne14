@@ -10,6 +10,8 @@ import { ApiError } from './http';
 // again or the device comes back online. After a failure it waits longer, up to MAX_BACKOFF_MS.
 // `fn` returns false (or throws) to report a failed attempt. Returns a function that polls right now.
 const MAX_BACKOFF_MS = 4000;
+// Longer than any single request may take (12 s, lib/client/http.ts): a call still out after this is lost.
+const STUCK_MS = 20_000;
 export function usePoll(fn: () => Promise<boolean | void>, ms: number, on = true) {
   const latest = useRef(fn);
   latest.current = fn;
@@ -18,9 +20,11 @@ export function usePoll(fn: () => Promise<boolean | void>, ms: number, on = true
     if (!on) return;
     let stop = false,
       timer: ReturnType<typeof setTimeout> | undefined,
+      watchdog: ReturnType<typeof setTimeout> | undefined,
       running = false,
       again = false,
-      fails = 0;
+      fails = 0,
+      turn = 0; // which call is the current one: an abandoned call's late answer is not acted on
     const run = async () => {
       if (stop) return;
       if (running) {
@@ -30,12 +34,27 @@ export function usePoll(fn: () => Promise<boolean | void>, ms: number, on = true
       clearTimeout(timer);
       if (document.hidden) return; // visibilitychange restarts it
       running = true;
+      const mine = ++turn;
+      // A call that never comes back must not stop the polling for good. It happens on phones: the
+      // app is put away mid-request, the request is frozen with it, and its time limit never fires.
+      // Without this, "running" stayed true and the screen showed "Loading…" until it was reloaded.
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        if (stop || turn !== mine || !running) return;
+        turn++; // give up on that call
+        running = false;
+        again = false;
+        fails++;
+        run();
+      }, STUCK_MS);
       let ok = true;
       try {
         ok = (await latest.current()) !== false;
       } catch {
         ok = false;
       }
+      if (turn !== mine) return; // given up on meanwhile: a newer call has taken over
+      clearTimeout(watchdog);
       running = false;
       fails = ok ? 0 : fails + 1;
       if (again && !stop) {
@@ -52,13 +71,16 @@ export function usePoll(fn: () => Promise<boolean | void>, ms: number, on = true
     };
     kick.current = run;
     run();
+    // pageshow and focus too: a phone bringing an installed app back does not always say "visible"
+    const signs = ['online', 'pageshow', 'focus'] as const;
     document.addEventListener('visibilitychange', wake);
-    window.addEventListener('online', wake);
+    for (const s of signs) window.addEventListener(s, wake);
     return () => {
       stop = true;
       clearTimeout(timer);
+      clearTimeout(watchdog);
       document.removeEventListener('visibilitychange', wake);
-      window.removeEventListener('online', wake);
+      for (const s of signs) window.removeEventListener(s, wake);
     };
   }, [ms, on]);
   return useCallback(() => kick.current(), []);
