@@ -266,8 +266,11 @@ test('kiosk: a slow moment while an order is being placed never flashes "order a
 test('kiosk: two failed checks in the same second (a tablet waking up) are not an outage', async ({ page }) => {
   await page.clock.install();
   await page.setViewportSize({ width: 800, height: 1280 });
+  // the kiosk's first check, on opening, gets its answer before anything goes wrong
+  const firstCheck = page.waitForResponse('**/api/ping');
   await page.goto('/kiosk');
   await expect(page.getByTestId('start')).toBeVisible();
+  await firstCheck;
   let pings = 0;
   await page.route('**/api/ping', (r) => {
     pings++;
