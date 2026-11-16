@@ -42,6 +42,8 @@ export default defineConfig({
     { name: 'admin', testMatch: 'admin.spec.ts', use: { baseURL: 'http://localhost:3103' } },
     // UPI through the payment gateway: a server with PAYMENTS=easebuzz, talking to a stand-in Easebuzz.
     { name: 'gateway', testMatch: 'gateway.spec.ts', use: { baseURL: 'http://localhost:3104' } },
+    // One whole day, checked from every screen: a server to itself, so the day's totals are exactly its own.
+    { name: 'day', testMatch: 'shop-day.spec.ts', use: { baseURL: 'http://localhost:3105' } },
   ],
   // Servers start in order, so the second reuses the first one's build. reuseExistingServer: false keeps
   // every run on a fresh in-memory store, so leftover orders never leak between runs.
@@ -88,6 +90,13 @@ export default defineConfig({
         EASEBUZZ_PAY_URL: 'http://localhost:3199',
         EASEBUZZ_DASH_URL: 'http://localhost:3199',
       },
+    },
+    {
+      command: 'npx next start -p 3105',
+      url: 'http://localhost:3105',
+      timeout: 60_000,
+      reuseExistingServer: false,
+      env: { ...safeEnv, TEST_MODE: '0', OWNER_PIN: '246810' },
     },
     {
       command: 'npx next start -p 3102',
