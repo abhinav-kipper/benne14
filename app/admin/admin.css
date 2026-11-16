@@ -2085,3 +2085,14 @@
     monospace;
   resize: vertical;
 }
+
+/* a small text button under the photo: back to the photo that came with the app */
+.adm .photo .linkbtn {
+  margin-top: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cream-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

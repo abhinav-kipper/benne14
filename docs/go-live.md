@@ -41,7 +41,7 @@ Safety and money. None of this is visible to customers, all of it matters.
 - [ ] Veg mark and a "bestseller" cue on the kiosk. (U9)
 - [ ] The name box on the kiosk is not covered by the keyboard: check on the tablet. (U6)
 - [ ] Bigger tap targets in the owner app. (U23)
-- [ ] Owner can change the photo and section of the ten original dishes, not only of dishes they added.
+- [ ] Owner can change the section of the ten original dishes, not only of dishes they added. (Their photo: done 2026-11-16.)
 - [ ] The restaurant's own photos, one shoot, same plate and light. (U8)
 - [ ] Printed kitchen chit or customer receipt, if the shop wants paper (needs a printer choice).
 
