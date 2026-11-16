@@ -77,6 +77,6 @@ Commands: `npm run dev` · `npm run check` (typecheck, lint, format check, unit 
 
 - The session may hold the live Supabase keys. Local servers must blank them: use `scripts/serve-local.sh [port]` (in-memory store, mock payments, staff PIN 2468, owner PIN 246810). e2e already blanks them and refuses otherwise.
 - Stop servers with `scripts/stop-server.sh`, in its own command. Never `pkill -f next`: it kills the shell.
-- e2e here: `rm -rf .next && PW_CHROMIUM=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome npm run e2e -- --trace off` (add `--project=flow|test-mode|robustness|admin|gateway` for one suite). The real-Postgres store tests run only in CI: wait for that job before merging store changes.
+- e2e here: `rm -rf .next && PW_CHROMIUM=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome npm run e2e -- --trace off` (add `--project=flow|test-mode|robustness|admin|gateway|day|load|android` for one suite; `iphone` needs WebKit and runs only in CI). The real-Postgres store tests run only in CI: wait for that job before merging store changes.
 - Side-by-side compare: `git worktree add ../benne14-main main`, serve each with `scripts/serve-local.sh` on its own port, screenshot both with the same data.
 - Tests that hit a rate-limited open endpoint send their own `x-forwarded-for`.

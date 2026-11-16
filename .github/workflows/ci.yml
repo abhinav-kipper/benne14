@@ -86,7 +86,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # WebKit is for the iPhone run of the owner app and the bill (tests/e2e/phones.spec.ts)
+      - run: npx playwright install --with-deps chromium webkit
       # Builds once, then runs three servers on the in-memory store (never the real database).
       - run: npm run e2e
         env:
