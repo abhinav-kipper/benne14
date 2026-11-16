@@ -102,8 +102,11 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   useWatch('kiosk', screen);
   // While the shop can't take an order (Wi-Fi or database down) customers are sent to the counter.
   // Not on the payment and order-number screens: an order that exists must be seen through.
-  const up = useServerUp(screen !== 'upi' && screen !== 'done');
-  const closed = !up && screen !== 'upi' && screen !== 'done';
+  const [up, serverSeen] = useServerUp(screen !== 'upi' && screen !== 'done');
+  // Nor while an order is on its way to the server: a slow moment would otherwise flash "order at
+  // the counter" between the customer's tap and their QR. That order answers for itself.
+  const [placing, setPlacing] = useState(false);
+  const closed = !up && !placing && screen !== 'upi' && screen !== 'done';
 
   const reset = useCallback(() => {
     setScreen('home');
@@ -258,6 +261,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             noUpi={Date.now() < upiOffUntil}
             onChoose={async (m: PayMethod) => {
               let o: Order;
+              setPlacing(true);
               try {
                 o = await api.placeOrder({
                   key: checkoutKey.current,
@@ -273,7 +277,10 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
                 if (e instanceof ApiError && e.status === 409) loadMenu(); // something sold out meanwhile: the cart will show which
                 if (e instanceof ApiError && e.status === 401) setEnrolled(false); // the staff PIN was changed: set up again
                 throw e;
+              } finally {
+                setPlacing(false);
               }
+              serverSeen(); // it just took an order: it is up, whatever the last check said
               setOrderId(o.id);
               setPlaced(o);
               setScreen(m === 'upi' ? 'upi' : 'done');

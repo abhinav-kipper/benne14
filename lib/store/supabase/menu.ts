@@ -7,9 +7,22 @@ import { PHOTO_BUCKET, missing, noColumn, storeError, type Db, type DishRow } fr
 import { addEvent } from './events';
 
 export async function getOverrides(db: Db): Promise<Overrides> {
-  const [items, options] = await Promise.all([
+  // The owner's own dishes and the layout (migration 0009). Before it is run: none.
+  // The layout row grew a column in 0010 (sections) and one in 0011 (extras): read what is there.
+  const readLayout = async () => {
+    for (const cols of ['hidden,item_order,sections,extras', 'hidden,item_order,sections', 'hidden,item_order']) {
+      const r = await db.from('menu_layout').select(cols).eq('id', 1).maybeSingle();
+      if (!noColumn(r.error)) return r as { data: unknown; error: typeof r.error };
+    }
+    return { data: null, error: null };
+  };
+  // All four reads go out together: this runs on every order and every menu load, so one round
+  // trip to the database instead of two is time the customer does not wait.
+  const [items, options, dishes, layout] = await Promise.all([
     db.from('menu_overrides').select('item_id,name,description,price,sold_out_on'),
     db.from('option_overrides').select('group_id,option_id,price'),
+    db.from('menu_dishes').select('id,cat,name,description,price,groups,photo,live').order('created_at'),
+    readLayout(),
   ]);
   // Before migration 0003 is run the tables don't exist yet: keep the kiosk selling from the menu
   // in code rather than failing every order. Any other error is real and goes up.
@@ -33,19 +46,6 @@ export async function getOverrides(db: Db): Promise<Overrides> {
   for (const r of options.data as { group_id: string; option_id: string; price: number }[])
     out.options[optionKey(r.group_id, r.option_id)] = r.price;
 
-  // The owner's own dishes and the layout (migration 0009). Before it is run: none.
-  // The layout row grew a column in 0010 (sections) and one in 0011 (extras): read what is there.
-  const readLayout = async () => {
-    for (const cols of ['hidden,item_order,sections,extras', 'hidden,item_order,sections', 'hidden,item_order']) {
-      const r = await db.from('menu_layout').select(cols).eq('id', 1).maybeSingle();
-      if (!noColumn(r.error)) return r as { data: unknown; error: typeof r.error };
-    }
-    return { data: null, error: null };
-  };
-  const [dishes, layout] = await Promise.all([
-    db.from('menu_dishes').select('id,cat,name,description,price,groups,photo,live').order('created_at'),
-    readLayout(),
-  ]);
   if (missing(dishes.error) || missing(layout.error)) return out;
   if (dishes.error) throw new StoreError(dishes.error.message, 500);
   if (layout.error) throw new StoreError(layout.error.message, 500);
