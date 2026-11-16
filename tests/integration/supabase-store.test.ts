@@ -33,6 +33,7 @@ describe.skipIf(!URL_)('Supabase store on a real database', () => {
     // order matters only for readability; there are no foreign keys
     for (const t of [
       'orders?id=not.is.null',
+      'invoice_counters?fy=not.is.null',
       'token_counters?day=not.is.null',
       'menu_overrides?item_id=not.is.null',
       'option_overrides?group_id=not.is.null',

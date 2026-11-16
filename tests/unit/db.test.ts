@@ -402,6 +402,40 @@ describe('database (supabase/migrations)', () => {
       await db.exec('delete from timings');
     });
 
+    it('invoice numbers: given at payment by the database itself, per financial year, and then fixed (0015)', async () => {
+      const a = await place('inv-db-a', 'cash');
+      const b = await place('inv-db-b', 'cash');
+      const no = async (id: string) =>
+        (await db.query<{ invoice_no: string | null }>('select invoice_no from orders where id = $1', [id])).rows[0]
+          .invoice_no;
+      expect(await no(a.id)).toBeNull();
+      // paid on 31 March and on 1 April 2031 (India time): two financial years, each starting at 1
+      await db.query("update orders set status = 'new', paid_at = '2031-03-31T18:00:00+05:30' where id = $1", [a.id]);
+      await db.query("update orders set status = 'new', paid_at = '2031-03-31T19:00:00Z' where id = $1", [b.id]);
+      expect(await no(a.id)).toBe('B14/30-31/000001');
+      expect(await no(b.id)).toBe('B14/31-32/000001');
+      // it cannot be changed, cleared, or made up for an unpaid order
+      await expect(db.query("update orders set invoice_no = 'B14/30-31/000009' where id = $1", [a.id])).rejects.toThrow(
+        /invoice number cannot be changed/,
+      );
+      await expect(db.query('update orders set invoice_no = null where id = $1', [a.id])).rejects.toThrow();
+      const c = await place('inv-db-c', 'cash');
+      await expect(db.query("update orders set invoice_no = 'B14/30-31/000002' where id = $1", [c.id])).rejects.toThrow(
+        /only when the order is paid/,
+      );
+      // a payment that is not saved does not use up a number
+      await db.exec('begin');
+      await db.query("update orders set status = 'new', paid_at = '2031-03-31T18:30:00+05:30' where id = $1", [c.id]);
+      await db.exec('rollback');
+      const d = await place('inv-db-d', 'cash');
+      await db.query("update orders set status = 'new', paid_at = '2031-03-31T18:40:00+05:30' where id = $1", [d.id]);
+      expect(await no(d.id)).toBe('B14/30-31/000002');
+      const can = await db.query<{ t: boolean }>(
+        "select has_table_privilege('anon', 'public.invoice_counters', 'select') t",
+      );
+      expect(can.rows[0].t).toBe(false);
+    });
+
     it('logs every change of state by itself, in order', async () => {
       const o = await place('log-order-1', 'upi');
       for (const to of ['awaiting_cash', 'new', 'cooking', 'ready', 'handed_over'])

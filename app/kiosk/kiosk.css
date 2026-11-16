@@ -2026,3 +2026,29 @@
   filter: grayscale(1);
   opacity: 0.55;
 }
+
+/* The way to pay the customer just tapped stays at full strength while the order goes through (the
+   other two step back), and on UPI the phone's red line scans the code: it is being prepared, not broken. */
+.k-pay .tile.going:disabled {
+  opacity: 1;
+}
+.k-pay .upi.going .lead {
+  opacity: 1;
+}
+.k-pay .upi.going .scan {
+  animation: upiscan 1.5s ease-in-out infinite;
+}
+@keyframes upiscan {
+  0%,
+  100% {
+    transform: translateY(-86px);
+  }
+  50% {
+    transform: translateY(96px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-pay .upi.going .scan {
+    animation: none;
+  }
+}

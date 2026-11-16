@@ -3,6 +3,7 @@
 // look, and the latest errors. The numbers come from /api/admin/system; the rules are in lib/system.ts.
 import { useCallback, useEffect, useState } from 'react';
 import { admin, ApiError, type SystemReport } from '@/lib/client';
+import { phonePretty, SHOP } from '@/lib/shop';
 import { ago, isOnline, kindName, type DeviceKind } from '@/lib/system';
 import { Bar, time, type Ctx } from './shared';
 
@@ -167,6 +168,35 @@ export function System({
           <div className="sysfoot">
             Version {sys.build.slice(0, 7)} · database {sys.store === 'supabase' ? 'connected' : 'in memory'} · UPI by{' '}
             {sys.payments === 'easebuzz' ? 'Easebuzz' : sys.payments === 'mock' ? 'test payments' : 'the shop’s own QR'}
+          </div>
+          <div className="mcat" data-testid="shop-details">
+            <h3>On every bill</h3>
+            <div className="dev on">
+              <i />
+              <div>
+                <b>{SHOP.name}</b>
+                <span>{SHOP.address.join(', ')}</span>
+              </div>
+            </div>
+            <div className="dev on">
+              <i />
+              <div>
+                <b>GSTIN {SHOP.gstin}</b>
+                <span>
+                  5% GST (2.5% CGST + 2.5% SGST) · SAC {SHOP.sac} · {SHOP.state.name}
+                </span>
+              </div>
+            </div>
+            <div className="dev on">
+              <i />
+              <div>
+                <b>FSSAI Reg. No. {SHOP.fssai.number}</b>
+                <span>
+                  Fee paid up to {SHOP.fssai.feePaidUpto} · phone {phonePretty(SHOP.phone)}
+                </span>
+              </div>
+            </div>
+            <div className="was">If any of this is wrong or changes, tell whoever looks after the app.</div>
           </div>
           <button className="techlink" onClick={openTech} data-testid="open-tech">
             Technical detail ›

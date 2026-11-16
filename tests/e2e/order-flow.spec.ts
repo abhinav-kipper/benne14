@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const PIN = '2468';
+const H = { 'x-staff-pin': PIN };
 
 // Safety first: these tests place orders, so they must only ever run against the in-memory store.
 test.beforeAll(async ({ request }) => {
@@ -80,6 +81,57 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await kitchen.getByRole('button', { name: 'Close' }).click();
   await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 });
   await expect(kitchen.getByTestId(`ready-${token}`)).toHaveCount(0, { timeout: 5000 });
+});
+
+test('the phone bill becomes a tax invoice when the order is paid, with the shop’s GSTIN and FSSAI number', async ({
+  page,
+  request,
+}) => {
+  const place = async (n: number) =>
+    (
+      await request.post('/api/orders', {
+        data: {
+          key: `invoice-bill-${Date.now()}-${n}`,
+          type: 'takeaway',
+          name: null,
+          payMethod: 'card',
+          lines: [{ itemId: 'masala-dosa', qty: 1, choices: {}, notes: [] }],
+        },
+      })
+    ).json();
+  const pay = (id: string) => request.post(`/api/orders/${id}/status`, { data: { to: 'new' }, headers: H });
+  const first = await place(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/r/${first.id}`);
+  // before payment it is a bill: who it is from is already there, an invoice number is not
+  await expect(page.getByTestId('bill-title')).toHaveText('Bill');
+  await expect(page.getByTestId('bill-invoice')).toHaveCount(0);
+  const from = page.getByTestId('bill-from');
+  await expect(from).toContainText('Benne 14');
+  await expect(from).toContainText('Shop No. 1, Plot No. 15');
+  await expect(from).toContainText('Ghaziabad, Uttar Pradesh 201014');
+  await expect(from).toContainText('GSTIN 09HQSPM1340E1ZM');
+  await expect(from).toContainText('FSSAI Reg. No. 22726105001944');
+  await pay(first.id);
+  await expect(page.getByTestId('bill-title')).toHaveText('Tax invoice', { timeout: 10_000 }); // by itself
+  const no = (await page.getByTestId('bill-invoice').innerText()).replace('No. ', '');
+  expect(no).toMatch(/^B14\/\d\d-\d\d\/\d{6}$/);
+  expect(no.length).toBeLessThanOrEqual(16);
+  await expect(page.getByTestId('bill')).toContainText('CGST @ 2.5%');
+  await expect(page.getByTestId('bill')).toContainText('SAC 9963');
+  await expect(page.getByTestId('bill')).toContainText('Place of supply: Uttar Pradesh (09)');
+  await expect(page.locator('.rcpt .foot')).toContainText('+91 74286 71414');
+  await expect(page.locator('.rcpt .foot')).toContainText('computer-generated invoice');
+  // the next paid order gets the next number; one that is never paid uses none up
+  const walked = await place(2);
+  await request.post(`/api/orders/${walked.id}/status`, { data: { to: 'cancelled' }, headers: H });
+  const second = await place(3);
+  const paid = await (await pay(second.id)).json();
+  expect(+paid.invoiceNo.slice(-6)).toBe(+no.slice(-6) + 1);
+  expect((await (await request.get(`/api/orders/${walked.id}`)).json()).invoiceNo ?? null).toBeNull();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+  ).toBeLessThanOrEqual(1);
 });
 
 test('cash order waits for the counter before reaching the rail', async ({ browser }) => {

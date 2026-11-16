@@ -60,6 +60,7 @@ export interface SystemInput {
   testMode: boolean;
   payments: { at: string; subject: string; note?: string | null }[]; // payments flagged for a look
   ownerPinSet?: boolean; // does the owner app have its own PIN yet?
+  fssaiFeePaidUpto?: string; // YYYY-MM-DD: the registration lapses if the yearly fee is not paid by then
 }
 
 // Everything that needs the owner's eye, worst first.
@@ -122,6 +123,19 @@ export function problems(s: SystemInput): Problem[] {
       text: 'The owner app still opens with the kitchen’s PIN',
       hint: 'Set OWNER_PIN (six digits) in Vercel and redeploy. Kitchen staff then cannot see takings or change prices.',
     });
+  if (s.fssaiFeePaidUpto) {
+    const days = Math.ceil((Date.parse(`${s.fssaiFeePaidUpto}T23:59:59+05:30`) - s.now) / (24 * 3600_000));
+    if (days <= 30)
+      out.push({
+        key: 'fssai',
+        level: days < 0 ? 'bad' : 'warn',
+        text:
+          days < 0
+            ? 'The FSSAI registration fee is overdue'
+            : `The FSSAI registration fee is due in ${days} ${days === 1 ? 'day' : 'days'}`,
+        hint: `Pay the yearly fee at foscos.fssai.gov.in (paid up to ${s.fssaiFeePaidUpto}), then ask for the date in the app to be updated.`,
+      });
+  }
   if (s.testMode)
     out.push({
       key: 'test',

@@ -253,6 +253,11 @@ test('kiosk: a slow moment while an order is being placed never flashes "order a
   await page.clock.runFor(11_000); // well under the 12 s an order may take, long enough for the checks to fail
   await expect(page.getByTestId('counter-please')).toHaveCount(0); // the customer still sees their own order going through
   await expect(page.getByTestId('pay-cash')).toBeDisabled();
+  // the way they chose stays at full strength while it works; the other two step back
+  await expect(page.getByTestId('pay-cash')).toHaveClass(/going/);
+  await expect(page.getByTestId('pay-cash')).toHaveCSS('opacity', '1');
+  await expect(page.getByTestId('pay-upi')).not.toHaveClass(/going/);
+  await expect(page.getByTestId('pay-upi')).toHaveCSS('opacity', '0.55');
   release();
   await expect(page.getByTestId('token')).toBeVisible(); // straight to the order number, no detour
   await expect(page.getByTestId('counter-please')).toHaveCount(0);
@@ -261,8 +266,11 @@ test('kiosk: a slow moment while an order is being placed never flashes "order a
 test('kiosk: two failed checks in the same second (a tablet waking up) are not an outage', async ({ page }) => {
   await page.clock.install();
   await page.setViewportSize({ width: 800, height: 1280 });
+  // the kiosk's first check, on opening, gets its answer before anything goes wrong
+  const firstCheck = page.waitForResponse('**/api/ping');
   await page.goto('/kiosk');
   await expect(page.getByTestId('start')).toBeVisible();
+  await firstCheck;
   let pings = 0;
   await page.route('**/api/ping', (r) => {
     pings++;

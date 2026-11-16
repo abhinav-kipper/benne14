@@ -191,14 +191,14 @@ describe('reports agree with each other over random days', () => {
   });
 
   it('the bills CSV, the GST-by-day CSV and the dish CSV all give the dashboard’s numbers', () => {
-    const bills = rows(billsCsv(orders)); // …, Discount, Code, Taxable value, CGST, SGST, Total, Refunded, Reason
-    const live = bills.filter((r) => r[12] === '');
+    const bills = rows(billsCsv(orders)); // Date, Time, Invoice, Order, …, Discount, Code, Taxable value, CGST, SGST, Total, Refunded, Reason
+    const live = bills.filter((r) => r[13] === '');
     expect(live.length).toBe(s.orders);
-    expect(sum(live.map((r) => +r[11]))).toBe(s.takings);
-    expect(sum(live.map((r) => +r[8]))).toBe(s.gst.taxable);
-    expect(sum(live.map((r) => +r[6] || 0))).toBe(s.discounts.amount);
-    expect(sum(bills.filter((r) => r[12] !== '').map((r) => +r[12]))).toBe(s.refunds.amount);
-    for (const r of bills) expect(sum([+r[8], +r[9], +r[10]])).toBe(+r[11]); // every bill adds up on its own
+    expect(sum(live.map((r) => +r[12]))).toBe(s.takings);
+    expect(sum(live.map((r) => +r[9]))).toBe(s.gst.taxable);
+    expect(sum(live.map((r) => +r[7] || 0))).toBe(s.discounts.amount);
+    expect(sum(bills.filter((r) => r[13] !== '').map((r) => +r[13]))).toBe(s.refunds.amount);
+    for (const r of bills) expect(sum([+r[9], +r[10], +r[11]])).toBe(+r[12]); // every bill adds up on its own
 
     const gst = rows(gstCsv(orders, from, to)); // Date, Bills, Taxable, CGST, SGST, Total
     expect(gst.length).toBe(3);
