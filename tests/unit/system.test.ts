@@ -42,6 +42,20 @@ const input = (over: Partial<SystemInput> = {}): SystemInput => ({
 });
 
 describe('system page: what needs the owner’s eye', () => {
+  it('reminds the owner a month before the FSSAI fee is due, and says so loudly once it is overdue', () => {
+    const day = (d: number) => new Date(NOW + d * 24 * 3600_000 + 5.5 * 3600_000).toISOString().slice(0, 10);
+    expect(problems(input({ fssaiFeePaidUpto: day(90) }))).toEqual([]);
+    const soon = problems(input({ fssaiFeePaidUpto: day(20) }));
+    expect(soon).toHaveLength(1);
+    expect(soon[0]).toMatchObject({ key: 'fssai', level: 'warn' });
+    expect(soon[0].text).toMatch(/due in (20|21) days/);
+    expect(problems(input({ fssaiFeePaidUpto: day(-3) }))[0]).toMatchObject({
+      key: 'fssai',
+      level: 'bad',
+      text: 'The FSSAI registration fee is overdue',
+    });
+  });
+
   it('says nothing when every screen is answering', () => {
     expect(problems(input())).toEqual([]);
   });

@@ -112,6 +112,7 @@ export function billsCsv(all: Order[]) {
     [
       'Date',
       'Time',
+      'Invoice',
       'Order',
       'Type',
       'Payment',
@@ -130,6 +131,7 @@ export function billsCsv(all: Order[]) {
     rows.push([
       o.tokenDay,
       istTime(o.createdAt),
+      o.invoiceNo ?? '',
       o.token,
       o.type === 'dine_in' ? 'Dine-in' : 'Takeaway',
       o.payMethod.toUpperCase(),

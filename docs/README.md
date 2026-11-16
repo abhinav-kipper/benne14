@@ -14,6 +14,7 @@ Read `state.md` first. Everything else is reference.
 | `ui-audit.md` | UI and customer-flow audit | Ticked as fixed |
 | `accuracy-audit.md` | Money, order numbers and reports audit | Ticked as fixed |
 | `menu-audit.md` | Owner-menu audit across every screen (all fixed) | Closed |
+| `tax-invoice.md` | What GST and FSSAI rules ask of the bill, where each thing is shown, and two questions for the accountant | Yes |
 | `feature-research.md` | What other restaurant systems do that we don't, ranked | Snapshot, 2026-11-15 |
 | `history/` | Plans written before the build. Not how the app works today. | No |
 

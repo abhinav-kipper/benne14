@@ -232,3 +232,43 @@
   font-weight: 600;
   color: var(--cream-2);
 }
+
+/* who the bill is from: name, address, GSTIN and FSSAI number, as a tax invoice must show them */
+.rcpt .from {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--cream-2);
+}
+.rcpt .from > b {
+  font-size: 15px;
+  color: var(--cream);
+}
+.rcpt .from .ids {
+  color: var(--cream-3);
+}
+.rcpt .from .ids:first-of-type {
+  margin-top: 6px;
+}
+.rcpt .from .ids b {
+  font-weight: 600;
+  color: var(--cream);
+  letter-spacing: 0.02em;
+}
+.rcpt .refund {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--chilli);
+}
+.rcpt .legal {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  font-size: 12px;
+  color: var(--cream-3);
+}

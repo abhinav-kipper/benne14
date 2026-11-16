@@ -24,7 +24,7 @@ Measured: **10 taps** from the start screen to the QR for two dishes; **11** to 
 
 - [ ] U8 **Photos are mismatched** (different angles, light, plates; filter coffee has none). This is the single biggest lift available: one shoot, same angle, same light, same plate, for all ten dishes.
 - [ ] U9 **No veg mark** (the green dot every Indian menu carries), no "bestseller" cue, no allergen note (dairy, nuts).
-- [ ] U10 **The phone bill is not a full tax invoice**: no GSTIN, FSSAI licence number, shop address or invoice number. Owner to supply the numbers; then add them to the bill.
+- [x] U10 **The phone bill is not a full tax invoice** (2026-11-16, `docs/tax-invoice.md`): no GSTIN, FSSAI licence number, shop address or invoice number. Owner to supply the numbers; then add them to the bill.
 - [x] U11 **Upsell copy is fixed**: "Goes well with your dosa" shows even for an idli-only order.
 
 ## 3. Feel: what makes good apps feel finished

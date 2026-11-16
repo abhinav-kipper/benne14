@@ -37,6 +37,9 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   paidAt: string | null;
+  // The GST invoice number, given once when the order is paid and never changed (migration 0015):
+  // unique and without gaps within a financial year. Missing on unpaid orders and on old ones.
+  invoiceNo?: string | null;
   readyAt: string | null;
   // Recorded from the owner's dashboard; the money itself goes back outside the app.
   refundedAt?: string | null;
@@ -203,3 +206,13 @@ export function cleanName(v: unknown): string | null {
 // key with a different cart or payment type is recognised as a changed order, not a retry.
 export const isCheckoutKey = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(v);
 export const storedKey = (key: string, fingerprint: string) => `${key}:${fingerprint}`;
+
+// India's financial year runs April to March: 14 Nov 2026 is in "26-27", 2 Feb 2027 too.
+export function financialYear(iso: string): string {
+  const [y, m] = istDay(new Date(iso)).split('-').map(Number);
+  const start = m < 4 ? y - 1 : y;
+  const two = (n: number) => String(n % 100).padStart(2, '0');
+  return `${two(start)}-${two(start + 1)}`;
+}
+// B14/26-27/000123: sixteen characters, the most a GST invoice number may have (CGST Rule 46(b)).
+export const invoiceNumber = (fy: string, n: number) => `B14/${fy}/${String(n).padStart(6, '0')}`;

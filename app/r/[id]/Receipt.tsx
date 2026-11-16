@@ -1,6 +1,7 @@
 'use client';
 import type React from 'react';
 import { useOrderState } from '@/lib/client';
+import { phonePretty, SHOP } from '@/lib/shop';
 
 const HEAD: Record<string, React.ReactNode> = {
   pending_payment: 'Waiting for your payment.',
@@ -46,6 +47,8 @@ export default function Receipt({ id }: { id: string }) {
     timeZone: 'Asia/Kolkata',
   });
   const unpaid = o.status === 'awaiting_cash' || o.status === 'pending_payment';
+  const day = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' });
   return (
     <div className="rcpt">
       <div className="logo">
@@ -87,12 +90,27 @@ export default function Receipt({ id }: { id: string }) {
       </div>
 
       <div className="bill" data-testid="bill">
+        {/* What a GST tax invoice must carry (CGST Rule 46) and the FSSAI number: docs/tax-invoice.md */}
         <div className="bh">
-          <h3 className="disp">Bill</h3>
+          <h3 className="disp" data-testid="bill-title">
+            {o.invoiceNo ? 'Tax invoice' : 'Bill'}
+          </h3>
           <div>
-            <b>Order {o.token}</b>
-            <span>{when}</span>
+            {o.invoiceNo ? <b data-testid="bill-invoice">No. {o.invoiceNo}</b> : <b>Order {o.token}</b>}
+            <span>{o.invoiceNo ? `${day(o.paidAt ?? o.createdAt)} · Order ${o.token}` : when}</span>
           </div>
+        </div>
+        <div className="from" data-testid="bill-from">
+          <b>{SHOP.name}</b>
+          {SHOP.address.map((l) => (
+            <span key={l}>{l}</span>
+          ))}
+          <span className="ids">
+            GSTIN <b>{SHOP.gstin}</b>
+          </span>
+          <span className="ids">
+            FSSAI Reg. No. <b>{SHOP.fssai.number}</b>
+          </span>
         </div>
         <div className="cols">
           <span>Item</span>
@@ -162,11 +180,28 @@ export default function Receipt({ id }: { id: string }) {
           <span>{unpaid ? 'To pay' : <>Paid by {PAY[o.payMethod]}</>}</span>
           <b data-testid="bill-total">{money(o.total)}</b>
         </div>
+        {o.refundedAt && (
+          <div className="refund" data-testid="bill-refund">
+            Refunded {money(o.refundAmount ?? o.total)} on {day(o.refundedAt)}
+            {o.refundReason ? ` · ${o.refundReason}` : ''}
+          </div>
+        )}
+        <div className="legal">
+          Restaurant service · SAC {SHOP.sac} · Place of supply: {SHOP.state.name} ({SHOP.state.code})
+        </div>
       </div>
       <div className="foot">
-        Benne 14 · Authentic Bangalore Dosa · Indirapuram
+        {SHOP.name} · {SHOP.tagline} · Indirapuram
+        <br />
+        Questions about this bill? Call {phonePretty(SHOP.phone)}
         <br />
         Prices in rupees. GST rounded to the nearest rupee.
+        {o.invoiceNo && (
+          <>
+            <br />
+            This is a computer-generated invoice and needs no signature.
+          </>
+        )}
       </div>
     </div>
   );
