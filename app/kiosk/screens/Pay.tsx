@@ -79,7 +79,7 @@ export function Pay({
         </div>
       </div>
       <button
-        className={`tile upi ${noUpi ? 'off' : ''}`}
+        className={`tile upi ${noUpi ? 'off' : ''} ${busy === 'upi' ? 'going' : ''}`}
         onClick={() => choose('upi')}
         disabled={!!busy || noUpi}
         data-testid="pay-upi"
@@ -115,11 +115,16 @@ export function Pay({
             <rect x="151" y="81" width="22" height="22" />
             <rect x="77" y="207" width="22" height="22" />
           </g>
-          <path d="M20 150h210" stroke="#D14F2B" strokeWidth="6" strokeLinecap="round" />
+          <path className="scan" d="M20 150h210" stroke="#D14F2B" strokeWidth="6" strokeLinecap="round" />
         </svg>
       </button>
       <div className="row">
-        <button className="tile half card" onClick={() => choose('card')} disabled={!!busy} data-testid="pay-card">
+        <button
+          className={`tile half card ${busy === 'card' ? 'going' : ''}`}
+          onClick={() => choose('card')}
+          disabled={!!busy}
+          data-testid="pay-card"
+        >
           <svg
             viewBox="0 0 170 110"
             fill="none"
@@ -137,7 +142,12 @@ export function Pay({
           <span className="alt">Debit or credit card</span>
           <small>Tap or insert on the machine at the counter</small>
         </button>
-        <button className="tile half cash" onClick={() => choose('cash')} disabled={!!busy} data-testid="pay-cash">
+        <button
+          className={`tile half cash ${busy === 'cash' ? 'going' : ''}`}
+          onClick={() => choose('cash')}
+          disabled={!!busy}
+          data-testid="pay-cash"
+        >
           <svg viewBox="0 0 170 110" fill="none" stroke="currentColor" strokeWidth="7" strokeLinejoin="round">
             <rect x="24" y="4" width="140" height="74" rx="8" opacity=".45" />
             <rect x="4" y="28" width="140" height="78" rx="8" fill="#FFFFFF" />
