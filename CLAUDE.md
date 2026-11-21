@@ -4,7 +4,7 @@ Self-order kiosk, kitchen display, TV order board and owner app for **Benne 14 �
 
 ## Stack
 
-Next.js 15 (App Router, TS strict) · Supabase (Postgres with RLS; server-only access, no Realtime or Auth yet) · Vercel · CSS variables + one CSS file per surface, scoped by a root class · ESLint + Prettier · Vitest + Playwright. Payments: Easebuzz gateway in production (`PAYMENTS=easebuzz`), mock in tests (`PAYMENTS=mock`). Phone notifications by web push.
+Next.js 15 (App Router, TS strict) · Supabase (Postgres with RLS; server-only access, no Realtime or Auth yet) · Vercel · CSS variables + one CSS file per surface, scoped by a root class · ESLint + Prettier · Vitest + Playwright. Payments: Easebuzz gateway in production (`PAYMENTS=easebuzz`), or the same account's InstaCollect (`PAYMENTS=instacollect`, `lib/instacollect.ts`); mock in tests (`PAYMENTS=mock`). Phone notifications by web push.
 
 ## Layout
 

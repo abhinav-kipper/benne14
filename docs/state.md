@@ -50,6 +50,7 @@ section A are open.
 
 ## Done
 
+- 2026-11-21 — InstaCollect built as a second way of taking UPI (`PAYMENTS=instacollect`, same keys): one call for a QR into the shop's own virtual UPI ID, confirmed by asking Easebuzz, wrong amounts flagged, a cancelled order's QR closed. Built from the docs against a stand-in; **not yet tried on the real Easebuzz**. The gateway stays as it is until real ₹1 payments pass (`docs/payments.md`).
 - 2026-11-16 — Owner's report: the owner app sometimes sat on "Loading" with no numbers. A request that never came back (a phone freezes it when the app is put away) left the refresh loop waiting for good. Every polling screen now gives up on a call after 20 seconds and asks again, and wakes on more signals from the phone. Reproduced by a test that fails on the old code.
 - 2026-11-16 — The owner can change the photo of the dishes that came with the app (Menu → a dish → Photo: take or choose), and bring the original back. No database update needed.
 - 2026-11-16 — The phone bill is a tax invoice: the shop's name, address, GSTIN and FSSAI registration number, a running invoice number given at payment (`B14/26-27/000123`, migration 0015), SAC code, place of supply, the shop's phone, and a refund line. The bills CSV has the invoice number; the owner app shows what is printed on every bill and reminds the owner before the FSSAI fee date. Rules, sources and two questions for the accountant: `docs/tax-invoice.md`.

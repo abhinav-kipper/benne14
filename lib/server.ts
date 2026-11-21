@@ -41,7 +41,7 @@ export function fail(e: unknown) {
 
 // Something the server could not handle: keep it for the owner app's System page. Never awaited
 // and never allowed to throw: reporting a failure must not become a second failure.
-function recordServerError(e: unknown) {
+export function recordServerError(e: unknown) {
   try {
     const err = e instanceof Error ? e : new Error(String(e));
     void getStore()
@@ -145,9 +145,13 @@ export const staffDenied = (r: 'bad' | 'locked') =>
 export const paymentsAreMock = () => paymentMode() === 'mock';
 // PAYMENTS=easebuzz: UPI goes through the Easebuzz gateway and confirms itself (needs EASEBUZZ_KEY and
 // EASEBUZZ_SALT; without them it quietly stays on the shop's own QR).
-export const paymentMode = (): 'mock' | 'upi-direct' | 'easebuzz' =>
-  process.env.PAYMENTS === 'mock'
-    ? 'mock'
-    : process.env.PAYMENTS === 'easebuzz' && process.env.EASEBUZZ_KEY && process.env.EASEBUZZ_SALT
-      ? 'easebuzz'
-      : 'upi-direct';
+// PAYMENTS=instacollect: the same account's InstaCollect instead (a QR that pays into the shop's own
+// virtual UPI ID), with the same two keys.
+export const paymentMode = (): 'mock' | 'upi-direct' | 'easebuzz' | 'instacollect' => {
+  const want = process.env.PAYMENTS;
+  if (want === 'mock') return 'mock';
+  const keys = !!process.env.EASEBUZZ_KEY && !!process.env.EASEBUZZ_SALT;
+  return keys && (want === 'easebuzz' || want === 'instacollect') ? want : 'upi-direct';
+};
+// Is UPI confirmed by a gateway (and so by itself), whichever of the two it is?
+export const gatewayOn = () => paymentMode() === 'easebuzz' || paymentMode() === 'instacollect';

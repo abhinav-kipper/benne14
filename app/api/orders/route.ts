@@ -7,7 +7,7 @@ import { cleanName, isCheckoutKey, isPaid, istDay, storedKey, type OrderType, ty
 import { after } from 'next/server';
 import { ordersToRecheck, recheck } from '@/lib/gateway';
 import { getStore } from '@/lib/store';
-import { fail, json, kioskOk, limited, paymentMode, readJson, timed } from '@/lib/server';
+import { fail, gatewayOn, json, kioskOk, limited, readJson, timed } from '@/lib/server';
 import { isTestMode } from '@/lib/testmode';
 
 export const dynamic = 'force-dynamic';
@@ -133,7 +133,7 @@ async function list(req: Request) {
     if (watchIsDue()) after(() => watchQuietly(store));
     // Payments still open are re-checked with the gateway after this answer is sent, so a customer who
     // pays after the kiosk moved on still gets their order (see lib/gateway.ts).
-    if (paymentMode() === 'easebuzz') {
+    if (gatewayOn()) {
       const due = ordersToRecheck(live);
       if (due.length) after(() => recheck(due));
     }
