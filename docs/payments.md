@@ -158,6 +158,11 @@ of two, and the QR is always drawn by us.
   scan is turned away by the bank instead of needing a refund.
 - **Down**: as with the gateway, the kiosk offers card and cash only.
 
+**Trying it without a customer**: owner app → System → Technical detail → "Check InstaCollect"
+(`/api/admin/instacollect`, owner PIN). The server asks the real Easebuzz with its own keys: are the
+keys accepted, can a ₹1 QR be made, can it be cancelled. It works whichever way of taking UPI is on,
+so it can be run before switching. It leaves one cancelled ₹1 QR at Easebuzz and nothing in our books.
+
 Unknowns the first real payments will settle: whether the signature wants the amount as `219.0` or
 `219` (the code tries the second if the first is refused), whether the shop's phone number is
 accepted for every order, the fee per payment, and how fast money reaches the bank account. If

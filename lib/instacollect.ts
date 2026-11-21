@@ -213,3 +213,75 @@ export async function cancelCollect(c: InstaCollectConfig, orderId: string): Pro
 
 // Which of our orders a webhook is about (null: not one of ours, e.g. a QR made in their dashboard).
 export const orderOfWebhook = (d: Record<string, unknown>) => orderIdOf(d.merchant_request_number);
+
+// ---- "Does it work with our keys?" ----
+// A check the owner can run from the technical page, against the real Easebuzz, with no customer
+// and no money: look up an order that does not exist (are the keys accepted?), make a ₹1 QR
+// (is the request signed the way Easebuzz wants?), then cancel that QR. Each step says what
+// Easebuzz answered, in its own words.
+export interface CheckStep {
+  step: string;
+  ok: boolean;
+  detail: string;
+}
+export async function selfCheck(c: InstaCollectConfig, phone: string, now = Date.now()): Promise<CheckStep[]> {
+  const out: CheckStep[] = [];
+  const attempt = async (step: string, run: () => Promise<{ ok: boolean; detail: string }>) => {
+    try {
+      out.push({ step, ...(await run()) });
+    } catch (e) {
+      out.push({ step, ok: false, detail: e instanceof Error ? e.message : String(e) });
+    }
+    return out[out.length - 1].ok;
+  };
+  const urn = `benne14check${now.toString(36)}`.slice(0, 32);
+
+  const keysOk = await attempt('Keys accepted', async () => {
+    const r = await call(c, 'GET', `/api/v1/insta-collect/order/retrieve_via_urn/${urn}/`, lookupHashOf(c, urn));
+    // "no such order" is the right answer here; "not authorised" means the keys or InstaCollect itself are the problem
+    const refused = r.status === 401 || r.status === 403;
+    const unwell = r.status >= 500; // their server is down or erroring: nothing can be concluded about the keys
+    return { ok: !refused && !unwell, detail: `Easebuzz answered ${reason(r)}` };
+  });
+  if (!keysOk) return out;
+
+  let orderId: string | null = null;
+  const made = await attempt('A ₹1 QR can be made', async () => {
+    const body = {
+      key: c.key,
+      unique_request_number: urn,
+      amount: 1,
+      per_transaction_amount: 1,
+      customer_name: 'Benne 14 check',
+      customer_phone: phone,
+      notify_customer_on_create: false,
+      allowed_collection_modes: ['upi'],
+      expiry_date: expiryOf(now, 5),
+    };
+    const tries: string[] = [];
+    for (const amount of ['1.0', '1']) {
+      const r = await call(c, 'POST', '/api/v1/insta-collect/order/create/', createHashOf(c, urn, amount), body);
+      const o = orderIn(r.json);
+      if (o) {
+        orderId = typeof o.id === 'string' ? o.id : null;
+        const link = upiLinkOf(o, 1, 'Check');
+        return {
+          ok: !!link,
+          detail: `${link ? 'Easebuzz gave a UPI ID to pay into' : 'Made, but no UPI ID came back'} (amount signed as "${amount}")`,
+        };
+      }
+      tries.push(`signed as "${amount}": ${reason(r)}`);
+      if (r.status !== 401 && r.status !== 403) break; // not a signature problem: the other format won't help
+    }
+    return { ok: false, detail: tries.join(' · ') };
+  });
+  if (!made || !orderId) return out;
+
+  await attempt('That QR can be cancelled', async () => {
+    const id = orderId!;
+    const r = await call(c, 'POST', `/api/v1/insta-collect/order/${id}/cancel/`, lookupHashOf(c, id), { key: c.key });
+    const o = orderIn(r.json);
+    return { ok: !!o, detail: o ? `Cancelled (${String(o.status)})` : `Easebuzz answered ${reason(r)}` };
+  });
+  return out;
+}

@@ -171,6 +171,48 @@ test('cancelling at the kiosk closes the QR at Easebuzz, so a late scan cannot p
   expect((await order(request, o.id)).status).toBe('cancelled');
 });
 
+test('the owner can check InstaCollect against Easebuzz from the technical page: keys, a ₹1 QR, cancel', async ({
+  page,
+  request,
+}) => {
+  expect(
+    (await request.post('/api/admin/instacollect', { headers: { 'x-forwarded-for': '10.55.0.1' } })).status(),
+  ).toBe(401);
+  const before = (await (await request.get(`${FAKE}/__ic/orders`)).json()).length;
+  const r = await (await request.post('/api/admin/instacollect', { headers: H })).json();
+  expect(r.steps.map((s: { step: string; ok: boolean }) => [s.step, s.ok])).toEqual([
+    ['Keys accepted', true],
+    ['A ₹1 QR can be made', true],
+    ['That QR can be cancelled', true],
+  ]);
+  // it left one ₹1 order at Easebuzz, cancelled, and none in the shop's own books
+  const theirOrders = await (await request.get(`${FAKE}/__ic/orders`)).json();
+  expect(theirOrders).toHaveLength(before + 1);
+  expect(theirOrders.at(-1)).toMatchObject({ amount: 1, status: 'cancelled' });
+  expect(JSON.stringify(r)).not.toContain('FAKESALT01');
+
+  // from the owner app
+  await page.addInitScript((pin) => localStorage.setItem('benne14.ownerPin', pin), PIN);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin');
+  await page.getByTestId('sysline').click();
+  await page.getByTestId('open-tech').click();
+  await page.getByTestId('ic-check').click();
+  await expect(page.getByTestId('ic-step')).toHaveCount(3, { timeout: 15_000 });
+  await expect(page.getByTestId('ic-step').nth(1)).toContainText('Easebuzz gave a UPI ID to pay into');
+
+  // Easebuzz not answering: the check says so and stops, instead of calling the keys good or bad
+  await request.post(`${FAKE}/__ic/down`, { data: { on: true } });
+  try {
+    const down = await (await request.post('/api/admin/instacollect', { headers: H })).json();
+    expect(down.steps).toHaveLength(1);
+    expect(down.steps[0]).toMatchObject({ step: 'Keys accepted', ok: false });
+    expect(down.steps[0].detail).toContain('503');
+  } finally {
+    await request.post(`${FAKE}/__ic/down`, { data: { on: false } });
+  }
+});
+
 test('kiosk: if InstaCollect is down, UPI steps aside and the customer pays by card or cash', async ({
   page,
   request,
