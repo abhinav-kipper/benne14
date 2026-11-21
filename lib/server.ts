@@ -146,7 +146,7 @@ export const paymentsAreMock = () => paymentMode() === 'mock';
 // PAYMENTS=easebuzz: UPI goes through the Easebuzz gateway and confirms itself (needs EASEBUZZ_KEY and
 // EASEBUZZ_SALT; without them it quietly stays on the shop's own QR).
 // PAYMENTS=instacollect: the same account's InstaCollect instead (a QR that pays into the shop's own
-// virtual UPI ID), with the same two keys.
+// virtual UPI ID). It has its own keys, EASEBUZZ_WIRE_KEY and EASEBUZZ_WIRE_SALT (the gateway's are refused).
 // TRIAL (owner's ask, 2026-11-21): the preview of the branch below takes UPI by InstaCollect whatever
 // PAYMENTS says, so it can be tried on a phone without touching Vercel's settings. It names one
 // branch, so the live site (built from main) and every other preview are unaffected. Remove this
@@ -157,8 +157,12 @@ export const wantedPayments = (env: Record<string, string | undefined> = process
 export const paymentMode = (): 'mock' | 'upi-direct' | 'easebuzz' | 'instacollect' => {
   const want = wantedPayments();
   if (want === 'mock') return 'mock';
-  const keys = !!process.env.EASEBUZZ_KEY && !!process.env.EASEBUZZ_SALT;
-  return keys && (want === 'easebuzz' || want === 'instacollect') ? want : 'upi-direct';
+  const env = process.env;
+  const gatewayKeys = !!env.EASEBUZZ_KEY && !!env.EASEBUZZ_SALT;
+  if (want === 'easebuzz' && gatewayKeys) return want;
+  // the gateway's pair stands in only where Easebuzz made the two the same (and in the tests)
+  if (want === 'instacollect' && ((!!env.EASEBUZZ_WIRE_KEY && !!env.EASEBUZZ_WIRE_SALT) || gatewayKeys)) return want;
+  return 'upi-direct';
 };
 // Is UPI confirmed by a gateway (and so by itself), whichever of the two it is?
 export const gatewayOn = () => paymentMode() === 'easebuzz' || paymentMode() === 'instacollect';

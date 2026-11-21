@@ -186,9 +186,8 @@ createServer(async (req, res) => {
       const b = JSON.parse(raw || '{}');
       if (b.key !== KEY) return refuse('Invalid merchant key', 401);
       const want = sha512(
-        [KEY, b.unique_request_number, amt(b.amount), amt(b.per_transaction_amount), '', '', '', '', '', SALT].join(
-          '|',
-        ),
+        // as the real one: the amount inside the signature is written as it is sent ("219", not "219.0")
+        [KEY, b.unique_request_number, b.amount, b.per_transaction_amount, '', '', '', '', '', SALT].join('|'),
       );
       if (auth !== want) return refuse('Hash mismatch', 401);
       if (!b.customer_name || !/^\d{10}$/.test(b.customer_phone ?? ''))

@@ -20,8 +20,12 @@ export interface InstaCollectConfig {
 }
 
 export function instaCollectConfig(env: Record<string, string | undefined> = process.env): InstaCollectConfig | null {
-  const key = env.EASEBUZZ_KEY?.trim();
-  const salt = env.EASEBUZZ_SALT?.trim();
+  // InstaCollect runs on Easebuzz's "Wire" product, which has its own key and salt; the gateway's
+  // are refused there ("Invalid key"). The gateway pair is only a fallback for an account where
+  // Easebuzz made them the same.
+  const wire = env.EASEBUZZ_WIRE_KEY?.trim() && env.EASEBUZZ_WIRE_SALT?.trim();
+  const key = (wire ? env.EASEBUZZ_WIRE_KEY : env.EASEBUZZ_KEY)?.trim();
+  const salt = (wire ? env.EASEBUZZ_WIRE_SALT : env.EASEBUZZ_SALT)?.trim();
   if (!key || !salt) return null;
   // overridable so the tests can point at a stand-in server
   return { key, salt, wireUrl: (env.EASEBUZZ_WIRE_URL || 'https://wire.easebuzz.in').replace(/\/$/, '') };
@@ -39,8 +43,11 @@ export const createHashOf = (c: Keys, urn: string, amount: string) =>
 // Look-up and cancel: key|<id or unique request number>|salt
 export const lookupHashOf = (c: Keys, id: string) => sha512(`${c.key}|${id}|${c.salt}`);
 // An order webhook: key|unique_request_number|amount|per_transaction_amount|status|udf1…udf5|salt
-export function orderWebhookHash(c: Keys, d: Record<string, unknown>) {
-  const amt = (v: unknown) => (typeof v === 'number' ? hashAmount(v) : v == null ? '' : String(v));
+// `plain` writes a whole amount as "219" instead of "219.0": the docs show the second, but the
+// create call turned out to want the first, so a webhook signed either way is accepted.
+export function orderWebhookHash(c: Keys, d: Record<string, unknown>, plain = false) {
+  const amt = (v: unknown) =>
+    typeof v === 'number' ? (plain ? String(v) : hashAmount(v)) : v == null ? '' : String(v);
   const udf = [d.udf1, d.udf2, d.udf3, d.udf4, d.udf5].map((u) => (u == null ? '' : String(u)));
   return sha512(
     [
@@ -56,9 +63,11 @@ export function orderWebhookHash(c: Keys, d: Record<string, unknown>) {
 }
 export function signedOrderWebhook(c: Keys, d: Record<string, unknown>): boolean {
   if (typeof d.Authorization !== 'string') return false;
-  const want = Buffer.from(orderWebhookHash(c, d));
   const got = Buffer.from(d.Authorization.toLowerCase());
-  return want.length === got.length && timingSafeEqual(want, got);
+  return [false, true].some((plain) => {
+    const want = Buffer.from(orderWebhookHash(c, d, plain));
+    return want.length === got.length && timingSafeEqual(want, got);
+  });
 }
 
 // ---- talking to Easebuzz ----
@@ -146,10 +155,11 @@ export async function startCollect(
   };
   const create = (amount: string) =>
     call(c, 'POST', '/api/v1/insta-collect/order/create/', createHashOf(c, urn, amount), body);
-  // The docs give the amount inside a signature as "219.0" for webhooks and do not say for this
-  // call. If Easebuzz turns the signature down, it is tried once more written as it is sent ("219").
-  let made = await create(hashAmount(o.total));
-  if (!orderIn(made.json) && (made.status === 401 || made.status === 403)) made = await create(String(o.total));
+  // The real Easebuzz wants the amount inside this signature written as it is sent ("219"): it
+  // refused "1.0" and took "1" (checked 2026-11-21). Their docs show "219.0" for webhooks, so if
+  // the signature is ever turned down it is tried once more that way.
+  let made = await create(String(o.total));
+  if (!orderIn(made.json) && (made.status === 401 || made.status === 403)) made = await create(hashAmount(o.total));
   let order = orderIn(made.json);
   if (!order) {
     // Refused: most often because this order's QR was already made. Use that one if it exists.
@@ -259,7 +269,7 @@ export async function selfCheck(c: InstaCollectConfig, phone: string, now = Date
       expiry_date: expiryOf(now, 5),
     };
     const tries: string[] = [];
-    for (const amount of ['1.0', '1']) {
+    for (const amount of ['1', '1.0']) {
       const r = await call(c, 'POST', '/api/v1/insta-collect/order/create/', createHashOf(c, urn, amount), body);
       const o = orderIn(r.json);
       if (o) {

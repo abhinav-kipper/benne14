@@ -25,6 +25,10 @@ describe('InstaCollect: settings', () => {
       wireUrl: 'https://wire.easebuzz.in',
     });
     expect(instaCollectConfig({ EASEBUZZ_KEY: 'k' })).toBeNull();
+    // InstaCollect's own pair wins over the gateway's; half a pair is ignored
+    const both = { EASEBUZZ_KEY: 'k', EASEBUZZ_SALT: 's', EASEBUZZ_WIRE_KEY: 'wk', EASEBUZZ_WIRE_SALT: 'ws' };
+    expect(instaCollectConfig(both)).toMatchObject({ key: 'wk', salt: 'ws' });
+    expect(instaCollectConfig({ ...both, EASEBUZZ_WIRE_SALT: '' })).toMatchObject({ key: 'k', salt: 's' });
     expect(
       instaCollectConfig({ EASEBUZZ_KEY: 'k', EASEBUZZ_SALT: 's', EASEBUZZ_WIRE_URL: 'http://x:1/' })?.wireUrl,
     ).toBe('http://x:1');
@@ -50,6 +54,10 @@ describe('InstaCollect: signatures, as the docs spell them', () => {
     expect(orderWebhookHash(C, d)).toBe(hash);
     expect(signedOrderWebhook(C, { ...d, Authorization: hash })).toBe(true);
     expect(signedOrderWebhook(C, { ...d, Authorization: hash.toUpperCase() })).toBe(true);
+    // the amount written as it is sent, which is how the create call turned out to be signed
+    expect(signedOrderWebhook(C, { ...d, Authorization: sha('KEY01|abc123|219|219|completed||||||SALT01') })).toBe(
+      true,
+    );
     // anything changed after signing, a missing signature, or another shop's keys: refused
     expect(signedOrderWebhook(C, { ...d, status: 'created', Authorization: hash })).toBe(false);
     expect(signedOrderWebhook(C, { ...d, amount: 1, Authorization: hash })).toBe(false);
@@ -188,7 +196,7 @@ describe('InstaCollect: starting a payment against a stand-in Easebuzz', () => {
       allowed_collection_modes: ['upi'],
       expiry_date: '2026-11-21 15:50:00',
     });
-    expect((sent[0].init.headers as Record<string, string>).Authorization).toBe(createHashOf(cfg, urn, '219.0'));
+    expect((sent[0].init.headers as Record<string, string>).Authorization).toBe(createHashOf(cfg, urn, '219'));
     expect(JSON.stringify(sent)).not.toContain('SALT01');
   });
 
@@ -201,7 +209,7 @@ describe('InstaCollect: starting a payment against a stand-in Easebuzz', () => {
       }) as typeof fetch,
       () => startCollect(cfg, o, '7428671414'),
     );
-    expect(hashes).toEqual([createHashOf(cfg, urn, '219.0'), createHashOf(cfg, urn, '219')]);
+    expect(hashes).toEqual([createHashOf(cfg, urn, '219'), createHashOf(cfg, urn, '219.0')]);
   });
 
   it('uses the QR already made when the order was started before, and says why when there is none', async () => {

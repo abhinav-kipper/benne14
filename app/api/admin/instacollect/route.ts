@@ -18,7 +18,13 @@ export async function POST(req: Request) {
     const cfg = instaCollectConfig();
     if (!cfg)
       return json({
-        steps: [{ step: 'Keys set', ok: false, detail: 'EASEBUZZ_KEY and EASEBUZZ_SALT are not set on this server' }],
+        steps: [
+          {
+            step: 'Keys set',
+            ok: false,
+            detail: 'EASEBUZZ_WIRE_KEY and EASEBUZZ_WIRE_SALT are not set on this server',
+          },
+        ],
       });
     return json({ steps: await selfCheck(cfg, SHOP.phone) });
   } catch (e) {

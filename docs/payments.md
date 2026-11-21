@@ -140,9 +140,9 @@ What it is: instead of a gateway transaction, each order gets a QR that pays int
 the shop's own Easebuzz account ("Orders (Dynamic QR)" in their docs). One call to Easebuzz instead
 of two, and the QR is always drawn by us.
 
-- **Switch**: `PAYMENTS=instacollect`, with the same `EASEBUZZ_KEY` and `EASEBUZZ_SALT` as the gateway
-  (Easebuzz told the owner they are the same keys). `PAYMENTS=easebuzz` goes back to the gateway: one
-  setting, nothing else to undo.
+- **Switch**: `PAYMENTS=instacollect`, with InstaCollect's own keys in `EASEBUZZ_WIRE_KEY` and
+  `EASEBUZZ_WIRE_SALT` ("Wire API key / salt" from Easebuzz; the gateway's key is refused there with
+  "Invalid key"). `PAYMENTS=easebuzz` goes back to the gateway: one setting, nothing else to undo.
 - **Start** (`lib/instacollect.ts` `startCollect`): `POST wire.easebuzz.in/api/v1/insta-collect/order/create/`
   with the order id (no dashes) as the unique request number, the bill as `amount` and
   `per_transaction_amount`, UPI only, and a 20-minute end time. Easebuzz requires a customer name and
@@ -167,7 +167,8 @@ changing Vercel. The live site and other previews are unaffected. Remove once `P
 keys accepted, can a ₹1 QR be made, can it be cancelled. It works whichever way of taking UPI is on,
 so it can be run before switching. It leaves one cancelled ₹1 QR at Easebuzz and nothing in our books.
 
-Unknowns the first real payments will settle: whether the signature wants the amount as `219.0` or
-`219` (the code tries the second if the first is refused), whether the shop's phone number is
-accepted for every order, the fee per payment, and how fast money reaches the bank account. If
+Checked against the real Easebuzz on 2026-11-21 with the Wire keys: keys accepted, a ₹1 QR made with
+the shop's phone number, and cancelled. The signature wants the amount as it is sent (`219`, not
+`219.0`). Still unknown until a real payment: how a paid order reads back, whether the webhook
+arrives, the fee per payment, and how fast money reaches the bank account. If
 Easebuzz refuses, its own reason is saved and shows on the owner app's technical page.
