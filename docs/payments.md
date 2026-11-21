@@ -158,6 +158,10 @@ of two, and the QR is always drawn by us.
   scan is turned away by the bank instead of needing a refund.
 - **Down**: as with the gateway, the kiosk offers card and cash only.
 
+**Trial preview** (temporary): the preview of branch `feat/instacollect` takes UPI by InstaCollect
+whatever `PAYMENTS` says (`wantedPayments()` in `lib/server.ts`), so it can be tried on a phone without
+changing Vercel. The live site and other previews are unaffected. Remove once `PAYMENTS` is set for real.
+
 **Trying it without a customer**: owner app → System → Technical detail → "Check InstaCollect"
 (`/api/admin/instacollect`, owner PIN). The server asks the real Easebuzz with its own keys: are the
 keys accepted, can a ₹1 QR be made, can it be cancelled. It works whichever way of taking UPI is on,

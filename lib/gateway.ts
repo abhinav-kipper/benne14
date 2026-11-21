@@ -5,6 +5,7 @@ import 'server-only';
 import { easebuzzConfig, fetchStatus, type PayState, type TxnStatus } from './easebuzz';
 import { cancelCollect, fetchCollect, instaCollectConfig } from './instacollect';
 import { isPaid, type Order } from './orders';
+import { wantedPayments } from './server';
 import { getStore } from './store';
 import { StoreError } from './store/memory';
 
@@ -20,7 +21,7 @@ export interface Settled {
 
 // Which of Easebuzz's two ways of taking UPI is on (PAYMENTS), and how to ask it about an order.
 function gateway(): { name: string; ask: (orderId: string) => Promise<TxnStatus | null> } | null {
-  if (process.env.PAYMENTS === 'instacollect') {
+  if (wantedPayments() === 'instacollect') {
     const ic = instaCollectConfig();
     return ic ? { name: 'InstaCollect', ask: (id) => fetchCollect(ic, id) } : null;
   }
@@ -96,7 +97,7 @@ export async function recheck(ids: string[]) {
 // a late scan cannot pay it (the bank sends such money back). Never throws: the order is cancelled
 // either way, and a payment that still slips through is caught by settle() and flagged for a refund.
 export async function closeQr(orderId: string): Promise<void> {
-  if (process.env.PAYMENTS !== 'instacollect') return;
+  if (wantedPayments() !== 'instacollect') return;
   const ic = instaCollectConfig();
   if (!ic) return;
   try {

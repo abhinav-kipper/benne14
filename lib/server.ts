@@ -147,8 +147,15 @@ export const paymentsAreMock = () => paymentMode() === 'mock';
 // EASEBUZZ_SALT; without them it quietly stays on the shop's own QR).
 // PAYMENTS=instacollect: the same account's InstaCollect instead (a QR that pays into the shop's own
 // virtual UPI ID), with the same two keys.
+// TRIAL (owner's ask, 2026-11-21): the preview of the branch below takes UPI by InstaCollect whatever
+// PAYMENTS says, so it can be tried on a phone without touching Vercel's settings. It names one
+// branch, so the live site (built from main) and every other preview are unaffected. Remove this
+// once InstaCollect has been tried and PAYMENTS is set for real.
+const INSTACOLLECT_TRIAL_BRANCH = 'feat/instacollect';
+export const wantedPayments = (env: Record<string, string | undefined> = process.env) =>
+  env.PAYMENTS !== 'mock' && env.VERCEL_GIT_COMMIT_REF === INSTACOLLECT_TRIAL_BRANCH ? 'instacollect' : env.PAYMENTS;
 export const paymentMode = (): 'mock' | 'upi-direct' | 'easebuzz' | 'instacollect' => {
-  const want = process.env.PAYMENTS;
+  const want = wantedPayments();
   if (want === 'mock') return 'mock';
   const keys = !!process.env.EASEBUZZ_KEY && !!process.env.EASEBUZZ_SALT;
   return keys && (want === 'easebuzz' || want === 'instacollect') ? want : 'upi-direct';
