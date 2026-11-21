@@ -88,6 +88,13 @@ export const admin = {
     }),
   system: (pin: string) => call<SystemReport>('/api/admin/system', { headers: pinHeader(pin) }),
   tech: (pin: string) => call<TechReport>('/api/admin/tech', { headers: pinHeader(pin) }),
+  // Try the real InstaCollect with the server's keys: a look-up, a ₹1 QR, cancel it.
+  instaCollectCheck: (pin: string) =>
+    call<{ steps: { step: string; ok: boolean; detail: string }[] }>('/api/admin/instacollect', {
+      method: 'POST',
+      headers: pinHeader(pin),
+      timeoutMs: 40_000,
+    }),
   pushInfo: (pin: string) =>
     call<{ publicKey: string; phones: number }>('/api/admin/push', { headers: pinHeader(pin) }),
   pushChange: (pin: string, b: { subscribe: PushSubscriptionJSON } | { unsubscribe: string } | { test: true }) =>

@@ -155,10 +155,16 @@ test('long shift: a kitchen screen open through 240 more orders stays as light a
   const cdp = await ctx.newCDPSession(page);
   await cdp.send('Performance.enable');
   const measure = async () => {
-    await cdp.send('HeapProfiler.collectGarbage');
+    // more than once: elements taken off the page are only let go a collection or two later
+    for (let n = 0; n < 3; n++) await cdp.send('HeapProfiler.collectGarbage');
     const { metrics } = await cdp.send('Performance.getMetrics');
     const get = (name: string) => metrics.find((m) => m.name === name)!.value;
-    return { heapMb: get('JSHeapUsedSize') / 1024 / 1024, nodes: get('Nodes'), listeners: get('JSEventListeners') };
+    return {
+      heapMb: get('JSHeapUsedSize') / 1024 / 1024,
+      onPage: await page.evaluate(() => document.querySelectorAll('*').length), // what the screen has to draw
+      nodes: get('Nodes'), // those, plus any taken off the page but still held in memory
+      listeners: get('JSEventListeners'),
+    };
   };
 
   // one round: 20 orders arrive and are paid, cooked, called and collected, with the screen watching
@@ -193,9 +199,14 @@ test('long shift: a kitchen screen open through 240 more orders stays as light a
   for (let n = 0; n < 10; n++) await round();
   const late = await measure();
   console.log(
-    `shift: heap ${early.heapMb.toFixed(1)} → ${late.heapMb.toFixed(1)} MB, page elements ${early.nodes} → ${late.nodes}, listeners ${early.listeners} → ${late.listeners}`,
+    `shift: heap ${early.heapMb.toFixed(1)} → ${late.heapMb.toFixed(1)} MB, on the page ${early.onPage} → ${late.onPage}, held in memory ${early.nodes} → ${late.nodes}, listeners ${early.listeners} → ${late.listeners}`,
   );
-  expect(late.nodes, 'the page holds no more elements than at the start').toBeLessThanOrEqual(early.nodes * 1.2 + 100);
+  expect(late.onPage, 'the page shows no more elements than at the start').toBeLessThanOrEqual(early.onPage + 10);
+  // The browser may still be holding the last round's elements (about a thousand) when this is read.
+  // A leak keeps every round's: ten rounds would be ten thousand.
+  expect(late.nodes, 'elements of old orders are let go, not kept round after round').toBeLessThanOrEqual(
+    early.nodes + 2500,
+  );
   expect(late.listeners, 'nothing keeps listening after its order has gone').toBeLessThanOrEqual(
     early.listeners * 1.2 + 20,
   );

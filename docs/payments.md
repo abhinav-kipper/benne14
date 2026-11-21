@@ -130,3 +130,44 @@ products, separate keys and separate places in the dashboard.
 
 ## Message for Paytm support (owner can paste)
 > We run Benne 14 (MID SnLKBT73909260588936) and built our own self-order kiosk. (1) Please enable **EDC integration – Connection via Payment Request (cloud)** for our Paytm Android card machine and share the **clientId and checksum/hash key** for staging and production. Can the same integration take **UPI QR on the machine** with status via the API? (2) On dashboard.paytm.com, "Generate now" for Test API Keys and "Activate account for Website/App" fail with "Online Merchant create request cannot be processed due to some system maintenance" — please create the online merchant account. (3) Is **Dynamic QR** available to us, and what are the UPI fees for these setups?
+
+## InstaCollect: the same account's other way of taking UPI (`PAYMENTS=instacollect`)
+
+Built 2026-11-21 from Easebuzz's documentation and tested against a stand-in server. **Not yet tried
+against the real Easebuzz**: the first real ₹1 payments are the test.
+
+What it is: instead of a gateway transaction, each order gets a QR that pays into a virtual UPI ID of
+the shop's own Easebuzz account ("Orders (Dynamic QR)" in their docs). One call to Easebuzz instead
+of two, and the QR is always drawn by us.
+
+- **Switch**: `PAYMENTS=instacollect`, with the same `EASEBUZZ_KEY` and `EASEBUZZ_SALT` as the gateway
+  (Easebuzz told the owner they are the same keys). `PAYMENTS=easebuzz` goes back to the gateway: one
+  setting, nothing else to undo.
+- **Start** (`lib/instacollect.ts` `startCollect`): `POST wire.easebuzz.in/api/v1/insta-collect/order/create/`
+  with the order id (no dashes) as the unique request number, the bill as `amount` and
+  `per_transaction_amount`, UPI only, and a 20-minute end time. Easebuzz requires a customer name and
+  phone number: the name is the guest's (or "Guest"), the phone is the shop's own number.
+- **Is it paid** (`fetchCollect`): `GET …/order/retrieve_via_urn/<id>/`. Paid when a transaction is
+  `received` or `unsettled`; everything paid against the order is added up, so a part payment or a
+  second payment is a wrong amount: flagged for the owner, never accepted. `settle()` in
+  `lib/gateway.ts` decides, exactly as for the gateway.
+- **Webhook**: `/api/payments/instacollect/webhook` for `ORDER_STATUS_UPDATE` (signature checked; then
+  Easebuzz is asked directly). Set this address in the Easebuzz dashboard for InstaCollect order events.
+  Without it payments are still found by the kiosk's own check and by the kitchen screen's re-check.
+- **Cancel**: an order cancelled at the kiosk has its QR closed at Easebuzz (`closeQr`), so a late
+  scan is turned away by the bank instead of needing a refund.
+- **Down**: as with the gateway, the kiosk offers card and cash only.
+
+**Trial preview** (temporary): the preview of branch `feat/instacollect` takes UPI by InstaCollect
+whatever `PAYMENTS` says (`wantedPayments()` in `lib/server.ts`), so it can be tried on a phone without
+changing Vercel. The live site and other previews are unaffected. Remove once `PAYMENTS` is set for real.
+
+**Trying it without a customer**: owner app → System → Technical detail → "Check InstaCollect"
+(`/api/admin/instacollect`, owner PIN). The server asks the real Easebuzz with its own keys: are the
+keys accepted, can a ₹1 QR be made, can it be cancelled. It works whichever way of taking UPI is on,
+so it can be run before switching. It leaves one cancelled ₹1 QR at Easebuzz and nothing in our books.
+
+Unknowns the first real payments will settle: whether the signature wants the amount as `219.0` or
+`219` (the code tries the second if the first is refused), whether the shop's phone number is
+accepted for every order, the fee per payment, and how fast money reaches the bank account. If
+Easebuzz refuses, its own reason is saved and shows on the owner app's technical page.

@@ -42,6 +42,17 @@ export function Tech({ pin, onAuthError, back }: Ctx & { back: () => void }) {
       setCopied('shown'); // no clipboard here (old browser, not https): show the text to copy by hand
     }
   };
+  // "Does InstaCollect work with our keys?": asked of the real Easebuzz, no customer and no money.
+  const [ic, setIc] = useState<{ step: string; ok: boolean; detail: string }[] | 'busy' | null>(null);
+  const checkIc = async () => {
+    setIc('busy');
+    try {
+      setIc((await admin.instaCollectCheck(pin)).steps);
+    } catch (e) {
+      onAuthError(e);
+      setIc([{ step: 'Could not run the check', ok: false, detail: e instanceof Error ? e.message : 'No internet' }]);
+    }
+  };
   const now = r ? Date.parse(r.now) : 0;
   const stuck = r ? r.money.upiOpen + r.money.counterWaiting : 0;
 
@@ -160,6 +171,29 @@ export function Tech({ pin, onAuthError, back }: Ctx & { back: () => void }) {
                 </span>
               </button>
             ))}
+          </div>
+
+          <div className="mcat" data-testid="tech-ic">
+            <h3>InstaCollect</h3>
+            <div className="actions">
+              <button className="btn o" onClick={checkIc} disabled={ic === 'busy'} data-testid="ic-check">
+                {ic === 'busy' ? 'Asking Easebuzz…' : 'Check InstaCollect'}
+              </button>
+            </div>
+            <div className="was">
+              Asks the real Easebuzz, with this server’s keys: are the keys accepted, can a ₹1 QR be made, can it be
+              cancelled. No customer, no money. UPI is now by {r.payments}.
+            </div>
+            {Array.isArray(ic) &&
+              ic.map((s) => (
+                <div className={`dev ${s.ok ? 'on' : 'off'}`} key={s.step} data-testid="ic-step">
+                  <i />
+                  <div>
+                    <b>{s.step}</b>
+                    <span>{s.detail}</span>
+                  </div>
+                </div>
+              ))}
           </div>
 
           <div className="mcat" data-testid="tech-db">

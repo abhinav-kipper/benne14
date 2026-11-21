@@ -1,3 +1,5 @@
+import { after } from 'next/server';
+import { closeQr } from '@/lib/gateway';
 import { getStore } from '@/lib/store';
 import { fail, isOrderId, json, notFound, readJson } from '@/lib/server';
 
@@ -16,7 +18,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const order = await store.getOrder(id);
     if (!order) return json({ error: 'Order not found' }, 404);
     if (order.status !== 'pending_payment') return json(order); // already handled (e.g. staff confirmed first)
-    return json(await store.setStatus(id, action === 'paid' ? 'awaiting_cash' : 'cancelled'));
+    const next = await store.setStatus(id, action === 'paid' ? 'awaiting_cash' : 'cancelled');
+    if (action === 'cancel' && order.payMethod === 'upi') after(() => closeQr(id));
+    return json(next);
   } catch (e) {
     return fail(e);
   }
