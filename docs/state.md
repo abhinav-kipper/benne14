@@ -51,7 +51,7 @@ section A are open.
 
 ## Done
 
-- 2026-11-27 — Ready for real customers: test mode is off unless `TEST_MODE=1` (no red tag on the kiosk, no ₹1 test dish), cash at the kiosk is the owner's switch and starts off (migration 0016), and the menu's side bar lights every section while scrolling, short ones at the end included. InstaCollect proven with a real ₹1 payment and merged (it has its own Wire keys). Card-machine plan saved in `docs/payments.md`.
+- 2026-11-27 — Ready for real customers: test mode is off unless `TEST_MODE=1` (no red tag on the kiosk, no ₹1 test dish), cash at the kiosk is the owner's switch and starts off (migration 0016), and the menu's side bar lights every section while scrolling, short ones at the end included. InstaCollect proven with a real ₹1 payment and merged (it has its own Wire keys); the live site moves to it when `PAYMENTS=instacollect` is set for Production in Vercel (how to check: `CLAUDE.md`, Vercel settings). Card-machine plan saved in `docs/payments.md`.
 
 - 2026-11-21 — InstaCollect built as a second way of taking UPI (`PAYMENTS=instacollect`, same keys): one call for a QR into the shop's own virtual UPI ID, confirmed by asking Easebuzz, wrong amounts flagged, a cancelled order's QR closed. Built from the docs against a stand-in; **not yet tried on the real Easebuzz**. The gateway stays as it is until real ₹1 payments pass (`docs/payments.md`).
 - 2026-11-16 — Owner's report: the owner app sometimes sat on "Loading" with no numbers. A request that never came back (a phone freezes it when the app is put away) left the refresh loop waiting for good. Every polling screen now gives up on a call after 20 seconds and asks again, and wakes on more signals from the phone. Reproduced by a test that fails on the old code.
