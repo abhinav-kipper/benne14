@@ -4,10 +4,11 @@ import { priceOrder } from '@/lib/pricing';
 import { BASE_CATALOG, visibleItems } from '@/lib/menu';
 
 describe('test mode', () => {
-  it('is on until TEST_MODE=0 (pre-launch default)', () => {
-    expect(isTestMode({})).toBe(true);
-    expect(isTestMode({ VERCEL_ENV: 'production' })).toBe(true);
+  it('is off unless TEST_MODE=1', () => {
+    expect(isTestMode({})).toBe(false);
+    expect(isTestMode({ VERCEL_ENV: 'production' })).toBe(false);
     expect(isTestMode({ TEST_MODE: '0' })).toBe(false);
+    expect(isTestMode({ TEST_MODE: '1' })).toBe(true);
   });
 
   it('the ₹1 payment test item costs exactly ₹1 with GST and only shows in test mode', () => {

@@ -15,7 +15,7 @@ Legend: `[ ]` pending · `[x]` done · `[-]` decided not to do (with reason)
 - [x] A5 (2026-11-15: with the gateway on, UPI is confirmed by Easebuzz or not offered at all) UPI is on trust: kitchen shows "Paid" even on orders whose QR is still open. Fix: hide "Paid" until the customer tapped "I've paid" (until Paytm auto-confirmation, see `docs/payments.md`).
 - [x] A6 (done: functions run in Tokyo `hnd1`, next to the database, see `vercel.json`) Slow for India: functions run in `iad1` (Washington DC); each DB call 0.25–0.75 s; a poll ~0.85 s; placing an order needs 3–4 DB calls. Fix: `vercel.json` function region next to the Supabase region (ask the user for the region).
 - [ ] A7 Hosting limits: polling is ~2 M requests/month. User to check the Vercel plan (free plan: commercial use, request limits) and Supabase plan (free: pauses when idle, backups).
-- [ ] A8 Test mode is on in production. Set `TEST_MODE=0` at launch (and repo variable `SMOKE_EXPECT_LIVE=1`).
+- [x] A8 Test mode is off unless `TEST_MODE=1` (2026-11-27). Still to do: repo variable `SMOKE_EXPECT_LIVE=1`.
 
 ## B. Reliability
 

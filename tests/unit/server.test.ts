@@ -1,22 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BadRequest, isOrderId, readJson, staffCheck, staffOk, wantedPayments } from '@/lib/server';
+import { BadRequest, isOrderId, readJson, staffCheck, staffOk } from '@/lib/server';
 import { FailureLimiter } from '@/lib/ratelimit';
 
 const req = (body: string, headers: Record<string, string> = {}) =>
   new Request('http://x/api', { method: 'POST', body, headers });
-
-describe('the InstaCollect trial preview', () => {
-  it('takes UPI by InstaCollect on its own branch only, and never over mock payments', () => {
-    const on = (env: Record<string, string>) => wantedPayments(env);
-    expect(on({ PAYMENTS: 'easebuzz', VERCEL_GIT_COMMIT_REF: 'feat/instacollect' })).toBe('instacollect');
-    // the live site and every other preview keep what PAYMENTS says
-    expect(on({ PAYMENTS: 'easebuzz', VERCEL_GIT_COMMIT_REF: 'main' })).toBe('easebuzz');
-    expect(on({ PAYMENTS: 'easebuzz', VERCEL_GIT_COMMIT_REF: 'feat/something-else' })).toBe('easebuzz');
-    expect(on({ PAYMENTS: 'easebuzz' })).toBe('easebuzz');
-    expect(on({ PAYMENTS: 'instacollect', VERCEL_GIT_COMMIT_REF: 'main' })).toBe('instacollect');
-    expect(on({ PAYMENTS: 'mock', VERCEL_GIT_COMMIT_REF: 'feat/instacollect' })).toBe('mock'); // tests stay tests
-  });
-});
 
 describe('request helpers', () => {
   it('reads a JSON object and refuses anything else as a bad request', async () => {

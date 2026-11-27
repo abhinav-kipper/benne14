@@ -34,7 +34,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState<DiscountRule | null>(null); // a discount code the server said works
   // What the cart asks for, as the owner switched it. Off until the server says otherwise.
-  const [asks, setAsks] = useState<KioskSettings>({ codes: false, phone: false });
+  const [asks, setAsks] = useState<KioskSettings>({ codes: false, phone: false, cash: false });
   // Has staff set this tablet up as the shop's kiosk? null until the server has said. Only a clear
   // "no" shows the PIN pad: a failed request must not lock a working kiosk.
   const [enrolled, setEnrolled] = useState<boolean | null>(null);
@@ -259,6 +259,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             name={name}
             onBack={() => setScreen('cart')}
             noUpi={Date.now() < upiOffUntil}
+            cash={asks.cash}
             onChoose={async (m: PayMethod) => {
               let o: Order;
               setPlacing(true);
@@ -325,11 +326,6 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
               setSheet(null);
             }}
           />
-        )}
-        {testMode && (
-          <div className="k-test" data-testid="test-ribbon">
-            Test mode · cash = paid
-          </div>
         )}
         {idle && (
           <Idle

@@ -13,12 +13,12 @@ Last updated 2026-11-14. Read this before any payments work.
 - The shop's original Paytm standee QR decodes to `upi://pay?pa=paytm.s3zpul3@pty&pn=Paytm&tn=Verified Paytm Account` (static, no amount). Our QR keeps `@` literal like Paytm does.
 - Offline/QR merchant ID (MID): `SnLKBT73909260588936` (not secret).
 - Legal: the shop collects into its own account, in person, like its own standee; we are not a payment aggregator. Card data never touches our app (stays on Paytm's certified machine). GST bills come from the app; registration/accounting questions go to the owner's CA.
-- **Before real customers:** run the ₹1 test (below) and set **`TEST_MODE=0`** in Vercel.
+- **Before real customers:** run the ₹1 test (below) on a preview with `TEST_MODE=1`; the live site must not have it set.
 
 ## Test mode (`lib/testmode.ts`) — currently ON everywhere
 
-- On unless `TEST_MODE=0`. Owner asked for it on in production too until launch.
-- Cash counts as paid → straight to the kitchen rail; red "TEST MODE" ribbon on the kiosk.
+- Off unless `TEST_MODE=1` (since 2026-11-27, for going live).
+- Cash counts as paid → straight to the kitchen rail. No mark on the kiosk; the owner app's System page says "Test mode is on".
 - A "Payment test" item at ₹1 (₹1 + 5% GST rounds to ₹1) appears in a "Payment test" section; the server refuses it when test mode is off.
 - UPI stays real in test mode. Pending: ₹1 test from **GPay, PhonePe and Paytm** — check payee name, no "unverified merchant" block, soundbox announces, पैसे मिल गए moves it to the rail.
 
@@ -103,6 +103,18 @@ products, separate keys and separate places in the dashboard.
 - Plan: same shape as Route E (`settle()` asks Easebuzz before marking paid; fallback to the shop's own
   QR), with a second provider behind the same kiosk screen.
 
+### Card on the machine by itself: the plan (saved 2026-11-27, not started)
+Goal: the kiosk sends the exact bill to the Paytm machine, the customer taps the card, and the order
+goes to the kitchen with no staff typing or tapping. Uses Route A below. Steps: (1) owner asks Paytm
+to enable it and send the keys (message further down); (2) build behind a switch, like InstaCollect,
+against a stand-in: order → amount sent to the machine → kiosk shows "Tap your card on the machine"
+→ the app asks Paytm until paid → kitchen; (3) failure cases: a declined card lets the customer retry
+or pick another way, Paytm down falls back to today's manual way, a cancelled order withdraws the
+request; (4) keys into Vercel, a ₹1 card payment on a preview, then merge. Owner sees a mock-up of
+the "Tap your card" screen before it is built. Unknown until Paytm answers: whether they enable it
+for a small merchant, and whether the amount appears on the machine by itself or staff type a
+6-digit code shown on the kiosk.
+
 ### Route A — Paytm card machine, cloud "Connection via Payment Request" (most promising)
 - Works with the owner's existing Paytm Android EDC on the **same MID**; Paytm says EDC/DQR integration is free. Probably does **not** need the stuck online-merchant account.
 - Flow: server `POST /edc-integration-service/payment/request` with head `{clientId, reqHash}` and body `{mid, merchantTxnId, txnAmount (paise, no decimals), txnDate?}` → Paytm returns a 6-digit Payment Request ID (CPay) → any machine on that MID pulls it (amount pre-filled) → customer taps card → we poll `GET /edc-integration-service/txn/status` (IN_QUEUE / PENDING / FAILED / COMPLETED / EXPIRED / CANCELLED) → COMPLETED moves the order to the kitchen. No webhook documented: poll.
@@ -157,10 +169,6 @@ of two, and the QR is always drawn by us.
 - **Cancel**: an order cancelled at the kiosk has its QR closed at Easebuzz (`closeQr`), so a late
   scan is turned away by the bank instead of needing a refund.
 - **Down**: as with the gateway, the kiosk offers card and cash only.
-
-**Trial preview** (temporary): the preview of branch `feat/instacollect` takes UPI by InstaCollect
-whatever `PAYMENTS` says (`wantedPayments()` in `lib/server.ts`), so it can be tried on a phone without
-changing Vercel. The live site and other previews are unaffected. Remove once `PAYMENTS` is set for real.
 
 **Trying it without a customer**: owner app → System → Technical detail → "Check InstaCollect"
 (`/api/admin/instacollect`, owner PIN). The server asks the real Easebuzz with its own keys: are the

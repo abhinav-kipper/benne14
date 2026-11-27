@@ -322,7 +322,7 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
 
     it('keeps discount codes, the kiosk switches and their history', async () => {
       expect(await s.listCodes()).toEqual([]);
-      expect(await s.getSettings()).toEqual({ codes: true, phone: true });
+      expect(await s.getSettings()).toEqual({ codes: true, phone: true, cash: false });
       const code = {
         code: 'WELCOME10',
         kind: 'percent' as const,
@@ -346,8 +346,9 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       ]); // newest first
       expect(
         await s.saveSettings({ phone: false }, [{ kind: 'setting', subject: 'Phone', before: 'On', after: 'Off' }]),
-      ).toEqual({ codes: true, phone: false });
-      expect(await s.getSettings()).toEqual({ codes: true, phone: false });
+      ).toEqual({ codes: true, phone: false, cash: false });
+      expect(await s.saveSettings({ cash: true }, [])).toEqual({ codes: true, phone: false, cash: true });
+      expect(await s.getSettings()).toEqual({ codes: true, phone: false, cash: true });
       expect((await s.listEvents()).map((e) => e.kind)).toEqual(['setting', 'discount', 'discount', 'discount']);
       // a code can be deleted for good; deleting one that isn't there says so
       await s.deleteCode('FLAT40', { kind: 'discount', subject: 'FLAT40', before: '₹40 off', after: 'Deleted' });

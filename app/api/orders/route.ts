@@ -63,7 +63,7 @@ async function place(req: Request) {
     const [before, overrides, settings] = await Promise.all([
       store.findByCheckout(b.key),
       store.getOverrides(),
-      phone || code ? store.getSettings() : null,
+      phone || code || b.payMethod === 'cash' ? store.getSettings() : null,
     ]);
     if (before && before.fingerprint === fingerprint) return json(before.order, 201);
 
@@ -73,6 +73,9 @@ async function place(req: Request) {
       .map((l) => itemById((l as Partial<CartLine> | null)?.itemId ?? '', catalog))
       .find((i) => i?.soldOut);
     if (out) return json({ error: `Sorry, ${out.name} just sold out. Please remove it from your order.` }, 409);
+    // Cash is taken only while the owner's switch is on (the kiosk hides the tile; this is the lock).
+    if (b.payMethod === 'cash' && !settings!.cash)
+      return json({ error: 'Cash is not taken here right now. Please pay by UPI or card.' }, 409);
     // The owner's switches decide what is taken: a code or a number sent while its switch is off is not used.
     let rule: DiscountRule | null = null;
     if (code) {

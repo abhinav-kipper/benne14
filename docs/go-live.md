@@ -12,7 +12,7 @@ Safety and money. None of this is visible to customers, all of it matters.
 - [ ] **Today's orders are not public** (owner on 2026-11-14: leave for now). The list of orders (names, items, totals) can be read without a PIN, and with an order's id an unpaid UPI order can be cancelled. Fix: PIN for the full list; the TV gets numbers only. (A2)
 - [x] **A separate owner PIN** (2026-11-14: `OWNER_PIN`, six digits; still to set in Vercel). One 4-digit PIN opens both the kitchen and the takings, prices and menu. Fix: a second, longer PIN for the owner app. (A3)
 - [ ] **New keys and PINs.** The staff PIN, the Supabase secret key and the Easebuzz key and salt were all pasted in chat. Change all of them before launch. Changing the Easebuzz pair also stops the old kiosk, so do it on the switch-over day. (owner + me)
-- [ ] **Test mode off** (`TEST_MODE=0`): cash stops counting as paid by itself and the ₹1 test dish disappears. (A8)
+- [x] **Test mode off** by default since 2026-11-27 (on only with `TEST_MODE=1`): check Vercel has no `TEST_MODE=1` for Production. (A8)
 - [ ] **Clean books.** Remove the test orders and test dishes, sections and extras made while trying things, so day one's report starts at zero. (`docs/accuracy-audit.md` A5)
 - [ ] **Payments proven with real money.** Set the Easebuzz webhook address; pay ₹1 from GPay, PhonePe and Paytm; refund one; confirm the money and the settlement show in the Easebuzz dashboard. (owner)
 - [x] **What happens when the gateway is down** (2026-11-15): the kiosk offers card and cash only; no QR from the app on that path, so nothing is taken on trust. The shop's printed QR at the counter is the backup.

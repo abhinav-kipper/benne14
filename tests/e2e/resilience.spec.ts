@@ -149,7 +149,7 @@ test('phone bill: a wrong link says so instead of loading forever', async ({ pag
 test('kiosk: if a discount code can’t be checked, the cart says so and the order still goes through', async ({
   page,
 }) => {
-  await page.route('**/api/kiosk', (r) => r.fulfill({ json: { codes: true, phone: true } }));
+  await page.route('**/api/kiosk', (r) => r.fulfill({ json: { codes: true, phone: true, cash: true } }));
   await page.route('**/api/discounts/check', (r) => r.abort());
   await kioskTo(page);
   const before = await todayCount(page);

@@ -6,6 +6,7 @@ import { makeKioskKey } from './lib/kioskkey';
 const safeEnv = {
   STAFF_PIN: '2468',
   PAYMENTS: 'mock',
+  MEMORY_CASH: '1', // tests place orders by cash; the switch itself is tested in admin.spec.ts
   // Blank the Supabase vars so tests never write to the real database, even on a machine that has
   // them set (the specs check /api/health before anything else runs).
   NEXT_PUBLIC_SUPABASE_URL: '',

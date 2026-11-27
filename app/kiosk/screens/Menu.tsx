@@ -83,12 +83,19 @@ export function MenuScreen(p: {
     p.scrollMemo.current.top = m.scrollTop;
     if (tapped.current) return;
     if (!cats.length) return;
+    // A section lights when its heading passes a line 120px below the top. Short sections at the
+    // end can never get that high, so over the last screenful the line slides down to the bottom
+    // edge: each of them still lights in turn instead of being skipped for the very last one.
+    const left = m.scrollHeight - m.clientHeight - m.scrollTop;
+    const max = m.scrollHeight - m.clientHeight;
+    const slide = max > 0 ? Math.min(1, Math.max(0, 1 - left / Math.min(m.clientHeight, max))) : 0;
+    const line = m.scrollTop + 120 + (m.clientHeight - 120) * slide;
     let cur = cats[0].id;
     for (const c of cats) {
       const el = m.querySelector<HTMLElement>(`#cat-${c.id}`);
-      if (el && el.offsetTop - 120 <= m.scrollTop) cur = c.id;
+      if (el && el.offsetTop <= line) cur = c.id;
     }
-    if (m.scrollTop >= m.scrollHeight - m.clientHeight - 2) cur = cats[cats.length - 1].id; // at the very end
+    if (left <= 2) cur = cats[cats.length - 1].id; // at the very end
     setActive(cur);
   };
   const goTo = (id: typeof active) => {
@@ -126,6 +133,7 @@ export function MenuScreen(p: {
       </aside>
       <main
         ref={main}
+        data-testid="menu-list"
         onScroll={onScroll}
         onPointerDown={() => (tapped.current = false)}
         onWheel={() => (tapped.current = false)}
