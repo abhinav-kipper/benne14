@@ -24,32 +24,24 @@
   right: 0;
   z-index: 3;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 28px 32px;
-  background: linear-gradient(180deg, rgba(251, 247, 239, 0.95), rgba(251, 247, 239, 0));
+  justify-content: center;
+  padding: 22px 32px 40px;
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg) 80%, rgba(251, 247, 239, 0) 100%);
 }
+/* The shop's own logo, as supplied (public/brand): never redrawn in a font. */
 .k-home .logo {
-  font-family: var(--display);
-  font-weight: 900;
-  font-size: 44px;
-  line-height: 0.85;
-  text-transform: uppercase;
+  line-height: 0;
 }
-.k-home .logo i {
-  font-style: normal;
-  color: var(--benne-fg);
-}
-.k-home .logo small {
+.k-home .logo img {
+  width: 384px;
+  height: auto;
   display: block;
-  font-family: var(--body);
-  font-weight: 600;
-  font-size: 11px; /* part of the logo lock-up, not information: exempt from the 16 px floor */
-  letter-spacing: 0.16em;
-  color: var(--cream-2);
-  margin-top: 8px;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .k-home .mosaic {
+  margin-top: 110px; /* room for the logo above the photo wall */
   height: 640px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -93,12 +85,12 @@
 }
 .k-home .copy {
   padding: 0 40px;
-  margin-top: -30px;
+  margin-top: 6px;
   position: relative;
   z-index: 2;
 }
 .k-home .copy h1 {
-  font-size: 132px;
+  font-size: 112px;
   line-height: 0.86;
 }
 .k-home .copy h1 em {
@@ -113,6 +105,110 @@
 }
 .k-home {
   cursor: pointer;
+}
+/* The host, beside the headline: a dosa that hops a little. The photo wall's drift is untouched. */
+.k-home .hosts {
+  position: absolute;
+  right: 34px;
+  top: 742px;
+  width: 232px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.k-home .hosts .say {
+  background: #fff;
+  border: 2px solid var(--benne-ink);
+  border-radius: 20px;
+  padding: 10px 16px 9px;
+  text-align: center;
+  position: relative;
+  margin-bottom: 22px;
+  box-shadow: 0 10px 22px -14px rgba(60, 40, 10, 0.5);
+}
+.k-home .hosts .say::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-right: 2px solid var(--benne-ink);
+  border-bottom: 2px solid var(--benne-ink);
+  transform: translateX(-50%) rotate(45deg);
+}
+.k-home .hosts .say b {
+  display: block;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 38px;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.k-home .hosts .say span {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--cream-2);
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.k-home .hosts .hop {
+  width: 176px;
+  line-height: 0;
+  transform-origin: 50% 100%;
+  animation: hosthop 2.6s ease-in-out infinite;
+}
+.k-home .hosts .shade {
+  width: 120px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: rgba(59, 35, 20, 0.16);
+  animation: hostshade 2.6s ease-in-out infinite;
+}
+/* two small hops, then a rest */
+@keyframes hosthop {
+  0%,
+  44%,
+  100% {
+    transform: none;
+  }
+  6%,
+  28% {
+    transform: scale(1.04, 0.95);
+  }
+  16%,
+  36% {
+    transform: translateY(-16px) scale(0.98, 1.03);
+  }
+  24% {
+    transform: none;
+  }
+}
+@keyframes hostshade {
+  0%,
+  24%,
+  44%,
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+  16%,
+  36% {
+    transform: scale(0.78);
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-home .hosts .hop,
+  .k-home .hosts .shade {
+    animation: none;
+  }
 }
 .k-home .start {
   margin: auto 28px 40px;
