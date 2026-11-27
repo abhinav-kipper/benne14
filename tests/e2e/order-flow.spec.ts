@@ -646,7 +646,7 @@ test('dish photos are shown whole: the dish sheet, the house special and the cof
   expect(Math.round(small.height)).toBe(Math.round(box.height));
 });
 
-test('start screen: the shop’s logo, two hosts saying hello, and the photo wall still moving', async ({ page }) => {
+test('start screen: the shop’s logo, the host saying hello, and the photo wall still moving', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.goto('/kiosk');
   await expect(page.getByTestId('start')).toBeVisible();
@@ -659,7 +659,19 @@ test('start screen: the shop’s logo, two hosts saying hello, and the photo wal
   // nothing new sits on top of what was there: the headline, the hosts and the button do not overlap
   const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
   const [h1, hosts, start] = [await box('.k-home .copy h1'), await box('.k-home .hosts'), await box('.k-home .start')];
-  expect(hosts.x).toBeGreaterThanOrEqual(h1.x + (await box('.k-home .copy h1 em')).width + 60);
+  // the headline's own words end before the host begins ("Fresh off" is its longer line)
+  const words = await page.locator('.k-home .copy h1').evaluate((h) => {
+    const walk = document.createTreeWalker(h, NodeFilter.SHOW_TEXT);
+    let right = 0;
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const r = document.createRange();
+      r.selectNodeContents(n);
+      for (const c of r.getClientRects()) right = Math.max(right, c.right);
+    }
+    return right;
+  });
+  expect(hosts.x).toBeGreaterThanOrEqual(words);
+  expect(h1.y).toBeGreaterThan(0);
   expect(hosts.y + hosts.height).toBeLessThanOrEqual(start.y);
   expect(hosts.x + hosts.width).toBeLessThanOrEqual(800);
   // the motion the owner approved is all still running: three drifting photo columns and the arrow's nudge
