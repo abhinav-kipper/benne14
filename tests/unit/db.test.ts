@@ -104,7 +104,9 @@ describe('database (supabase/migrations)', () => {
       "('ODD', 'bogof', 1)",
     ])
       await expect(db.query(`insert into discount_codes (code, kind, value) values ${bad}`), bad).rejects.toThrow();
-    expect((await db.query('select codes, phone from kiosk_settings')).rows).toEqual([{ codes: true, phone: true }]);
+    expect((await db.query('select codes, phone, cash from kiosk_settings')).rows).toEqual([
+      { codes: true, phone: true, cash: false },
+    ]);
     await expect(db.query('insert into kiosk_settings (id) values (2)')).rejects.toThrow(); // one row only
 
     const withCode = JSON.stringify({ ...JSON.parse(priced), savings: 42, discountCode: 'WELCOME10' });

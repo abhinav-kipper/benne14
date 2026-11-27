@@ -93,7 +93,9 @@ export class MemoryStore {
   }
   private phones = new Map<string, string>(); // order id -> phone; kept out of the order itself
   private codes = new Map<string, DiscountCode & { createdAt: number }>();
-  private settings: KioskSettings = { ...DEFAULT_SETTINGS };
+  // MEMORY_CASH=1 starts with cash taken at the kiosk: the browser tests use cash to place orders
+  // without a payment step. Everywhere else the switch starts off, as in the database.
+  private settings: KioskSettings = { ...DEFAULT_SETTINGS, cash: process.env.MEMORY_CASH === '1' };
 
   static shared(): MemoryStore {
     const g = globalThis as unknown as { __benneMemoryStore?: MemoryStore };

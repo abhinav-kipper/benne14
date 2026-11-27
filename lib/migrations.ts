@@ -17,4 +17,5 @@ export const MIGRATIONS = [
   '0013_owner_alerts',
   '0014_tech_page',
   '0015_invoice_numbers',
+  '0016_cash_switch',
 ];

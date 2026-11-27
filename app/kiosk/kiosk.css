@@ -1722,25 +1722,6 @@
   color: var(--cream-2);
 }
 
-/* ---------- Test mode tag: a small corner label, clear of every heading ---------- */
-.k-test {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 60;
-  background: var(--chilli);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  line-height: 18px;
-  height: 18px;
-  padding: 0 10px;
-  border-radius: 0 0 8px 0;
-  pointer-events: none;
-}
-
 /* ---------- Sold out (set from the owner's dashboard) ---------- */
 .k-menu .item.out .ph img,
 .k-menu .hero.out img {

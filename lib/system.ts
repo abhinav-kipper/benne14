@@ -141,7 +141,7 @@ export function problems(s: SystemInput): Problem[] {
       key: 'test',
       level: 'info',
       text: 'Test mode is on',
-      hint: 'Cash counts as paid by itself. Turn it off before real customers.',
+      hint: 'Cash counts as paid by itself and customers see a ₹1 test dish. Remove TEST_MODE=1 in Vercel.',
     });
   const rank = { bad: 0, warn: 1, info: 2 };
   return out.sort((a, b) => rank[a.level] - rank[b.level]);

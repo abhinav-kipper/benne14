@@ -295,6 +295,7 @@ test('offers API: needs the PIN and refuses bad codes, numbers and switches', as
     {},
     { settings: 'off' },
     { settings: { phone: 'no' } },
+    { settings: { cash: 'yes' } },
     { code: { ...ok, code: 'AB' } },
     { code: { ...ok, code: 'SAVE ₹50' } },
     { code: { ...ok, kind: 'bogof' } },
@@ -443,6 +444,55 @@ test('a code with a minimum order says what is missing instead of failing silent
   });
   expect(r.status()).toBe(409);
   expect((await r.json()).error).toContain('needs an order of ₹5000');
+});
+
+test('the owner switches cash off: the kiosk offers UPI and card only, and the server refuses a cash order', async ({
+  page,
+  request,
+}) => {
+  const cashOrder = () =>
+    request.post('/api/orders', {
+      data: {
+        key: `cash-${Date.now()}-${k++}`,
+        type: 'takeaway',
+        name: 'Cash',
+        payMethod: 'cash',
+        lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+      },
+    });
+  const payScreen = async () => {
+    await page.setViewportSize({ width: 800, height: 1280 });
+    await page.goto('/kiosk');
+    await page.getByTestId('start').click();
+    await page.getByTestId('item-masala-tea').click();
+    await page.getByTestId('add-to-order').click();
+    await page.getByTestId('cartbar').click();
+    await page.getByTestId('takeaway').click();
+    await page.getByTestId('continue-to-pay').click();
+    await expect(page.getByTestId('pay-card')).toBeVisible();
+  };
+  try {
+    await owner(page);
+    await page.getByTestId('tab-offers').click();
+    await expect(page.getByTestId('set-cash')).toHaveAttribute('aria-checked', 'true'); // the tests' server starts with cash on
+    await page.getByTestId('set-cash').click();
+    await expect(page.getByTestId('set-cash')).toHaveAttribute('aria-checked', 'false');
+    await expect.poll(async () => (await (await request.get('/api/kiosk')).json()).cash).toBe(false);
+
+    await payScreen();
+    await expect(page.getByTestId('pay-upi')).toBeVisible();
+    await expect(page.getByTestId('pay-cash')).toHaveCount(0);
+    const refused = await cashOrder();
+    expect(refused.status()).toBe(409);
+    expect((await refused.json()).error).toContain('Cash is not taken');
+
+    await offers(request, { settings: { cash: true } });
+    await payScreen();
+    await expect(page.getByTestId('pay-cash')).toBeVisible();
+    expect((await cashOrder()).status()).toBe(201);
+  } finally {
+    await offers(request, { settings: { cash: true } }); // the other tests here pay by cash
+  }
 });
 
 test('the owner can switch the code box and the phone box off; the server then ignores both', async ({

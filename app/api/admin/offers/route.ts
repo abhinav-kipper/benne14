@@ -5,6 +5,7 @@ import { getStore } from '@/lib/store';
 import { BadRequest, fail, json, readJson } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
+const SWITCHES = ['codes', 'phone', 'cash'] as const;
 
 // The dashboard's Offers tab: the kiosk switches and the discount codes.
 export async function GET(req: Request) {
@@ -33,21 +34,25 @@ export async function POST(req: Request) {
       const s = b.settings as Record<string, unknown> | null;
       if (!s || typeof s !== 'object' || Array.isArray(s)) throw new BadRequest('Bad settings');
       const patch: Partial<KioskSettings> = {};
-      for (const k of ['codes', 'phone'] as const) {
+      for (const k of SWITCHES) {
         if (s[k] === undefined) continue;
         if (typeof s[k] !== 'boolean') throw new BadRequest(`${k} must be true or false`);
         patch[k] = s[k];
       }
       const before = await store.getSettings();
-      const label = { codes: 'Discount codes on the kiosk', phone: 'Phone number on the kiosk' };
-      const events: Omit<AdminEvent, 'at'>[] = (['codes', 'phone'] as const)
-        .filter((k) => patch[k] !== undefined && patch[k] !== before[k])
-        .map((k) => ({
-          kind: 'setting',
-          subject: label[k],
-          before: before[k] ? 'On' : 'Off',
-          after: patch[k] ? 'On' : 'Off',
-        }));
+      const label = {
+        codes: 'Discount codes on the kiosk',
+        phone: 'Phone number on the kiosk',
+        cash: 'Cash on the kiosk',
+      };
+      const events: Omit<AdminEvent, 'at'>[] = SWITCHES.filter(
+        (k) => patch[k] !== undefined && patch[k] !== before[k],
+      ).map((k) => ({
+        kind: 'setting',
+        subject: label[k],
+        before: before[k] ? 'On' : 'Off',
+        after: patch[k] ? 'On' : 'Off',
+      }));
       return json({ settings: await store.saveSettings(patch, events) });
     }
 

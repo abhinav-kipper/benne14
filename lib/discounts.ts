@@ -15,11 +15,13 @@ export interface DiscountCode {
 export type DiscountRule = Pick<DiscountCode, 'code' | 'kind' | 'value' | 'minOrder' | 'maxDiscount'>;
 
 // The owner's switches for the kiosk. `codes` on the kiosk also needs at least one usable code.
+// `cash`: may a customer choose to pay cash at the counter? Off until the owner turns it on.
 export interface KioskSettings {
   codes: boolean;
   phone: boolean;
+  cash: boolean;
 }
-export const DEFAULT_SETTINGS: KioskSettings = { codes: true, phone: true };
+export const DEFAULT_SETTINGS: KioskSettings = { codes: true, phone: true, cash: false };
 
 // "welcome 10" → "WELCOME10". null when it can't be a code.
 export function cleanCode(v: unknown): string | null {

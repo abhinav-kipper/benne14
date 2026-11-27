@@ -1,8 +1,8 @@
 // Discount codes, the kiosk's switches and the customer list.
-import type { Customer, DiscountCode, KioskSettings } from '../../discounts';
+import { DEFAULT_SETTINGS, type Customer, type DiscountCode, type KioskSettings } from '../../discounts';
 import { type AdminEvent } from '../../orders';
 import { StoreError } from '../memory';
-import { eventRow, missing, toCode, type CodeRow, type Db } from './shared';
+import { eventRow, missing, noColumn, toCode, type CodeRow, type Db } from './shared';
 import { addEvent } from './events';
 
 export async function listCodes(db: Db) {
@@ -55,18 +55,26 @@ export async function deleteCode(db: Db, code: string, event: Omit<AdminEvent, '
 }
 
 export async function getSettings(db: Db): Promise<KioskSettings> {
-  const { data, error } = await db.from('kiosk_settings').select('codes,phone').eq('id', 1).maybeSingle();
+  let { data, error } = await db.from('kiosk_settings').select('codes,phone,cash').eq('id', 1).maybeSingle();
+  // Before migration 0016 there is no cash switch: read the rest, with cash off.
+  if (noColumn(error))
+    ({ data, error } = await db.from('kiosk_settings').select('codes,phone').eq('id', 1).maybeSingle());
   // Before migration 0005 nothing can be stored, so the kiosk shows neither field.
-  if (missing(error)) return { codes: false, phone: false };
+  if (missing(error)) return { codes: false, phone: false, cash: false };
   if (error) throw new StoreError(error.message, 500);
-  return (data as KioskSettings | null) ?? { codes: true, phone: true };
+  return { ...DEFAULT_SETTINGS, ...(data as Partial<KioskSettings> | null) };
 }
 
 export async function saveSettings(db: Db, patch: Partial<KioskSettings>, events: Omit<AdminEvent, 'at'>[]) {
   const next = { ...(await getSettings(db)), ...patch };
-  const { error } = await db
-    .from('kiosk_settings')
-    .upsert({ id: 1, ...next, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+  const write = (row: Partial<KioskSettings>) =>
+    db.from('kiosk_settings').upsert({ id: 1, ...row, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+  let { error } = await write(next);
+  if (noColumn(error)) {
+    if (patch.cash !== undefined)
+      throw new StoreError('Run supabase/migrations/0016_cash_switch.sql in Supabase first', 503);
+    ({ error } = await write({ codes: next.codes, phone: next.phone }));
+  }
   if (missing(error))
     throw new StoreError('Run supabase/migrations/0005_discount_codes_and_phone.sql in Supabase first', 503);
   if (error) throw new StoreError(error.message, 500);

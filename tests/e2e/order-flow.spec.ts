@@ -428,7 +428,7 @@ test('kiosk reads at arm’s length: no text under 16 px on any screen', async (
       [...document.querySelectorAll<HTMLElement>('.kiosk *')]
         .filter((e) => e.offsetParent && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim()))
         .filter((e) => parseFloat(getComputedStyle(e).fontSize) < 16)
-        .filter((e) => !e.closest('.logo, .brand, .k-test'))
+        .filter((e) => !e.closest('.logo, .brand'))
         .map((e) => e.textContent!.trim().slice(0, 30)),
     );
   expect(await small()).toEqual([]);
@@ -586,4 +586,27 @@ test('kitchen: a long order goes out in parts, ticked line by line, and the tick
   expect(saved.status).toBe('cooking');
   await go.click();
   await expect(page.getByTestId(`ready-${o.token}`)).toBeVisible();
+});
+
+test('menu: scrolling down lights every section in turn, the short ones at the end included', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  const all = await page.locator('.k-menu .cat').allTextContents();
+  expect(all.length).toBeGreaterThan(2);
+  const seen: string[] = [];
+  for (let i = 0; i < 400; i++) {
+    const lit = (await page.locator('.k-menu .cat.on').textContent()) ?? '';
+    if (seen[seen.length - 1] !== lit) seen.push(lit);
+    const atEnd = await page
+      .getByTestId('menu-list')
+      .evaluate((m) => m.scrollTop >= m.scrollHeight - m.clientHeight - 1);
+    if (atEnd) break;
+    await page.getByTestId('menu-list').evaluate((m) => {
+      m.style.scrollBehavior = 'auto';
+      m.scrollTop += 40;
+    });
+    await page.waitForTimeout(20);
+  }
+  expect(seen).toEqual(all);
 });

@@ -25,7 +25,8 @@ section A are open.
 - GST 5% on top, rounded to the nearest rupee and split CGST/SGST: bills have no round-off line.
 - Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen asks "Still there?" after 90 s and returns to start 30 s later; an untouched order is cleared after 60 s + a 15 s prompt (no Start over button).
 - UPI is confirmed by Easebuzz's payment gateway by itself (`docs/payments.md`); if the gateway is down the kiosk offers card and cash only (the shop's printed QR at the counter is the backup). Card and cash wait on the kitchen's "Collect payment" shelf.
-- Test mode (on unless `TEST_MODE=0`): cash counts as paid, a ₹1 test item shows.
+- Test mode (off unless `TEST_MODE=1`): cash counts as paid, a ₹1 test item shows.
+- Cash at the kiosk is the owner's switch (owner app → Offers → On the kiosk), off by default.
 - Two PINs: `STAFF_PIN` for the kitchen and for setting a tablet up as the kiosk, `OWNER_PIN` (six digits) for the owner app. The owner PIN also works wherever the staff PIN does.
 - Menu = dishes in `lib/menu.ts` + everything the owner changes from the dashboard (own dishes, sections, extras, notes, hidden, order), merged by `mergeCatalog()`. Sold out lasts for the day.
 - Screens poll (no Realtime), pause when hidden, and reload themselves after a deploy.
@@ -49,6 +50,8 @@ section A are open.
 - How to run e2e and compare screens in a Claude session: `CLAUDE.md`, last section.
 
 ## Done
+
+- 2026-11-27 — Ready for real customers: test mode is off unless `TEST_MODE=1` (no red tag on the kiosk, no ₹1 test dish), cash at the kiosk is the owner's switch and starts off (migration 0016), and the menu's side bar lights every section while scrolling, short ones at the end included. InstaCollect proven with a real ₹1 payment and merged (it has its own Wire keys). Card-machine plan saved in `docs/payments.md`.
 
 - 2026-11-21 — InstaCollect built as a second way of taking UPI (`PAYMENTS=instacollect`, same keys): one call for a QR into the shop's own virtual UPI ID, confirmed by asking Easebuzz, wrong amounts flagged, a cancelled order's QR closed. Built from the docs against a stand-in; **not yet tried on the real Easebuzz**. The gateway stays as it is until real ₹1 payments pass (`docs/payments.md`).
 - 2026-11-16 — Owner's report: the owner app sometimes sat on "Loading" with no numbers. A request that never came back (a phone freezes it when the app is put away) left the refresh loop waiting for good. Every polling screen now gives up on a call after 20 seconds and asks again, and wakes on more signals from the phone. Reproduced by a test that fails on the old code.
