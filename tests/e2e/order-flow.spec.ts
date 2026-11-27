@@ -24,7 +24,9 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await kiosk.getByTestId('sheet').getByRole('button', { name: '+' }).last().click(); // quantity 2
   await kiosk.getByTestId('add-to-order').click();
   await kiosk.getByTestId('cartbar').click();
-  await expect(kiosk.getByTestId('cart-total')).toHaveText('₹380'); // 224 + 138 = 362, + ₹18 GST (5%, rounded to the rupee)
+  await expect(kiosk.getByTestId('cart-total')).toHaveText('₹380'); // 224 + 138 = 362, + ₹18.10 GST = 380.10, rounded
+  await expect(kiosk.locator('.k-cart .rows')).toContainText('₹18.10'); // the tax to the paisa
+  await expect(kiosk.getByTestId('round-off')).toContainText('−₹0.10'); // and what rounding the total took
   await kiosk.getByPlaceholder('Your name').fill('Rahul');
   await kiosk.getByTestId('takeaway').click(); // dine in / takeaway is asked in the cart
   await kiosk.getByTestId('continue-to-pay').click();
@@ -66,7 +68,9 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await phone.goto(`/r/${id}`);
   await expect(phone.getByTestId('receipt-status')).toContainText('Ready');
   await expect(phone.getByTestId('bill-total')).toHaveText('₹380.00');
-  await expect(phone.getByTestId('bill')).not.toContainText('Round off');
+  await expect(phone.getByTestId('bill')).toContainText('₹9.05'); // CGST and SGST, each to the paisa
+  await expect(phone.getByTestId('bill')).toContainText('Round off');
+  await expect(phone.getByTestId('bill')).toContainText('−₹0.10');
 
   // Hand it over so the next test starts with a clear board, like a real shift.
   await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 }); // Handed over
@@ -330,7 +334,7 @@ test('+ opens the dish so extras are offered; the price with GST is explained', 
   await page.getByTestId('add-to-order').click();
   await expect(page.getByTestId('cartbar')).toContainText('3');
   await expect(page.getByTestId('cartbar')).toContainText('incl. GST');
-  await expect(page.getByTestId('start-over')).toHaveCount(0); // the timers clear the kiosk; no button to learn
+  await expect(page.getByTestId('start-over')).toBeVisible(); // back by the owner's wish (2026-11-27), next to the timers
   await page.getByTestId('cartbar').click();
   await expect(page.getByTestId('cart-line')).toHaveCount(2);
   await expect(page.locator('.k-cart .rows')).toContainText('GST 5%');
@@ -718,4 +722,63 @@ test('start screen: the shop’s logo, the host saying hello, and the photo wall
   // tapping anywhere, a host included, still starts an order
   await page.getByTestId('hosts').click({ force: true });
   await expect(page.locator('.k-menu')).toBeVisible();
+});
+
+test('Start over: asks before clearing an order, clears at once when nothing is chosen', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  // the shop's logo heads the side bar
+  const logo = page.locator('.k-menu .brand img');
+  await expect(logo).toBeVisible();
+  await expect.poll(() => logo.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+  // nothing chosen yet: straight back to the start screen, no question
+  await page.getByTestId('start-over').click();
+  await expect(page.getByTestId('start-over-ask')).toHaveCount(0);
+  await expect(page.getByTestId('start')).toBeVisible();
+
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('add-to-order').click();
+  // with a dish chosen it asks, and "Keep my order" changes nothing
+  await page.getByTestId('start-over').click();
+  await expect(page.getByTestId('start-over-ask')).toContainText('Start over?');
+  await page.getByTestId('start-over-no').click();
+  await expect(page.getByTestId('start-over-ask')).toHaveCount(0);
+  await expect(page.getByTestId('cartbar')).toBeVisible();
+
+  // from the cart, with a name typed and takeaway picked: everything goes
+  await page.getByTestId('cartbar').click();
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('name-input').fill('Asha');
+  await page.getByTestId('start-over').click();
+  await page.getByTestId('start-over-yes').click();
+  await expect(page.getByTestId('start')).toBeVisible();
+  await page.getByTestId('start').click();
+  await expect(page.getByTestId('cartbar')).toHaveCount(0); // no dishes left
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await expect(page.getByTestId('name-input')).toHaveValue(''); // nor the name
+  await expect(page.getByTestId('takeaway')).not.toHaveClass(/on/); // nor dine in / takeaway
+});
+
+test('the order-number screen promises no time, says what was paid, and explains the QR plainly', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-masala-tea').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await page.getByTestId('takeaway').click();
+  await page.getByTestId('continue-to-pay').click();
+  await page.getByTestId('pay-upi').click();
+  await page.getByTestId('simulate-paid').click();
+  const ticket = page.getByTestId('token');
+  await expect(ticket).toBeVisible();
+  await expect(ticket).toContainText('Paid ₹51 · UPI');
+  const screen = page.locator('.k-done');
+  for (const gone of [/Ready in/, /\bmin\b/, /Track/]) await expect(screen).not.toContainText(gone);
+  await expect(screen).toContainText('Get your bill on your phone');
+  await expect(screen).toContainText('Scan this code with your phone camera');
 });

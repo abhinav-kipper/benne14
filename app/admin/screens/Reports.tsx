@@ -222,6 +222,15 @@ export function Reports(p: Ctx) {
                 <span>SGST @ 2.5%</span>
                 <b>{inr2(s.gst.sgst)}</b>
               </div>
+              {s.gst.roundOff !== 0 && (
+                <div className="row">
+                  <span>Round off</span>
+                  <b>
+                    {s.gst.roundOff < 0 ? '−' : '+'}
+                    {inr2(Math.abs(s.gst.roundOff))}
+                  </b>
+                </div>
+              )}
               <div className="row">
                 <span>Total billed</span>
                 <b>{inr2(s.gst.total)}</b>

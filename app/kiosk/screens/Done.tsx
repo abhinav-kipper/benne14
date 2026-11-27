@@ -65,7 +65,11 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
           </b>
           <span>
             {/* what to do next is the sentence above the ticket; the stub only carries a fact */}
-            {atCounter ? (o.payMethod === 'upi' ? `₹${o.total} · UPI` : `₹${o.total} to pay`) : 'Ready in ~8 min'}
+            {atCounter
+              ? o.payMethod === 'upi'
+                ? `₹${o.total} · UPI`
+                : `₹${o.total} to pay`
+              : `Paid ₹${o.total} · ${o.payMethod === 'upi' ? 'UPI' : o.payMethod === 'card' ? 'Card' : 'Cash'}`}
           </span>
         </div>
       </div>
@@ -101,8 +105,8 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
           {origin && <img src={`/api/qr?u=${encodeURIComponent(`${origin}/r/${o.id}`)}`} alt="Scan for your bill" />}
         </div>
         <div>
-          <h3 className="disp">Track &amp; bill on your phone</h3>
-          <p>Scan to follow your order live and get the GST bill. No paper, no waiting.</p>
+          <h3 className="disp">Get your bill on your phone</h3>
+          <p>Scan this code with your phone camera. It shows when your order is ready and keeps your GST bill.</p>
         </div>
       </div>
       <div className="reset">

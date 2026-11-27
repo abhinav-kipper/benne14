@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useCatalog } from '@/components/Catalog';
 import { visibleItems, type MenuItem } from '@/lib/menu';
-import { Chevron, Photo, type Line } from './shared';
+import { Chevron, Photo, StartOverIcon, type Line } from './shared';
 
 export function MenuScreen(p: {
   qtyOf: (id: string) => number;
@@ -14,6 +14,7 @@ export function MenuScreen(p: {
   total: number;
   onCart: () => void;
   testMode: boolean;
+  onStartOver: () => void; // back to the start screen with nothing chosen
   // where the customer was (scroll position and lit section), kept while they visit the cart
   scrollMemo: { current: { top: number; cat: string | null } };
 }) {
@@ -112,16 +113,7 @@ export function MenuScreen(p: {
     <div className="screen k-menu">
       <aside>
         <div className="brand">
-          <div className="w">
-            Benne
-            <br />
-            <i>14</i>
-          </div>
-          <small>
-            Authentic
-            <br />
-            Bangalore Dosa
-          </small>
+          <img src="/brand/benne14-logo.webp" alt="Benne 14 — Authentic Bangalore Dosa" draggable={false} />
         </div>
         <div className="cats">
           {cats.map((c) => (
@@ -130,6 +122,10 @@ export function MenuScreen(p: {
             </button>
           ))}
         </div>
+        <button className="over" onClick={p.onStartOver} data-testid="start-over">
+          <StartOverIcon />
+          Start over
+        </button>
       </aside>
       <main
         ref={main}

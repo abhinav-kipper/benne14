@@ -10,31 +10,41 @@ const dosa = {
 const coffee = { itemId: 'filter-coffee', qty: 2, choices: {}, notes: [] };
 
 describe('pricing', () => {
-  it('bills full menu prices, no discount: ₹362 + ₹18 GST = ₹380', () => {
+  it('bills full menu prices, no discount: ₹362 + ₹18.10 GST, rounded to ₹380', () => {
     const o = priceOrder([dosa, coffee]);
     expect(o.lines.map((l) => l.lineTotal)).toEqual([224, 138]); // 199 + 25 extra benne; 2 × 69
-    // 5% of 362 = 18.10 → GST rounded to ₹18, split 9 + 9: the bill adds up with no round-off line
-    expect(o).toMatchObject({ itemCount: 3, subtotal: 362, cgst: 9, sgst: 9, roundOff: 0, total: 380, savings: 0 });
+    // 2.5% of 362 = 9.05 twice; 380.10 is rounded to ₹380 and the 10 paise shows as the round off
+    expect(o).toMatchObject({
+      itemCount: 3,
+      subtotal: 362,
+      cgst: 9.05,
+      sgst: 9.05,
+      roundOff: -0.1,
+      total: 380,
+      savings: 0,
+    });
   });
 
-  it('rounds GST to the rupee and can split it into halves', () => {
-    const o = priceOrder([{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }]); // 5% of 49 = 2.45 → ₹2
-    expect(o).toMatchObject({ subtotal: 49, cgst: 1, sgst: 1, roundOff: 0, total: 51 });
-    const p = priceOrder([{ itemId: 'mallige-idli', qty: 1, choices: {}, notes: [] }]); // 5% of 89 = 4.45 → ₹4
-    expect(p).toMatchObject({ subtotal: 89, cgst: 2, sgst: 2, total: 93 });
-    const q = priceOrder([{ itemId: 'plain-benne-dosa', qty: 1, choices: {}, notes: [] }]); // 5% of 159 = 7.95 → ₹8
-    expect(q).toMatchObject({ cgst: 4, sgst: 4, total: 167 });
-    const r = priceOrder([{ itemId: 'medu-vada', qty: 3, choices: {}, notes: [] }]); // 5% of 267 = 13.35 → ₹13
-    expect(r).toMatchObject({ cgst: 6.5, sgst: 6.5, total: 280 });
-    expect(o.subtotal + o.cgst + o.sgst).toBe(o.total);
+  it('keeps each tax to the paisa and rounds only the total', () => {
+    const adds = (x: ReturnType<typeof priceOrder>) =>
+      Math.round((x.subtotal + x.cgst + x.sgst + x.roundOff) * 100) === x.total * 100;
+    const o = priceOrder([{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }]); // 2.5% of 49 = 1.225 → 1.23
+    expect(o).toMatchObject({ subtotal: 49, cgst: 1.23, sgst: 1.23, roundOff: -0.46, total: 51 });
+    const p = priceOrder([{ itemId: 'mallige-idli', qty: 1, choices: {}, notes: [] }]); // 2.5% of 89 = 2.225 → 2.23
+    expect(p).toMatchObject({ subtotal: 89, cgst: 2.23, sgst: 2.23, roundOff: -0.46, total: 93 });
+    const q = priceOrder([{ itemId: 'plain-benne-dosa', qty: 1, choices: {}, notes: [] }]); // 159: 3.975 → 3.98
+    expect(q).toMatchObject({ cgst: 3.98, sgst: 3.98, roundOff: 0.04, total: 167 });
+    const r = priceOrder([{ itemId: 'medu-vada', qty: 3, choices: {}, notes: [] }]); // 267: 6.675 → 6.68
+    expect(r).toMatchObject({ cgst: 6.68, sgst: 6.68, roundOff: -0.36, total: 280 });
+    for (const x of [o, p, q, r]) expect(adds(x)).toBe(true);
   });
 
   it('charges exactly ₹1 for the payment test item', () => {
     expect(priceOrder([{ itemId: 'test-1', qty: 1, choices: {}, notes: [] }])).toMatchObject({
       subtotal: 1,
-      cgst: 0,
-      sgst: 0,
-      roundOff: 0,
+      cgst: 0.03, // 2.5 paise, half a paisa going up
+      sgst: 0.03,
+      roundOff: -0.06,
       total: 1,
     });
   });

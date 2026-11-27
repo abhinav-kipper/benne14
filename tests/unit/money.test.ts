@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { discountFor } from '@/lib/discounts';
 import { BASE_CATALOG, mergeCatalog } from '@/lib/menu';
 import { counts, NEXT, PAID, type Order } from '@/lib/orders';
-import { gstOn, GST_PERCENT, OrderError, priceOrder, type CartLine } from '@/lib/pricing';
+import { billFor, GST_PERCENT, halfGstPaise, OrderError, priceOrder, type CartLine } from '@/lib/pricing';
 import { billsCsv, dishesCsv, gstCsv, summarize } from '@/lib/reports';
 
 // The money rules, checked exhaustively or over seeded random data rather than by a few examples.
 // An independent calculation in BigInt (no floating point anywhere) is the reference.
-const gstRef = (taxable: number) => Number((BigInt(taxable) * BigInt(GST_PERCENT) + 50n) / 100n);
+// One half of the GST (2.5%), in paise, half a paisa going up.
+const halfRef = (taxable: number) => Number((BigInt(taxable) * BigInt(GST_PERCENT) * 100n + 100n) / 200n);
+// The total as it was billed before 2026-11-27, when GST itself was rounded to the rupee.
+const oldTotal = (taxable: number) => taxable + Number((BigInt(taxable) * BigInt(GST_PERCENT) + 50n) / 100n);
 
 function rng(seed: number) {
   return () => {
@@ -17,21 +20,28 @@ function rng(seed: number) {
 }
 
 describe('GST', () => {
-  it('is 5% rounded half-up to the rupee, for every taxable value from ₹0 to ₹2,00,000', () => {
+  it('each tax is 2.5% to the paisa and only the total is rounded, for every taxable value from ₹0 to ₹2,00,000', () => {
     for (let t = 0; t <= 200_000; t++) {
-      const g = gstOn(t);
-      if (g !== gstRef(t)) throw new Error(`GST on ₹${t}: got ${g}, want ${gstRef(t)}`);
-      if (Math.abs(g * 100 - t * GST_PERCENT) > 50) throw new Error(`GST on ₹${t} is more than 50 paise off`);
+      const b = billFor(t);
+      if (halfGstPaise(t) !== halfRef(t)) throw new Error(`half GST on ₹${t}: got ${halfGstPaise(t)}`);
+      const exact = t * 100 + 2 * halfRef(t); // paise
+      if (b.total * 100 - exact !== b.roundOffPaise) throw new Error(`₹${t}: the bill does not add up`);
+      if (Math.abs(b.roundOffPaise) > 50) throw new Error(`₹${t}: rounded by more than 50 paise`);
+      if (Math.abs(2 * b.halfPaise - t * GST_PERCENT) > 1) throw new Error(`₹${t}: GST is more than a paisa off 5%`);
+      // what the customer pays did not change when the tax stopped being rounded
+      if (b.total !== oldTotal(t)) throw new Error(`₹${t}: total ${b.total} differs from the old ${oldTotal(t)}`);
     }
   });
 
-  it('rounds the half rupee up, and splits evenly into CGST and SGST', () => {
-    expect([9, 10, 29, 30, 49, 50].map(gstOn)).toEqual([0, 1, 1, 2, 2, 3]); // ₹10 → 50 paise → ₹1
-    const o = priceOrder([{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }]); // ₹49 → GST ₹2 (2.45)
-    expect([o.cgst, o.sgst, o.total]).toEqual([1, 1, 51]);
-    const p = priceOrder([{ itemId: 'mallige-idli', qty: 3, choices: {}, notes: [] }]); // ₹267 → 13.35 → ₹13
-    expect([p.cgst, p.sgst, p.total]).toEqual([6.5, 6.5, 280]);
-    expect(p.cgst * 100).toBe(650); // a half rupee is exact in paise
+  it('shows the tax to the paisa, rounds the total, and says what the rounding was', () => {
+    const o = priceOrder([{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }]); // ₹49: 2.5% = 1.225 → 1.23
+    expect([o.cgst, o.sgst, o.roundOff, o.total]).toEqual([1.23, 1.23, -0.46, 51]);
+    const p = priceOrder([{ itemId: 'mallige-idli', qty: 3, choices: {}, notes: [] }]); // ₹267: 6.675 → 6.68
+    expect([p.cgst, p.sgst, p.roundOff, p.total]).toEqual([6.68, 6.68, -0.36, 280]);
+    const q = priceOrder([{ itemId: 'filter-coffee', qty: 10, choices: {}, notes: [] }]); // ₹690: 17.25 each
+    expect([q.cgst, q.sgst, q.roundOff, q.total]).toEqual([17.25, 17.25, 0.5, 725]); // 724.50: the half rupee goes up
+    const r = priceOrder([{ itemId: 'masala-dosa', qty: 20, choices: {}, notes: [] }]); // ₹4180: 104.50 each
+    expect([r.cgst, r.sgst, r.roundOff, r.total]).toEqual([104.5, 104.5, 0, 4389]); // already a whole rupee
   });
 });
 
@@ -45,7 +55,7 @@ describe('discounts', () => {
       }
   });
 
-  it('every discounted bill still adds up: item total − discount + GST on the rest = total', () => {
+  it('every discounted bill still adds up: item total − discount + GST on the rest + round off = total', () => {
     const rand = rng(7);
     for (let i = 0; i < 3000; i++) {
       const cart: CartLine[] = [
@@ -63,8 +73,11 @@ describe('discounts', () => {
       const gross = o.lines.reduce((a, l) => a + l.lineTotal, 0);
       expect(o.subtotal).toBe(gross - o.savings);
       expect(o.subtotal).toBeGreaterThanOrEqual(1);
-      expect(o.cgst + o.sgst).toBe(gstOn(o.subtotal));
-      expect(o.total).toBe(o.subtotal + gstOn(o.subtotal));
+      const b = billFor(o.subtotal);
+      expect(Math.round(o.cgst * 100)).toBe(b.halfPaise);
+      expect(o.cgst).toBe(o.sgst);
+      expect(Math.round((o.subtotal + o.cgst + o.sgst + o.roundOff) * 100)).toBe(o.total * 100);
+      expect(o.total).toBe(oldTotal(o.subtotal));
       expect(Number.isInteger(o.total) && Number.isInteger(o.subtotal) && Number.isInteger(o.savings)).toBe(true);
       expect(!!o.discountCode).toBe(o.savings > 0); // a discount always names its code, and only then
     }
@@ -176,7 +189,7 @@ describe('reports agree with each other over random days', () => {
   });
 
   it('GST adds up, and matches what was sold', () => {
-    expect(sum([s.gst.taxable, s.gst.cgst, s.gst.sgst])).toBe(s.gst.total);
+    expect(sum([s.gst.taxable, s.gst.cgst, s.gst.sgst, s.gst.roundOff])).toBe(s.gst.total);
     expect(s.gst.total).toBe(s.takings);
     expect(s.gst.cgst).toBe(s.gst.sgst);
     // dishes + extras − discounts is the taxable value: nothing sold is missing from the dish report
@@ -191,21 +204,22 @@ describe('reports agree with each other over random days', () => {
   });
 
   it('the bills CSV, the GST-by-day CSV and the dish CSV all give the dashboard’s numbers', () => {
-    const bills = rows(billsCsv(orders)); // Date, Time, Invoice, Order, …, Discount, Code, Taxable value, CGST, SGST, Total, Refunded, Reason
-    const live = bills.filter((r) => r[13] === '');
+    const bills = rows(billsCsv(orders)); // Date, Time, Invoice, Order, …, Discount, Code, Taxable value, CGST, SGST, Round off, Total, Refunded, Reason
+    const live = bills.filter((r) => r[14] === '');
     expect(live.length).toBe(s.orders);
-    expect(sum(live.map((r) => +r[12]))).toBe(s.takings);
+    expect(sum(live.map((r) => +r[13]))).toBe(s.takings);
     expect(sum(live.map((r) => +r[9]))).toBe(s.gst.taxable);
     expect(sum(live.map((r) => +r[7] || 0))).toBe(s.discounts.amount);
-    expect(sum(bills.filter((r) => r[13] !== '').map((r) => +r[13]))).toBe(s.refunds.amount);
-    for (const r of bills) expect(sum([+r[9], +r[10], +r[11]])).toBe(+r[12]); // every bill adds up on its own
+    expect(sum(bills.filter((r) => r[14] !== '').map((r) => +r[14]))).toBe(s.refunds.amount);
+    for (const r of bills) expect(sum([+r[9], +r[10], +r[11], +r[12]])).toBe(+r[13]); // every bill adds up on its own
 
-    const gst = rows(gstCsv(orders, from, to)); // Date, Bills, Taxable, CGST, SGST, Total
+    const gst = rows(gstCsv(orders, from, to)); // Date, Bills, Taxable, CGST, SGST, Round off, Total
     expect(gst.length).toBe(3);
     expect(sum(gst.map((r) => +r[1]))).toBe(s.orders);
     expect(sum(gst.map((r) => +r[2]))).toBe(s.gst.taxable);
     expect(sum(gst.map((r) => +r[3]))).toBe(s.gst.cgst);
-    expect(sum(gst.map((r) => +r[5]))).toBe(s.takings);
+    expect(sum(gst.map((r) => +r[5]))).toBe(s.gst.roundOff);
+    expect(sum(gst.map((r) => +r[6]))).toBe(s.takings);
 
     const dishes = rows(dishesCsv(orders, from, to)); // Dish, Sold, Amount: dishes, then Extras, then Discount codes (minus)
     expect(sum(dishes.map((r) => +r[2]))).toBe(s.gst.taxable);

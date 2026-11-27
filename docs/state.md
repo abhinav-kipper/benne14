@@ -23,7 +23,7 @@ section A are open.
 
 - English only. Full menu prices; a discount only through a code the owner made. Order numbers are plain daily numbers (old "A-042" rows show as "42").
 - GST 5% on top, rounded to the nearest rupee and split CGST/SGST: bills have no round-off line.
-- Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen asks "Still there?" after 90 s and returns to start 30 s later; an untouched order is cleared after two quiet minutes + a 15 s prompt (no Start over button); scrolling, typing or a finger moving all count as the customer being there.
+- Start screen has one "Tap to order"; dine in / takeaway is asked in the cart; the order-number screen asks "Still there?" after 90 s and returns to start 30 s later; an untouched order is cleared after two quiet minutes + a 15 s prompt; "Start over" sits on the menu and the cart and asks first when dishes are chosen; scrolling, typing or a finger moving all count as the customer being there.
 - UPI is confirmed by Easebuzz's payment gateway by itself (`docs/payments.md`); if the gateway is down the kiosk offers card and cash only (the shop's printed QR at the counter is the backup). Card and cash wait on the kitchen's "Collect payment" shelf.
 - Test mode (off unless `TEST_MODE=1`): cash counts as paid, a ₹1 test item shows.
 - Cash at the kiosk is the owner's switch (owner app → Offers → On the kiosk), off by default.
@@ -50,6 +50,8 @@ section A are open.
 - How to run e2e and compare screens in a Claude session: `CLAUDE.md`, last section.
 
 ## Done
+
+- 2026-11-27 — GST is kept to the paisa (CGST and SGST 2.5% each) and only the total is rounded to the rupee, with a "Round off" line on the cart, the bill, the owner's order view and both CSVs; what customers pay is unchanged for every amount. "Start over" on the menu and cart. The order ticket no longer promises a time; the QR line says what scanning gives. The shop's logo heads the menu's side bar.
 
 - 2026-11-27 — Kiosk polish for launch: dish photos shown whole on the dish sheet and house special; the shop's logo and a hopping dosa host on the start screen; "Note for the kitchen" removed (Less oil and Extra crisp retired; "Potato stuffing on the side" stays on Masala Dosa as a free tick box); "Still there?" waits two minutes and counts scrolling and typing as activity.
 

@@ -9,7 +9,7 @@ import { itemById } from '@/lib/menu';
 import type { OrderType } from '@/lib/orders';
 import { itemTotal, type priceOrder } from '@/lib/pricing';
 import { suggestFor } from '@/lib/suggest';
-import { BagIcon, Chevron, DineIcon, Photo, type Line } from './shared';
+import { BagIcon, Chevron, DineIcon, Photo, StartOverIcon, type Line } from './shared';
 
 export function Cart(p: {
   lines: Line[];
@@ -29,6 +29,7 @@ export function Cart(p: {
   onEdit: (uid: string) => void;
   onAdd: (id: string) => void;
   onBack: () => void;
+  onStartOver: () => void;
   onPay: () => void;
 }) {
   const catalog = useCatalog();
@@ -65,6 +66,10 @@ export function Cart(p: {
           <span>←</span>Menu
         </button>
         <h1 className="disp">Your order</h1>
+        <button className="over" onClick={p.onStartOver} data-testid="start-over">
+          <StartOverIcon />
+          Start over
+        </button>
       </div>
       <div className="body">
         {p.lines.map((l, i) => {
@@ -161,6 +166,15 @@ export function Cart(p: {
               <span>GST 5%</span>
               <span className="v">₹{(p.priced.cgst + p.priced.sgst).toFixed(2)}</span>
             </div>
+            {/* the tax is to the paisa; only the amount to pay is a whole rupee, and this says by how much */}
+            {p.priced.roundOff !== 0 && (
+              <div className="row muted" data-testid="round-off">
+                <span>Round off</span>
+                <span className="v">
+                  {p.priced.roundOff < 0 ? '−' : '+'}₹{Math.abs(p.priced.roundOff).toFixed(2)}
+                </span>
+              </div>
+            )}
           </div>
           <div className="total">
             <span>To pay</span>
@@ -213,6 +227,7 @@ export function Cart(p: {
           </div>
           <input
             value={p.name}
+            data-testid="name-input"
             onChange={(e) => p.setName(e.target.value.slice(0, 24))}
             placeholder="Your name"
             aria-label="Your name"

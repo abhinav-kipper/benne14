@@ -246,7 +246,7 @@ test('reports: today vs yesterday on the dashboard, CSV downloads for the CA', a
   expect(dl.suggestedFilename()).toMatch(/^benne14-bills-\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}\.csv$/);
   const text = await (await dl.createReadStream()).toArray().then((c) => Buffer.concat(c).toString('utf8'));
   expect(text.split('\r\n')[0]).toContain(
-    'Date,Time,Invoice,Order,Type,Payment,Items,Discount,Code,Taxable value,CGST,SGST,Total',
+    'Date,Time,Invoice,Order,Type,Payment,Items,Discount,Code,Taxable value,CGST,SGST,Round off,Total',
   );
   expect(text).toContain('Food issue');
 });

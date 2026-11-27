@@ -14,7 +14,7 @@ app/admin/Admin.tsx + screens/      owner dashboard: PIN gate + tabs; one file p
 app/api/...                         route handlers (below)
 components/                         Fit (fixed-size design scaled to the device), PinGate, Catalog (menu state)
 lib/menu.ts                         the dishes, extras and notes, in code + merge with the owner's changes
-lib/pricing.ts                      prices a cart: extras, 5% GST rounded to the rupee
+lib/pricing.ts                      prices a cart: extras, GST to the paisa (2.5% + 2.5%), total rounded to the rupee
 lib/orders.ts                       order model, status rules, IST day helpers
 lib/reports.ts                      dashboard numbers and CSV, pure functions over orders
 lib/store/                          storage: memory.ts (dev, tests) and supabase/ (production: orders, menu, events, offers, system), one interface

@@ -271,34 +271,46 @@
   flex-shrink: 0;
 }
 .k-menu .brand {
-  padding: 0 22px 26px;
+  padding: 0 14px 20px;
   border-bottom: 1px solid var(--line);
 }
-.k-menu .brand .w {
-  font-family: var(--display);
-  font-size: 52px;
-  line-height: 0.82;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-.k-menu .brand .w i {
-  font-style: normal;
-  color: var(--benne-fg);
-}
-.k-menu .brand small {
+/* The shop's own logo, as supplied (public/brand): never redrawn in a font. */
+.k-menu .brand img {
+  width: 100%;
+  height: auto;
   display: block;
-  margin-top: 10px;
-  font-size: 11px; /* part of the logo lock-up, not information: exempt from the 16 px floor */
-  color: var(--cream-3);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  line-height: 1.4;
 }
 .k-menu .cats {
   flex: 1;
   display: flex;
   flex-direction: column;
   padding-top: 10px;
+}
+/* "Start over": quiet, at the foot of the side bar and the head of the cart */
+.kiosk .over {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cream-2);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--s1);
+}
+.kiosk .over svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.k-menu aside .over {
+  margin: 0 12px 22px;
+  height: 56px;
+  justify-content: center;
+}
+.k-cart .top .over {
+  height: 56px;
+  padding: 0 18px;
 }
 .k-menu .cat {
   padding: 20px 22px;

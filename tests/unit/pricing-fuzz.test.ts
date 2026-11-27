@@ -30,16 +30,17 @@ function randomCart(): CartLine[] {
 describe('pricing invariants over 2,000 random carts', () => {
   const carts = Array.from({ length: 2000 }, randomCart);
 
-  it('bills add up exactly, in whole rupees, with GST within 50 paise of 5%', () => {
+  it('bills add up exactly, the total in whole rupees, with GST within a paisa of 5%', () => {
     for (const cart of carts) {
       const o = priceOrder(cart);
       const lines = o.lines.reduce((a, l) => a + l.lineTotal, 0);
       expect(o.subtotal).toBe(lines);
       expect(Number.isInteger(o.total)).toBe(true);
       expect(o.cgst).toBe(o.sgst);
-      expect(Math.round((o.subtotal + o.cgst + o.sgst) * 100)).toBe(o.total * 100); // no hidden round-off
-      expect(Math.abs(o.cgst + o.sgst - o.subtotal * GST_RATE)).toBeLessThanOrEqual(0.5);
-      expect(o.roundOff).toBe(0);
+      const paise = (n: number) => Math.round(n * 100);
+      expect(paise(o.subtotal) + paise(o.cgst) + paise(o.sgst) + paise(o.roundOff)).toBe(o.total * 100); // round off shown, nothing hidden
+      expect(Math.abs(paise(o.cgst) + paise(o.sgst) - paise(o.subtotal * GST_RATE))).toBeLessThanOrEqual(1);
+      expect(Math.abs(paise(o.roundOff))).toBeLessThanOrEqual(50);
       expect(o.itemCount).toBe(cart.reduce((a, l) => a + l.qty, 0));
     }
   });

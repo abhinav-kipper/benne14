@@ -1,17 +1,27 @@
 // Order pricing. Runs on the server for every order; the kiosk uses the same code only to display totals.
 // A discount code comes off the item total before GST, so GST is charged on what is left.
 // All maths in whole rupees and whole paise (integers only, no floating point): menu prices, extras
-// and discounts are whole rupees, GST is rounded half-up to the nearest rupee (allowed under section
-// 170 of the CGST Act) and split equally into CGST and SGST, so the bill adds up exactly with no
-// round-off line. tests/unit/money.test.ts checks this for every total up to ₹2,00,000.
+// and discounts are whole rupees. CGST and SGST are each 2.5% of the taxable value, kept to the
+// paisa (rounded half-up); only the bill's total is rounded to the rupee, and the difference is
+// shown as its own "Round off" line (owner's call, 2026-11-27: the tax itself is not rounded).
+// tests/unit/money.test.ts checks this for every total up to ₹2,00,000.
 import { discountFor, type DiscountRule } from './discounts';
 import { BASE_CATALOG, notesFor, type Catalog } from './menu';
 
 export const GST_PERCENT = 5; // 2.5% CGST + 2.5% SGST, charged on top of menu prices (v1 assumption)
 export const GST_RATE = GST_PERCENT / 100;
 
-// GST on a whole-rupee taxable value, in whole rupees: 5%, rounded half-up.
-export const gstOn = (taxable: number) => Math.floor((taxable * GST_PERCENT + 50) / 100);
+// One half of the GST (CGST or SGST, 2.5% each) on a whole-rupee taxable value, in whole paise,
+// rounded half-up: ₹209 → 522.5 → 523 paise.
+export const halfGstPaise = (taxable: number) => Math.floor((taxable * GST_PERCENT * 100 + 100) / 200);
+// The bill for a whole-rupee taxable value: both taxes to the paisa, the total to the rupee
+// (half a rupee goes up), and what the rounding added or took, in paise.
+export function billFor(taxable: number) {
+  const half = halfGstPaise(taxable);
+  const exact = taxable * 100 + 2 * half; // paise
+  const total = Math.floor((exact + 50) / 100); // rupees
+  return { halfPaise: half, total, roundOffPaise: total * 100 - exact };
+}
 const MAX_QTY = 20;
 
 export interface CartLine {
@@ -44,7 +54,7 @@ export interface PricedOrder {
   subtotal: number; // taxable value: item total minus any discount, rupees, 2dp
   cgst: number;
   sgst: number;
-  roundOff: number; // always 0 now: GST itself is rounded to the rupee (kept for stored orders)
+  roundOff: number; // what rounding the total to the rupee added (+) or took (−), rupees, 2dp
   total: number; // whole rupees
   savings: number; // the discount taken off the item total, whole rupees (0 without a code)
   discountCode: string | null; // the code that gave it; null when none applied
@@ -118,15 +128,15 @@ export function priceOrder(cart: CartLine[], cat: Catalog = BASE_CATALOG, code?:
   const gross = lines.reduce((a, l) => a + l.lineTotal, 0);
   const d = code ? discountFor(gross, code) : { amount: 0, short: 0 };
   const taxable = gross - d.amount; // whole rupees
-  const gst = gstOn(taxable); // whole rupees
+  const bill = billFor(taxable);
   return {
     lines,
     itemCount: lines.reduce((a, l) => a + l.qty, 0),
     subtotal: taxable,
-    cgst: gst / 2, // an odd rupee splits into two exact 50-paise halves
-    sgst: gst / 2,
-    roundOff: 0,
-    total: taxable + gst,
+    cgst: bill.halfPaise / 100, // paise worked out as integers; stored and shown in rupees, 2dp
+    sgst: bill.halfPaise / 100,
+    roundOff: bill.roundOffPaise / 100,
+    total: bill.total,
     savings: d.amount,
     discountCode: code && d.amount > 0 ? code.code : null,
     discountShort: d.short,
