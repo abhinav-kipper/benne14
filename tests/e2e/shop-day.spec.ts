@@ -27,6 +27,7 @@ interface Bill {
   subtotal: number;
   cgst: number;
   sgst: number;
+  roundOff: number;
   total: number;
   savings: number;
   discountCode: string | null;
@@ -164,13 +165,15 @@ test('forty orders go through every path of a day, each with the right number an
     ids.push(o.id);
     expect(o.token, 'numbers run 1, 2, 3… with none skipped').toBe(String(p.n));
 
-    // the money, worked out here: menu price, 10% off with the code, 5% GST to the nearest rupee
+    // the money, worked out here: menu price, 10% off with the code, 5% GST to the paisa, the total to the rupee
     const off = p.code ? o.savings : 0;
     if (p.code) expect(Math.abs(off - p.listPrice * 0.1), `order ${p.n} discount`).toBeLessThanOrEqual(1);
     else expect(o.savings).toBe(0);
     expect(o.subtotal, `order ${p.n} before GST`).toBe(p.listPrice - off);
-    expect(Math.abs(o.cgst + o.sgst - o.subtotal * 0.05), `order ${p.n} GST`).toBeLessThanOrEqual(0.5);
-    expect(o.total, `order ${p.n} adds up`).toBe(o.subtotal + o.cgst + o.sgst);
+    const paise = (x: number) => Math.round(x * 100);
+    expect(Math.abs(paise(o.cgst + o.sgst) - paise(o.subtotal * 0.05)), `order ${p.n} GST`).toBeLessThanOrEqual(1);
+    expect(Math.abs(paise(o.roundOff)), `order ${p.n} round off`).toBeLessThanOrEqual(50);
+    expect(o.total * 100, `order ${p.n} adds up`).toBe(paise(o.subtotal + o.cgst + o.sgst + o.roundOff));
     expect(Number.isInteger(o.total)).toBe(true);
     expect(o.itemCount).toBe(p.lines.reduce((a, l) => a + l.qty, 0));
 
@@ -260,7 +263,8 @@ test('the dashboard’s numbers are the bills added up', async ({ request }) => 
   expect(r.discounts).toEqual({ count: coded.length, amount: sum(coded, (b) => b.savings) });
   expect(r.gst.total).toBe(r.takings);
   expect(r.gst.taxable).toBe(sum(k, (b) => b.subtotal));
-  expect(r.gst.cgst + r.gst.sgst).toBe(sum(k, (b) => b.cgst + b.sgst));
+  expect(Math.round((r.gst.cgst + r.gst.sgst) * 100)).toBe(Math.round(sum(k, (b) => b.cgst + b.sgst) * 100));
+  expect(Math.round((r.gst.taxable + r.gst.cgst + r.gst.sgst + r.gst.roundOff) * 100)).toBe(r.takings * 100);
   expect(sum(r.dishes as { qty: number }[], (d) => d.qty)).toBe(sum(k, (b) => b.itemCount));
   expect(r.days).toEqual([{ day: DAY(), takings: r.takings, orders: r.orders }]);
   expect(sum(r.hours as { orders: number }[], (h) => h.orders)).toBe(r.orders);
@@ -280,9 +284,10 @@ test('the three CSV downloads say the same as the dashboard', async ({ request }
     Array(3).fill('Food issue'),
   );
   for (const r of rows)
-    expect(+r[col('Taxable value')] + +r[col('CGST')] + +r[col('SGST')], `bill ${r[col('Order')]}`).toBe(
-      +r[col('Total')],
-    );
+    expect(
+      Math.round((+r[col('Taxable value')] + +r[col('CGST')] + +r[col('SGST')] + +r[col('Round off')]) * 100),
+      `bill ${r[col('Order')]}`,
+    ).toBe(+r[col('Total')] * 100);
   expect(rows.filter((r) => r[col('Code')] === 'DAY10').length).toBe(paid().filter((b) => b.discountCode).length);
 
   const gst = await csv(request, 'gst');
@@ -290,7 +295,7 @@ test('the three CSV downloads say the same as the dashboard', async ({ request }
   expect(gst[1][0]).toBe(DAY());
   expect(+gst[1][1]).toBe(k.length);
   expect(+gst[1][2]).toBe(sum(k, (b) => b.subtotal));
-  expect(+gst[1][5]).toBe(takings);
+  expect(+gst[1][6]).toBe(takings);
 
   const dishes = (await csv(request, 'dishes')).slice(1);
   const sold = dishes.filter((r) => r[0] !== 'Extras' && r[0] !== 'Discount codes');

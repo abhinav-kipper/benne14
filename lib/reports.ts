@@ -24,7 +24,7 @@ export interface Summary {
   extras: { qty: number; amount: number };
   hours: { hour: number; orders: number }[]; // shop hours, stretched to any order outside them
   days: { day: string; takings: number; orders: number }[]; // every day in the range, empty ones too
-  gst: { taxable: number; cgst: number; sgst: number; total: number };
+  gst: { taxable: number; cgst: number; sgst: number; roundOff: number; total: number }; // the four add up to total
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -85,6 +85,7 @@ export function summarize(all: Order[], fromDay: string, toDay: string): Summary
       taxable: r2(kept.reduce((a, o) => a + o.subtotal, 0)),
       cgst: r2(kept.reduce((a, o) => a + o.cgst, 0)),
       sgst: r2(kept.reduce((a, o) => a + o.sgst, 0)),
+      roundOff: r2(kept.reduce((a, o) => a + o.roundOff, 0)),
       total: takings,
     },
   };
@@ -122,6 +123,7 @@ export function billsCsv(all: Order[]) {
       'Taxable value',
       'CGST',
       'SGST',
+      'Round off',
       'Total',
       'Refunded',
       'Refund reason',
@@ -141,6 +143,7 @@ export function billsCsv(all: Order[]) {
       o.subtotal.toFixed(2),
       o.cgst.toFixed(2),
       o.sgst.toFixed(2),
+      o.roundOff.toFixed(2),
       o.total.toFixed(2),
       o.refundedAt ? (o.refundAmount ?? o.total).toFixed(2) : '',
       o.refundReason ?? '',
@@ -150,7 +153,7 @@ export function billsCsv(all: Order[]) {
 }
 
 export function gstCsv(all: Order[], fromDay: string, toDay: string) {
-  const rows: unknown[][] = [['Date', 'Bills', 'Taxable value', 'CGST 2.5%', 'SGST 2.5%', 'Total']];
+  const rows: unknown[][] = [['Date', 'Bills', 'Taxable value', 'CGST 2.5%', 'SGST 2.5%', 'Round off', 'Total']];
   for (const d of summarize(all, fromDay, toDay).days) {
     const s = summarize(
       all.filter((o) => o.tokenDay === d.day),
@@ -163,6 +166,7 @@ export function gstCsv(all: Order[], fromDay: string, toDay: string) {
       s.gst.taxable.toFixed(2),
       s.gst.cgst.toFixed(2),
       s.gst.sgst.toFixed(2),
+      s.gst.roundOff.toFixed(2),
       s.gst.total.toFixed(2),
     ]);
   }

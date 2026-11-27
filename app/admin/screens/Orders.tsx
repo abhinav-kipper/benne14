@@ -197,6 +197,15 @@ function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: Order) 
             <span>CGST 2.5% + SGST 2.5%</span>
             <span>{inr2(o.cgst + o.sgst)}</span>
           </div>
+          {o.roundOff !== 0 && (
+            <div className="row">
+              <span>Round off</span>
+              <span>
+                {o.roundOff < 0 ? '−' : '+'}
+                {inr2(Math.abs(o.roundOff))}
+              </span>
+            </div>
+          )}
           <div className="tot">
             <span>Total</span>
             <b>{inr2(o.total)}</b>

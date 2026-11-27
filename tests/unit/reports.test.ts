@@ -70,7 +70,7 @@ describe('owner reports', () => {
   });
 
   it('GST adds up to the takings', () => {
-    expect(s.gst.taxable + s.gst.cgst + s.gst.sgst).toBe(s.gst.total);
+    expect(Math.round((s.gst.taxable + s.gst.cgst + s.gst.sgst + s.gst.roundOff) * 100)).toBe(s.gst.total * 100);
     expect(s.gst.total).toBe(s.takings);
   });
 
@@ -112,7 +112,7 @@ describe('owner reports', () => {
     expect(bills).toHaveLength(1 + 5); // header + 4 counted + 1 refunded
     expect(bills.find((l) => l.includes('Wrong order'))).toContain('51.00');
     const gst = gstCsv(orders, day, day).trim().split('\r\n');
-    expect(gst[1]).toBe(`${day},4,615.00,14.50,14.50,644.00`);
+    expect(gst[1]).toBe(`${day},4,615.00,15.39,15.39,-1.78,644.00`); // each bill's own tax and round off, added up
     expect(dishesCsv(orders, day, day)).toContain('Extras,2,50.00');
   });
 

@@ -39,12 +39,13 @@ describe('discount codes', () => {
       savings: 42,
       discountCode: 'WELCOME10',
       subtotal: 376,
-      cgst: 9.5,
-      sgst: 9.5,
+      cgst: 9.4, // 2.5% of 376
+      sgst: 9.4,
+      roundOff: 0.2, // 394.80 → ₹395
       total: 395,
     });
     expect(itemTotal(p)).toBe(418);
-    expect(p.subtotal + p.cgst + p.sgst).toBe(p.total);
+    expect(Math.round((p.subtotal + p.cgst + p.sgst + p.roundOff) * 100)).toBe(p.total * 100);
   });
 
   it('gives nothing, and says how much is missing, under the minimum order', () => {

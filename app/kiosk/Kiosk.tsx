@@ -119,9 +119,14 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     setOrderId(null);
     setPlaced(null);
     setIdle(false);
+    setAsking(false);
     checkoutKey.current = newKey();
     menuScroll.current = { top: 0, cat: null };
   }, []);
+
+  // "Start over": with dishes chosen it asks first, so a slip of the finger can't wipe an order.
+  const [asking, setAsking] = useState(false);
+  const startOver = () => (lines.length ? setAsking(true) : reset());
 
   // Idle watch: anything the customer does resets the timer (a tap, a finger moving, the menu
   // scrolling, typing a name); on non-home screens ask "Still there?" before clearing.
@@ -219,6 +224,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             count={count}
             total={priced?.total ?? 0}
             onCart={() => setScreen('cart')}
+            onStartOver={startOver}
           />
         )}
         {screen === 'cart' && priced && (
@@ -250,6 +256,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             }}
             onAdd={quickAdd}
             onBack={() => setScreen('menu')}
+            onStartOver={startOver}
             onPay={() => setScreen('pay')}
           />
         )}
@@ -329,6 +336,22 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
               setSheet(null);
             }}
           />
+        )}
+        {asking && !idle && (
+          <div className="k-idle" data-testid="start-over-ask">
+            <div className="box">
+              <h2 className="disp">Start over?</h2>
+              <p>This clears your order and takes you back to the start.</p>
+              <div className="btns">
+                <button className="no" onClick={reset} data-testid="start-over-yes">
+                  Yes, start over
+                </button>
+                <button className="yes" onClick={() => setAsking(false)} data-testid="start-over-no">
+                  Keep my order
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         {idle && (
           <Idle
