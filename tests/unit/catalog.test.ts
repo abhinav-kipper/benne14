@@ -72,8 +72,8 @@ describe("the owner's own dishes, hidden dishes and the order of the menu", () =
       groups: ['dosaExtras'],
     });
     expect(photoFor(it)).toBe('https://example.test/p.jpg');
-    expect(notesFor(it).map((n) => n.id)).toEqual(['less-oil', 'extra-crisp']); // made on the tawa like the others
-    const line = { itemId: it.id, qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['less-oil'] };
+    expect(notesFor(it).map((n) => n.id)).toEqual([]);
+    const line = { itemId: it.id, qty: 2, choices: { dosaExtras: ['benne'] }, notes: [] };
     expect(priceOrder([line], cat).subtotal).toBe(2 * (179 + 25));
   });
 
@@ -204,7 +204,7 @@ describe("the owner's extras and kitchen notes", () => {
     ],
     dishSets: { 'masala-tea': ['g-ontop001', 'sugar'], 'plain-dosa': ['g-empty001'], 'mallige-idli': ['no-such-set'] },
     notes: [{ id: 'n-noonion1', label: 'No onion', tone: 'less', cats: ['dosa', 'drinks'] }],
-    hiddenNotes: ['extra-crisp'],
+    hiddenNotes: ['potato-side'],
   };
   const cat = mergeCatalog({ items: {}, options: { 'dosaExtras:benne': 35 }, extras });
   const all = mergeCatalog({ items: {}, options: { 'dosaExtras:benne': 35 }, extras }, true);
@@ -244,20 +244,23 @@ describe("the owner's extras and kitchen notes", () => {
 
   it("the owner's notes go to the sections picked; switched-off notes are gone; old notes keep their rules", () => {
     const ids = (id: string) => notesFor(itemById(id, cat)!, cat).map((n) => n.id);
-    expect(ids('masala-dosa')).toEqual(['less-oil', 'potato-side', 'n-noonion1']);
+    expect(ids('masala-dosa')).toEqual(['n-noonion1']);
+    expect(notesFor(itemById('masala-dosa')!).map((n) => n.id)).toEqual(['potato-side']); // as the app ships
     expect(ids('masala-tea')).toEqual(['n-noonion1']); // drinks took no notes before
     expect(ids('mallige-idli')).toEqual([]);
     expect(priceOrder([line('masala-tea', {}, ['n-noonion1'])], cat).lines[0].notes).toEqual([
       { id: 'n-noonion1', label: 'No onion' },
     ]);
-    expect(() => priceOrder([line('masala-dosa', {}, ['extra-crisp'])], cat)).toThrow();
+    expect(() => priceOrder([line('masala-dosa', {}, ['potato-side'])], cat)).toThrow();
+    expect(() => priceOrder([line('masala-dosa', {}, ['extra-crisp'])], cat)).toThrow(); // retired for everyone
   });
 
   it("the kitchen colours them: the owner's extras green, notes as the owner said, even after they are switched off", () => {
     expect(optionTone('dosaExtras', 'x-cheese01', all)).toBe('add');
     expect(optionTone('dosaExtras', 'palya', all)).toBe('add');
     expect(noteTone('n-noonion1', all)).toBe('less');
-    expect(noteTone('extra-crisp', all)).toBe('add');
+    expect(noteTone('extra-crisp', all)).toBe('add'); // retired, but an old order's chit still colours
     expect(noteTone('extra-crisp')).toBe('add'); // with no menu loaded yet, the notes in code still colour
+    expect(all.notes.map((n) => n.id)).toEqual(['potato-side', 'n-noonion1']); // the owner is not shown retired notes
   });
 });

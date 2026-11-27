@@ -113,7 +113,7 @@ test('kiosk waits for the start screen before reloading for a new version', asyn
   await expect(page.getByTestId('cartbar')).toBeVisible();
   expect(loads).toBe(1); // …but the order is not interrupted
   await page.unroute('**/api/version');
-  await page.clock.runFor(35_000); // customer walks away → "Still there?" → back to the start screen
+  await page.clock.runFor(65_000); // customer walks away → "Still there?" (two quiet minutes) → back to the start screen
   await page.clock.runFor(16_000);
   await page.clock.runFor(6_000);
   await expect.poll(() => loads, { timeout: 15_000 }).toBe(2);

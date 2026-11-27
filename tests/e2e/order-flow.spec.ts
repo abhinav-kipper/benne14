@@ -265,10 +265,26 @@ test('only choices that make sense: no fried-food notes on idli, no tag for a de
   await page.getByTestId('start').click();
   await page.getByTestId('item-mallige-idli').click();
   await expect(page.getByTestId('sheet')).toContainText('Make it extra');
-  await expect(page.getByTestId('sheet')).not.toContainText('Note for the kitchen'); // steamed: no "less oil" / "extra crisp"
+  // no cooking requests any more: no "Note for the kitchen", no "Less oil" or "Extra crisp" on any dish
+  for (const gone of ['Note for the kitchen', 'Less oil', 'Extra crisp', 'Potato stuffing'])
+    await expect(page.getByTestId('sheet')).not.toContainText(gone);
   await page.getByTestId('sheet').getByRole('button', { name: 'Close' }).click();
   await page.getByTestId('item-medu-vada').click();
-  await expect(page.getByTestId('sheet')).toContainText('Extra crisp');
+  for (const gone of ['Note for the kitchen', 'Less oil', 'Extra crisp'])
+    await expect(page.getByTestId('sheet')).not.toContainText(gone);
+  await page.getByTestId('sheet').getByRole('button', { name: 'Close' }).click();
+  // the one choice kept, on the one dish it fits: a tick box like the paid extras, with no price on it
+  await page.getByTestId('item-masala-dosa').click();
+  const side = page.getByTestId('note-potato-side');
+  await expect(side).toHaveText('Potato stuffing on the side');
+  await expect(side).not.toContainText('₹');
+  const paid = (await page.getByTestId('addon-benne').boundingBox())!;
+  const free = (await side.boundingBox())!;
+  expect(Math.round(free.height)).toBe(Math.round(paid.height)); // the same row as an extra
+  expect(Math.round(free.width)).toBe(Math.round(paid.width));
+  await side.click();
+  await expect(side).toHaveClass(/on/);
+  await expect(page.getByTestId('add-to-order')).toContainText('₹209'); // ticking it costs nothing
   await page.getByTestId('sheet').getByRole('button', { name: 'Close' }).click();
   await page.getByTestId('item-filter-coffee').click();
   await page.getByTestId('add-to-order').click(); // regular sugar, the default
@@ -321,20 +337,34 @@ test('+ opens the dish so extras are offered; the price with GST is explained', 
   await expect(page.locator('.k-cart .rows')).not.toContainText('CGST');
 });
 
-test('an abandoned order is cleared: "Still there?" after a minute, the start screen 15 s later', async ({ page }) => {
+test('an abandoned order is cleared: "Still there?" after two quiet minutes, the start screen 15 s later', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.clock.install();
   await page.goto('/kiosk');
   await page.getByTestId('start').click();
   await page.getByTestId('item-medu-vada').click();
   await page.getByTestId('add-to-order').click();
-  await page.clock.runFor(55_000);
+  // reading the menu is not walking away: scrolling it (no tap at all) keeps the kiosk awake
+  for (let i = 0; i < 3; i++) {
+    await page.clock.runFor(100_000);
+    await page.getByTestId('menu-list').evaluate((m, n) => {
+      m.style.scrollBehavior = 'auto';
+      m.scrollTop = 80 * (n + 1);
+    }, i);
+    // the browser reports a scroll on its next frame, in real time: let it land before the test's
+    // clock is run forward again, or the scroll would be counted as happening after the wait
+    await page.waitForTimeout(250);
+    await expect(page.locator('.k-idle')).toHaveCount(0);
+  }
+  await page.clock.runFor(115_000);
   await expect(page.locator('.k-idle')).toHaveCount(0);
   await page.clock.runFor(7_000);
   await expect(page.locator('.k-idle')).toContainText('Still there?');
   await page.getByRole('button', { name: /Yes, I.m here/ }).click();
   await expect(page.getByTestId('cartbar')).toBeVisible(); // the order is kept
-  await page.clock.runFor(62_000);
+  await page.clock.runFor(122_000);
   await expect(page.locator('.k-idle')).toBeVisible();
   await page.clock.runFor(16_000);
   await expect(page.getByTestId('start')).toBeVisible();
@@ -498,7 +528,7 @@ test('kitchen: a long order opens in full on a tap, and the screen uses the whol
         name: 'Big Table',
         payMethod: 'cash',
         lines: [
-          { itemId: 'masala-dosa', qty: 3, choices: { dosaExtras: ['benne'] }, notes: ['less-oil'] },
+          { itemId: 'masala-dosa', qty: 3, choices: { dosaExtras: ['benne'] }, notes: ['potato-side'] },
           { itemId: 'plain-benne-dosa', qty: 2, choices: {}, notes: [] },
           { itemId: 'ghee-podi-thatte-idli', qty: 2, choices: {}, notes: [] },
           { itemId: 'medu-vada', qty: 4, choices: {}, notes: [] },
@@ -522,7 +552,7 @@ test('kitchen: a long order opens in full on a tap, and the screen uses the whol
   const full = page.getByTestId(`hist-full-${o.token}`);
   await expect(full.locator('li')).toHaveCount(6); // every dish on its own line
   await expect(full).toContainText('Masala Tea');
-  await expect(full).toContainText('Extra benne · Less oil');
+  await expect(full).toContainText('Extra benne · Potato stuffing on the side');
   await row.click();
   await expect(full).toHaveCount(0); // and closes again
   // on the 16:10 tablet nothing changes: the design is exactly the screen

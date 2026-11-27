@@ -8,7 +8,7 @@ export interface Line extends CartLine {
   uid: string;
 }
 
-export const IDLE_MS = 60_000; // "Still there?" after this long without a touch
+export const IDLE_MS = 120_000; // "Still there?" after this long with no touch, scroll or typing
 export const IDLE_GRACE_S = 15;
 // Paying through the gateway has no countdown: the kiosk waits. Only if nothing happens for this long
 // does it ask "Still there?", so a customer who walked off doesn't leave their QR for the next one.

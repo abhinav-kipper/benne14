@@ -7,7 +7,9 @@ import { financialYear, invoiceNumber, type PlaceOrderInput } from '@/lib/orders
 import { priceOrder } from '@/lib/pricing';
 import type { Store } from '@/lib/store';
 
-const priced = priceOrder([{ itemId: 'masala-dosa', qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['less-oil'] }]);
+const priced = priceOrder([
+  { itemId: 'masala-dosa', qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['potato-side'] },
+]);
 let n = 0;
 const input = (payMethod: PlaceOrderInput['payMethod'] = 'cash', name: string | null = 'Rahul'): PlaceOrderInput => ({
   key: `contract-${Date.now()}-${n++}`,

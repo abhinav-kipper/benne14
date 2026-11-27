@@ -121,22 +121,21 @@ export function ItemSheet({
               </div>
             );
           })}
+          {/* Free choices about how the dish is served: same tick boxes as the paid extras, no price. */}
           {notesFor(item, catalog).length > 0 && (
             <div className="grp">
-              <div className="gh">
-                <h3 className="disp">Note for the kitchen</h3>
-                <small>Tap any</small>
-              </div>
-              <div className="notes">
+              <div className="adds">
                 {notesFor(item, catalog).map((n) => (
                   <button
                     key={n.id}
-                    className={`note ${notes.includes(n.id) ? 'on' : ''}`}
+                    className={`addon free ${notes.includes(n.id) ? 'on' : ''}`}
                     onClick={() =>
                       setNotes((cur) => (cur.includes(n.id) ? cur.filter((x) => x !== n.id) : [...cur, n.id]))
                     }
+                    data-testid={`note-${n.id}`}
                   >
-                    {n.label}
+                    <span className="box">{notes.includes(n.id) ? '✓' : ''}</span>
+                    <b>{n.label}</b>
                   </button>
                 ))}
               </div>

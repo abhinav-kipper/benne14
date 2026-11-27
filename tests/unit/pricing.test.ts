@@ -5,7 +5,7 @@ const dosa = {
   itemId: 'ghee-podi-benne-dosa',
   qty: 1,
   choices: { dosaExtras: ['benne'] },
-  notes: ['less-oil', 'extra-crisp'],
+  notes: [],
 };
 const coffee = { itemId: 'filter-coffee', qty: 2, choices: {}, notes: [] };
 
@@ -50,7 +50,7 @@ describe('pricing', () => {
       itemId: 'masala-dosa',
       qty: 1,
       choices: { dosaExtras: ['benne', 'benne'] },
-      notes: ['less-oil', 'less-oil'],
+      notes: ['potato-side', 'potato-side'],
     });
     expect(l.unitPrice).toBe(234);
     expect(l.notes).toHaveLength(1);
@@ -64,8 +64,8 @@ describe('pricing', () => {
     ['two picks in a pick-one', { itemId: 'filter-coffee', qty: 1, choices: { sugar: ['less', 'none'] }, notes: [] }],
     ['podi spice (removed)', { itemId: 'masala-dosa', qty: 1, choices: { spice: ['mild'] }, notes: [] }],
     ['a removed note', { itemId: 'masala-dosa', qty: 1, choices: {}, notes: ['no-onion'] }],
-    ['less oil on a steamed idli', { itemId: 'mallige-idli', qty: 1, choices: {}, notes: ['less-oil'] }],
-    ['extra crisp on a steamed idli', { itemId: 'thatte-idli', qty: 1, choices: {}, notes: ['extra-crisp'] }],
+    ['less oil (no longer offered)', { itemId: 'masala-dosa', qty: 1, choices: {}, notes: ['less-oil'] }],
+    ['extra crisp (no longer offered)', { itemId: 'plain-dosa', qty: 1, choices: {}, notes: ['extra-crisp'] }],
     [
       'potato on the side for a dosa without potato',
       { itemId: 'plain-dosa', qty: 1, choices: {}, notes: ['potato-side'] },

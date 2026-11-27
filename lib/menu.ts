@@ -61,6 +61,7 @@ export interface KitchenNote {
   cats?: string[]; // a note the owner added: the sections whose dishes offer it
   custom?: boolean;
   hidden?: boolean; // only in the owner's full catalog
+  retired?: boolean; // no longer offered anywhere; kept so orders that carry it still show its colour
 }
 
 const CATEGORIES: Category[] = [
@@ -107,11 +108,12 @@ export const GROUPS: Record<string, ModGroup> = {
 const FRIED = ['ghee-podi-benne-dosa', 'masala-dosa', 'plain-benne-dosa', 'plain-dosa', 'medu-vada'];
 
 const NOTES: KitchenNote[] = [
-  // Steamed idlis have no oil and can't be crisp: these two are for dosas and vada.
-  { id: 'less-oil', label: 'Less oil', tone: 'less', items: FRIED },
-  { id: 'extra-crisp', label: 'Extra crisp', tone: 'add', items: FRIED },
+  // Taken off on 2026-11-27 (owner: free-form cooking requests complicate the kitchen at a rush).
+  { id: 'less-oil', label: 'Less oil', tone: 'less', items: FRIED, retired: true },
+  { id: 'extra-crisp', label: 'Extra crisp', tone: 'add', items: FRIED, retired: true },
   { id: 'potato-side', label: 'Potato stuffing on the side', items: ['masala-dosa'] },
 ];
+const LIVE_NOTES = NOTES.filter((n) => !n.retired);
 
 const dosa = ['dosaExtras'];
 const idli = ['idliExtras'];
@@ -315,7 +317,7 @@ export interface Catalog {
   notes: KitchenNote[]; // every kitchen note; notesFor() picks the ones a dish offers
 }
 
-export const BASE_CATALOG: Catalog = { cats: CATEGORIES, items: ITEMS, groups: GROUPS, notes: NOTES };
+export const BASE_CATALOG: Catalog = { cats: CATEGORIES, items: ITEMS, groups: GROUPS, notes: LIVE_NOTES };
 export const optionKey = (groupId: string, optionId: string) => `${groupId}:${optionId}`;
 
 // What customers can order: hidden dishes and drafts are left out, so the kiosk can't show them and
@@ -358,7 +360,7 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
 
   const offNote = new Set(ex.hiddenNotes ?? []);
   const notes: KitchenNote[] = [
-    ...NOTES,
+    ...LIVE_NOTES,
     ...(ex.notes ?? []).map((n): KitchenNote => ({
       id: n.id,
       label: n.label,
@@ -402,9 +404,7 @@ export const notesFor = (item: MenuItem, cat: Catalog = BASE_CATALOG) =>
   cat.notes.filter((n) =>
     n.custom
       ? !!n.cats?.includes(item.cat) // the owner said which sections take it
-      : item.notes &&
-        // a dosa the owner added is made on the tawa like the others: it takes the same two notes
-        (!n.items || n.items.includes(item.id) || (item.custom && item.cat === 'dosa' && n.items === FRIED)),
+      : item.notes && (!n.items || n.items.includes(item.id)),
   );
 
 // Tone of a choice on an order, looked up by id so orders saved before tones existed still colour
