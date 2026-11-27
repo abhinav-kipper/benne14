@@ -652,7 +652,6 @@ test('owner adds a dish with a photo, checks it, publishes it; customers can the
   await expect(check).toContainText('How customers will see it');
   await expect(check).toContainText('₹179');
   await expect(check).toContainText('about ₹188');
-  await expect(check).toContainText('Less oil');
   const draft = (await (await request.get('/api/admin/dishes', { headers: H })).json()).custom[0];
   expect(draft).toMatchObject({
     name: 'Onion Benne Dosa',
@@ -681,7 +680,7 @@ test('owner adds a dish with a photo, checks it, publishes it; customers can the
         type: 'takeaway',
         name: null,
         payMethod: 'cash',
-        lines: [{ itemId: draft.id, qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['less-oil'] }],
+        lines: [{ itemId: draft.id, qty: 2, choices: { dosaExtras: ['benne'] }, notes: [] }],
       },
     })
   ).json();
@@ -1149,7 +1148,7 @@ test('extras API: PIN, bad input, limits, and what stays for old orders', async 
     { note: { label: 'Hot', tone: 'spicy', cats: ['dosa'] } },
     { note: { label: 'Hot', tone: null, cats: [] } },
     { note: { label: 'Hot', tone: null, cats: ['test'] } },
-    { note: { label: 'less oil', tone: 'less', cats: ['dosa'] } }, // already there
+    { note: { label: 'potato stuffing on the side', tone: 'less', cats: ['dosa'] } }, // already there
   ])
     expect((await extras(request, bad)).status(), JSON.stringify(bad).slice(0, 90)).toBe(400);
   for (const b of [
@@ -1161,7 +1160,7 @@ test('extras API: PIN, bad input, limits, and what stays for old orders', async 
     { set: { id: 'g-nosuch01', name: 'X' } },
     { removeSet: 'g-nosuch01' },
     { dishSets: { itemId: 'test-1', sets: [] } },
-    { note: { id: 'less-oil', label: 'Less oil please', tone: 'less', cats: ['dosa'] } }, // not the owner's own
+    { note: { id: 'potato-side', label: 'Potato apart', tone: 'less', cats: ['dosa'] } }, // not the owner's own
     { hideNote: 'nope' },
   ])
     expect((await extras(request, b)).status(), JSON.stringify(b)).toBe(404);

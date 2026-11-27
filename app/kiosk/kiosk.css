@@ -700,34 +700,14 @@
 .k-sheet .addon.on .p {
   color: var(--benne-fg);
 }
-.k-sheet .notes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.k-sheet .note {
-  height: 50px;
-  padding: 0 17px;
-  border-radius: 999px;
-  border: 1.5px solid var(--line);
-  display: flex;
-  align-items: center;
-  font-size: 16px;
-  color: var(--cream-2);
-}
-.k-sheet .note.on {
-  background: var(--cream);
-  color: var(--bg);
-  border-color: var(--cream);
-  font-weight: 600;
-}
 .k-sheet .pair {
   display: flex;
   align-items: center;
   gap: 16px;
 }
+/* 3:2, the shape the dishes are shot in, so the whole picture shows */
 .k-sheet .pair .pimg {
-  width: 76px;
+  width: 114px;
   height: 76px;
   border-radius: 12px;
   overflow: hidden;

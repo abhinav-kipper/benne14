@@ -23,7 +23,7 @@ const order = async (r: APIRequestContext, name: string | null = null) =>
         name,
         payMethod: 'card',
         lines: [
-          { itemId: 'masala-dosa', qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['extra-crisp'] },
+          { itemId: 'masala-dosa', qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['potato-side'] },
           { itemId: 'filter-coffee', qty: 1, choices: { sugar: ['less'] }, notes: [] },
         ],
       },

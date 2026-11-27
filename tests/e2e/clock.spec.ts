@@ -68,7 +68,7 @@ test('kiosk: a 4 am customer finishes their order before the kiosk restarts', as
   await page.clock.runFor(45_000); // it is past four now
   expect(loads).toBe(1); // the order was not thrown away
   // the customer walks off: "Still there?", back to the start screen, and then the restart
-  await page.clock.runFor(61_000);
+  await page.clock.runFor(121_000);
   await page.clock.runFor(16_000);
   await page.clock.runFor(61_000);
   await expect.poll(() => loads, { timeout: 15_000 }).toBe(2);

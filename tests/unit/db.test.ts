@@ -10,7 +10,7 @@ import { canMove, type OrderStatus } from '@/lib/orders';
 // (place_order: daily numbers, idempotency, first status) is tested, not just the app around it.
 const dir = path.resolve(__dirname, '../../supabase/migrations');
 const priced = JSON.stringify(
-  priceOrder([{ itemId: 'masala-dosa', qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['less-oil'] }]),
+  priceOrder([{ itemId: 'masala-dosa', qty: 2, choices: { dosaExtras: ['benne'] }, notes: ['potato-side'] }]),
 );
 
 let db: PGlite;

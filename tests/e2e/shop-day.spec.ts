@@ -87,7 +87,7 @@ function plan(): Plan[] {
           : extras.length
             ? { [group]: extras }
             : {},
-        notes: itemId === 'masala-dosa' && n % 2 ? ['extra-crisp'] : [],
+        notes: itemId === 'masala-dosa' && n % 2 ? ['potato-side'] : [],
       });
       listPrice += qty * (PRICE[itemId] + extras.reduce((a, x) => a + EXTRA[x], 0));
     }

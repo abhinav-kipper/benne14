@@ -123,13 +123,16 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     menuScroll.current = { top: 0, cat: null };
   }, []);
 
-  // Idle watch: any touch resets the timer; on non-home screens ask "Still there?" before clearing.
+  // Idle watch: anything the customer does resets the timer (a tap, a finger moving, the menu
+  // scrolling, typing a name); on non-home screens ask "Still there?" before clearing.
   const lastTouch = useRef(Date.now());
   useEffect(() => {
     const touch = () => {
       lastTouch.current = Date.now();
     };
-    window.addEventListener('pointerdown', touch);
+    // scroll does not bubble, so it is caught on the way down; passive: never slows the scroll itself
+    const acts = ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown', 'input', 'scroll'];
+    for (const a of acts) window.addEventListener(a, touch, { capture: true, passive: true });
     const t = setInterval(() => {
       if (
         screen !== 'home' &&
@@ -141,7 +144,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
         setIdle(true);
     }, 1000);
     return () => {
-      window.removeEventListener('pointerdown', touch);
+      for (const a of acts) window.removeEventListener(a, touch, { capture: true });
       clearInterval(t);
     };
   }, [screen, idle]);
