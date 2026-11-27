@@ -3,6 +3,7 @@
 import { useCatalog } from '@/components/Catalog';
 import { useHoldToReload } from '@/lib/client';
 import { photoFor } from '@/lib/menu';
+import { Mascots } from './Mascots';
 import { Chevron } from './shared';
 
 const MOSAIC = [
@@ -37,8 +38,7 @@ export function Home({ onStart }: { onStart: () => void }) {
     <div className="screen k-home" onClick={onStart}>
       <div className="top">
         <div className="logo" {...holdLogo}>
-          Benne <i>14</i>
-          <small>AUTHENTIC BANGALORE DOSA</small>
+          <img src="/brand/benne14-logo.webp" alt="Benne 14 — Authentic Bangalore Dosa" draggable={false} />
         </div>
       </div>
       <div className="mosaic">
@@ -56,8 +56,8 @@ export function Home({ onStart }: { onStart: () => void }) {
           <br />
           the <em>tawa.</em>
         </h1>
-        <div className="tag">Hot and crisp, straight from the tawa to your plate.</div>
       </div>
+      <Mascots />
       <button className="start" data-testid="start">
         <b>Tap to order</b>
         <span className="arr">
