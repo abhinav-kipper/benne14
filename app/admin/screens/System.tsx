@@ -167,7 +167,13 @@ export function System({
 
           <div className="sysfoot">
             Version {sys.build.slice(0, 7)} · database {sys.store === 'supabase' ? 'connected' : 'in memory'} · UPI by{' '}
-            {sys.payments === 'easebuzz' ? 'Easebuzz' : sys.payments === 'mock' ? 'test payments' : 'the shop’s own QR'}
+            {sys.payments === 'easebuzz'
+              ? 'Easebuzz'
+              : sys.payments === 'instacollect'
+                ? 'Easebuzz InstaCollect'
+                : sys.payments === 'mock'
+                  ? 'test payments'
+                  : 'the shop’s own QR'}
           </div>
           <div className="mcat" data-testid="shop-details">
             <h3>On every bill</h3>

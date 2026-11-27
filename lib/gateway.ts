@@ -2,8 +2,10 @@
 // whichever way the news arrived (Easebuzz's webhook, or our own status check while the QR is on
 // screen), and it always asks Easebuzz directly: a message alone is never trusted.
 import 'server-only';
-import { easebuzzConfig, fetchStatus, type PayState } from './easebuzz';
+import { easebuzzConfig, fetchStatus, type PayState, type TxnStatus } from './easebuzz';
+import { cancelCollect, fetchCollect, instaCollectConfig } from './instacollect';
 import { isPaid, type Order } from './orders';
+import { wantedPayments } from './server';
 import { getStore } from './store';
 import { StoreError } from './store/memory';
 
@@ -17,19 +19,29 @@ export interface Settled {
   gatewayStatus?: string;
 }
 
+// Which of Easebuzz's two ways of taking UPI is on (PAYMENTS), and how to ask it about an order.
+function gateway(): { name: string; ask: (orderId: string) => Promise<TxnStatus | null> } | null {
+  if (wantedPayments() === 'instacollect') {
+    const ic = instaCollectConfig();
+    return ic ? { name: 'InstaCollect', ask: (id) => fetchCollect(ic, id) } : null;
+  }
+  const pg = easebuzzConfig();
+  return pg ? { name: 'Easebuzz', ask: (id) => fetchStatus(pg, id) } : null;
+}
+
 export async function settle(orderId: string): Promise<Settled | null> {
-  const cfg = easebuzzConfig();
+  const gw = gateway();
   const store = getStore();
   const order = await store.getOrder(orderId);
-  if (!order || !cfg) return order ? { order, state: isPaid(order) ? 'paid' : 'waiting' } : null;
+  if (!order || !gw) return order ? { order, state: isPaid(order) ? 'paid' : 'waiting' } : null;
   if (isPaid(order)) return { order, state: 'paid' };
 
-  const txn = await fetchStatus(cfg, order.id);
+  const txn = await gw.ask(order.id);
   if (!txn || txn.state !== 'paid') return { order, state: txn?.state ?? 'waiting', gatewayStatus: txn?.status };
 
   // Easebuzz says the money arrived. It must be this order's exact amount, and carry a reference.
   const note = (why: string) =>
-    `₹${txn.amount} via Easebuzz ${txn.ref ?? '(no reference)'}${txn.bankRef ? ` · UPI ref ${txn.bankRef}` : ''}: ${why}`;
+    `₹${txn.amount} via ${gw.name} ${txn.ref ?? '(no reference)'}${txn.bankRef ? ` · UPI ref ${txn.bankRef}` : ''}: ${why}`;
   const flag = async (why: string) => {
     // once per payment: webhooks are retried and the kiosk checks every few seconds
     const seen = (await store.listEvents(200)).some(
@@ -42,7 +54,11 @@ export async function settle(orderId: string): Promise<Settled | null> {
   if (txn.amount !== order.total)
     return flag(`the order is ₹${order.total}, so it was not marked paid. Check and refund`);
   try {
-    const paid = await store.confirmPayment(order.id, { gateway: 'easebuzz', ref: txn.ref, bankRef: txn.bankRef });
+    const paid = await store.confirmPayment(order.id, {
+      gateway: gw.name.toLowerCase(),
+      ref: txn.ref,
+      bankRef: txn.bankRef,
+    });
     return { order: paid, state: 'paid' };
   } catch (e) {
     // paid after the order was cancelled (the customer scanned an old QR): the money needs to go back
@@ -58,7 +74,7 @@ export async function settle(orderId: string): Promise<Settled | null> {
 const CHECK_EVERY_MS = 15_000;
 const lastCheck = new Map<string, number>();
 export function ordersToRecheck(orders: Pick<Order, 'id' | 'status' | 'payMethod'>[], now = Date.now()): string[] {
-  if (!easebuzzConfig()) return [];
+  if (!gateway()) return [];
   const due = orders
     .filter((o) => o.status === 'pending_payment' && o.payMethod === 'upi')
     .filter((o) => now - (lastCheck.get(o.id) ?? 0) >= CHECK_EVERY_MS)
@@ -74,5 +90,19 @@ export async function recheck(ids: string[]) {
     } catch (e) {
       console.error('Could not recheck a waiting payment', e); // tried again on a later poll
     }
+  }
+}
+
+// An order was cancelled before it was paid: with InstaCollect its QR is closed at Easebuzz too, so
+// a late scan cannot pay it (the bank sends such money back). Never throws: the order is cancelled
+// either way, and a payment that still slips through is caught by settle() and flagged for a refund.
+export async function closeQr(orderId: string): Promise<void> {
+  if (wantedPayments() !== 'instacollect') return;
+  const ic = instaCollectConfig();
+  if (!ic) return;
+  try {
+    await cancelCollect(ic, orderId);
+  } catch (e) {
+    console.error('Could not close an InstaCollect QR', e);
   }
 }

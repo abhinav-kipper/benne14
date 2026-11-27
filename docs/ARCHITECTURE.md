@@ -88,7 +88,7 @@ refuses it (409) if the order moved on, so two tablets can't undo each other.
 | `/api/admin/*` | owner PIN | reports, CSV, menu, dishes, extras, photos, offers, customers, refunds, system page, notifications |
 | `POST /api/beat`, `/api/log` | open, rate-limited | a screen says "I'm here"; a screen reports an error |
 | `GET /api/watch` | open, rate-limited | run the system check now (the uptime job) |
-| `/api/payments/easebuzz/webhook`, `/return` | Easebuzz | payment messages; never trusted on their own |
+| `/api/payments/easebuzz/webhook`, `/return`, `/api/payments/instacollect/webhook` | Easebuzz | payment messages; never trusted on their own |
 | `GET /api/health`, `/api/version`, `/api/ping`, `/api/qr` | open | setup check (no secrets); running build; is the server up; QR for a bill link |
 
 Known gaps in who may call what are tracked in `docs/audit.md` section A.

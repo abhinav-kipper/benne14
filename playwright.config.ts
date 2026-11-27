@@ -42,6 +42,8 @@ export default defineConfig({
     { name: 'admin', testMatch: 'admin.spec.ts', use: { baseURL: 'http://localhost:3103' } },
     // UPI through the payment gateway: a server with PAYMENTS=easebuzz, talking to a stand-in Easebuzz.
     { name: 'gateway', testMatch: 'gateway.spec.ts', use: { baseURL: 'http://localhost:3104' } },
+    // The same account's other way of taking UPI (InstaCollect), against the same stand-in Easebuzz.
+    { name: 'instacollect', testMatch: 'instacollect.spec.ts', use: { baseURL: 'http://localhost:3108' } },
     // One whole day, checked from every screen: a server to itself, so the day's totals are exactly its own.
     { name: 'day', testMatch: 'shop-day.spec.ts', use: { baseURL: 'http://localhost:3105' } },
     // A lunch rush and a long shift: hundreds of orders, so again a server of its own.
@@ -130,6 +132,19 @@ export default defineConfig({
       timeout: 60_000,
       reuseExistingServer: false,
       env: { ...safeEnv, TEST_MODE: '0', OWNER_PIN: '246810' },
+    },
+    {
+      command: 'npx next start -p 3108',
+      url: 'http://localhost:3108',
+      timeout: 60_000,
+      reuseExistingServer: false,
+      env: {
+        ...safeEnv,
+        ...fakeGateway,
+        TEST_MODE: '0',
+        PAYMENTS: 'instacollect',
+        EASEBUZZ_WIRE_URL: 'http://localhost:3199',
+      },
     },
     {
       command: 'npx next start -p 3102',

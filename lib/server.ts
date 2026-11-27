@@ -41,7 +41,7 @@ export function fail(e: unknown) {
 
 // Something the server could not handle: keep it for the owner app's System page. Never awaited
 // and never allowed to throw: reporting a failure must not become a second failure.
-function recordServerError(e: unknown) {
+export function recordServerError(e: unknown) {
   try {
     const err = e instanceof Error ? e : new Error(String(e));
     void getStore()
@@ -145,9 +145,24 @@ export const staffDenied = (r: 'bad' | 'locked') =>
 export const paymentsAreMock = () => paymentMode() === 'mock';
 // PAYMENTS=easebuzz: UPI goes through the Easebuzz gateway and confirms itself (needs EASEBUZZ_KEY and
 // EASEBUZZ_SALT; without them it quietly stays on the shop's own QR).
-export const paymentMode = (): 'mock' | 'upi-direct' | 'easebuzz' =>
-  process.env.PAYMENTS === 'mock'
-    ? 'mock'
-    : process.env.PAYMENTS === 'easebuzz' && process.env.EASEBUZZ_KEY && process.env.EASEBUZZ_SALT
-      ? 'easebuzz'
-      : 'upi-direct';
+// PAYMENTS=instacollect: the same account's InstaCollect instead (a QR that pays into the shop's own
+// virtual UPI ID). It has its own keys, EASEBUZZ_WIRE_KEY and EASEBUZZ_WIRE_SALT (the gateway's are refused).
+// TRIAL (owner's ask, 2026-11-21): the preview of the branch below takes UPI by InstaCollect whatever
+// PAYMENTS says, so it can be tried on a phone without touching Vercel's settings. It names one
+// branch, so the live site (built from main) and every other preview are unaffected. Remove this
+// once InstaCollect has been tried and PAYMENTS is set for real.
+const INSTACOLLECT_TRIAL_BRANCH = 'feat/instacollect';
+export const wantedPayments = (env: Record<string, string | undefined> = process.env) =>
+  env.PAYMENTS !== 'mock' && env.VERCEL_GIT_COMMIT_REF === INSTACOLLECT_TRIAL_BRANCH ? 'instacollect' : env.PAYMENTS;
+export const paymentMode = (): 'mock' | 'upi-direct' | 'easebuzz' | 'instacollect' => {
+  const want = wantedPayments();
+  if (want === 'mock') return 'mock';
+  const env = process.env;
+  const gatewayKeys = !!env.EASEBUZZ_KEY && !!env.EASEBUZZ_SALT;
+  if (want === 'easebuzz' && gatewayKeys) return want;
+  // the gateway's pair stands in only where Easebuzz made the two the same (and in the tests)
+  if (want === 'instacollect' && ((!!env.EASEBUZZ_WIRE_KEY && !!env.EASEBUZZ_WIRE_SALT) || gatewayKeys)) return want;
+  return 'upi-direct';
+};
+// Is UPI confirmed by a gateway (and so by itself), whichever of the two it is?
+export const gatewayOn = () => paymentMode() === 'easebuzz' || paymentMode() === 'instacollect';
