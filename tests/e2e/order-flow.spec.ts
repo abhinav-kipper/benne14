@@ -353,6 +353,9 @@ test('an abandoned order is cleared: "Still there?" after two quiet minutes, the
       m.style.scrollBehavior = 'auto';
       m.scrollTop = 80 * (n + 1);
     }, i);
+    // the browser reports a scroll on its next frame, in real time: let it land before the test's
+    // clock is run forward again, or the scroll would be counted as happening after the wait
+    await page.waitForTimeout(250);
     await expect(page.locator('.k-idle')).toHaveCount(0);
   }
   await page.clock.runFor(115_000);
