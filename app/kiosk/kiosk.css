@@ -233,27 +233,24 @@
 .k-menu main::-webkit-scrollbar {
   display: none;
 }
+/* The photo is shown whole (3:2, as the dishes are shot) and clear; only its lower edge fades into
+   the page, where the name begins. */
 .k-menu .hero {
-  height: 440px;
+  height: 676px;
   position: relative;
 }
 .k-menu .hero img {
   width: 100%;
-  height: 100%;
+  height: 422px;
   object-fit: cover;
   display: block;
 }
 .k-menu .hero::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(251, 247, 239, 0) 12%,
-    rgba(251, 247, 239, 0.55) 40%,
-    rgba(251, 247, 239, 0.93) 62%,
-    var(--bg) 90%
-  );
+  inset: 0 0 auto 0;
+  height: 423px;
+  background: linear-gradient(180deg, rgba(251, 247, 239, 0) 72%, rgba(251, 247, 239, 0.7) 90%, var(--bg) 100%);
 }
 .k-menu .hero .txt {
   position: absolute;
@@ -438,13 +435,14 @@
   animation: rise 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.05);
 }
 .k-sheet .ph {
-  height: 330px;
+  height: 578px;
   position: relative;
   flex-shrink: 0;
 }
-.k-sheet .ph img {
+.k-sheet .ph img,
+.k-sheet .ph .nophoto {
   width: 100%;
-  height: 100%;
+  height: 534px; /* the whole 3:2 photo */
   object-fit: cover;
   display: block;
 }
@@ -454,14 +452,9 @@
 .k-sheet .ph::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0) 10%,
-    rgba(255, 255, 255, 0.6) 40%,
-    rgba(255, 255, 255, 0.94) 66%,
-    var(--s1) 95%
-  );
+  inset: 0 0 auto 0;
+  height: 535px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 76%, rgba(255, 255, 255, 0.7) 92%, var(--s1) 100%);
 }
 .k-sheet .close {
   position: absolute;
@@ -639,6 +632,12 @@
   border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
+}
+.k-sheet .pair .pimg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .k-sheet .pair .pimg .nophoto {
   font-size: 18px;

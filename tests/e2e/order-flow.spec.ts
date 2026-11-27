@@ -610,3 +610,38 @@ test('menu: scrolling down lights every section in turn, the short ones at the e
   }
   expect(seen).toEqual(all);
 });
+
+test('dish photos are shown whole: the dish sheet, the house special and the coffee suggestion', async ({ page }) => {
+  // every dish gets the same 3:2 picture, the shape the shop's photos are shot in
+  const shot = 'https://photos.test/dish-photos/dish.svg';
+  const menu = await (await page.request.get('/api/menu')).json();
+  const ids = ['ghee-podi-benne-dosa', 'masala-dosa', 'filter-coffee'];
+  await page.route('**/api/menu', (r) =>
+    r.fulfill({
+      json: { ...menu, extras: { ...menu.extras, photos: Object.fromEntries(ids.map((i) => [i, shot])) } },
+    }),
+  );
+  await page.route(shot, (r) =>
+    r.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="667"><rect width="1000" height="667" fill="#2a6"/></svg>',
+    }),
+  );
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  const shape = async (sel: string) => {
+    const b = (await page.locator(sel).boundingBox())!;
+    return b.width / b.height;
+  };
+  await expect(page.locator('.k-menu .hero img')).toBeVisible();
+  expect(await shape('.k-menu .hero img')).toBeCloseTo(1.5, 1); // not a cropped band
+  await page.getByTestId('item-masala-dosa').click();
+  await expect(page.locator('.k-sheet .ph img')).toBeVisible();
+  expect(await shape('.k-sheet .ph img')).toBeCloseTo(1.5, 1);
+  // the small suggestion picture fills its square instead of showing a corner of the full-size photo
+  const small = (await page.locator('.k-sheet .pair .pimg img').boundingBox())!;
+  const box = (await page.locator('.k-sheet .pair .pimg').boundingBox())!;
+  expect(Math.round(small.width)).toBe(Math.round(box.width));
+  expect(Math.round(small.height)).toBe(Math.round(box.height));
+});
