@@ -20,8 +20,9 @@ export interface KioskSettings {
   codes: boolean;
   phone: boolean;
   cash: boolean;
+  card: boolean; // may a customer choose to pay by card on the machine at the counter? Off until the owner turns it on.
 }
-export const DEFAULT_SETTINGS: KioskSettings = { codes: true, phone: true, cash: false };
+export const DEFAULT_SETTINGS: KioskSettings = { codes: true, phone: true, cash: false, card: false };
 
 // "welcome 10" → "WELCOME10". null when it can't be a code.
 export function cleanCode(v: unknown): string | null {

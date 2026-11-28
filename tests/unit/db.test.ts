@@ -104,8 +104,8 @@ describe('database (supabase/migrations)', () => {
       "('ODD', 'bogof', 1)",
     ])
       await expect(db.query(`insert into discount_codes (code, kind, value) values ${bad}`), bad).rejects.toThrow();
-    expect((await db.query('select codes, phone, cash from kiosk_settings')).rows).toEqual([
-      { codes: true, phone: true, cash: false },
+    expect((await db.query('select codes, phone, cash, card from kiosk_settings')).rows).toEqual([
+      { codes: true, phone: true, cash: false, card: false },
     ]);
     await expect(db.query('insert into kiosk_settings (id) values (2)')).rejects.toThrow(); // one row only
 

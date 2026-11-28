@@ -55,12 +55,14 @@ export async function deleteCode(db: Db, code: string, event: Omit<AdminEvent, '
 }
 
 export async function getSettings(db: Db): Promise<KioskSettings> {
-  let { data, error } = await db.from('kiosk_settings').select('codes,phone,cash').eq('id', 1).maybeSingle();
-  // Before migration 0016 there is no cash switch: read the rest, with cash off.
+  // Newest columns first: before migration 0018 there is no card switch, before 0016 no cash switch.
+  let { data, error } = await db.from('kiosk_settings').select('codes,phone,cash,card').eq('id', 1).maybeSingle();
+  if (noColumn(error))
+    ({ data, error } = await db.from('kiosk_settings').select('codes,phone,cash').eq('id', 1).maybeSingle());
   if (noColumn(error))
     ({ data, error } = await db.from('kiosk_settings').select('codes,phone').eq('id', 1).maybeSingle());
   // Before migration 0005 nothing can be stored, so the kiosk shows neither field.
-  if (missing(error)) return { codes: false, phone: false, cash: false };
+  if (missing(error)) return { codes: false, phone: false, cash: false, card: false };
   if (error) throw new StoreError(error.message, 500);
   return { ...DEFAULT_SETTINGS, ...(data as Partial<KioskSettings> | null) };
 }
@@ -70,6 +72,11 @@ export async function saveSettings(db: Db, patch: Partial<KioskSettings>, events
   const write = (row: Partial<KioskSettings>) =>
     db.from('kiosk_settings').upsert({ id: 1, ...row, updated_at: new Date().toISOString() }, { onConflict: 'id' });
   let { error } = await write(next);
+  if (noColumn(error)) {
+    if (patch.card !== undefined)
+      throw new StoreError('Run supabase/migrations/0018_card_switch.sql in Supabase first', 503);
+    ({ error } = await write({ codes: next.codes, phone: next.phone, cash: next.cash }));
+  }
   if (noColumn(error)) {
     if (patch.cash !== undefined)
       throw new StoreError('Run supabase/migrations/0016_cash_switch.sql in Supabase first', 503);

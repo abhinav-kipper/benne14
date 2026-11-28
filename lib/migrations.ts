@@ -19,4 +19,5 @@ export const MIGRATIONS = [
   '0015_invoice_numbers',
   '0016_cash_switch',
   '0017_shop_screens',
+  '0018_card_switch',
 ];

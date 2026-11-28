@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     const today = istDay();
     const codes = s.codes && (await store.listCodes()).some((c) => usable(c, today));
     // enrolled: has this tablet been set up as the shop's kiosk? (It sends its key with the request.)
-    return json({ codes, phone: s.phone, cash: s.cash, enrolled: kioskOk(req) });
+    return json({ codes, phone: s.phone, cash: s.cash, card: s.card, enrolled: kioskOk(req) });
   } catch (e) {
     return fail(e);
   }

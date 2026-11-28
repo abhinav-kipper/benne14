@@ -85,7 +85,12 @@ export function Offers(p: Ctx) {
                   'Customers can type a code in their order. Shows only while a code is on.',
                 ],
                 ['phone', 'Phone number box', 'Optional. The kiosk says it is for offers from benne 14.'],
-                ['cash', 'Cash', 'Customers can choose to pay cash at the counter. Off: UPI and card only.'],
+                [
+                  'card',
+                  'Card',
+                  'Customers can choose card and pay on the card machine at the counter. Staff then mark it paid.',
+                ],
+                ['cash', 'Cash', 'Customers can choose to pay cash at the counter. Staff then mark it paid.'],
               ] as const
             ).map(([k, title, sub]) => (
               <div className="orow" key={k}>
