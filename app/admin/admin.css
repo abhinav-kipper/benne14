@@ -861,22 +861,6 @@
   color: var(--cream-3);
   margin-top: 6px;
 }
-.adm .extras .x {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 14px;
-}
-.adm .extras .x .in {
-  width: 84px;
-  text-align: right;
-  padding: 8px 10px;
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 18px;
-}
 
 /* REPORTS */
 .adm .range {
@@ -1773,128 +1757,39 @@
   padding: 0 22px;
 }
 
-/* ---- Extras and kitchen notes ---- */
-.adm .xset {
-  margin-top: 20px;
-}
-.adm .xset .xh {
+/* ---- A dish's own extras: a row per extra (name, price, remove) ---- */
+.adm .xl .xrow2 {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-}
-.adm .xset h3 {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 19px;
-  text-transform: uppercase;
-}
-.adm .xset .xh span {
-  font-size: 12.5px;
-  color: var(--cream-3);
-  white-space: nowrap;
-}
-.adm .xrow {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
   align-items: center;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--line);
+  gap: 8px;
+  margin-bottom: 8px;
 }
-.adm .xrow.editing,
-.adm .xrow.xnew {
-  grid-template-columns: 1fr 96px auto;
+.adm .xl .xrow2 > .in {
+  flex: 1;
+  min-width: 0;
 }
-.adm .xrow .in {
+.adm .xl .xrow2 .money.sm {
+  flex-shrink: 0;
+}
+.adm .xl .xrow2 .rm {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   border: 1.5px solid var(--line);
   border-radius: 10px;
-  padding: 9px 12px;
-  font-size: 15px;
-  background: var(--bg);
-  min-width: 0;
-  width: 100%;
-}
-.adm .xrow .money.sm {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 18px;
-}
-.adm .xrow .nm {
-  text-align: left;
-  min-width: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-}
-.adm .xrow .nm b {
-  font-size: 15.5px;
-  display: flex;
-  align-items: center;
-}
-.adm .xrow .tone {
-  flex: none;
-}
-.adm .xrow .nm .p {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--benne-fg);
-  white-space: nowrap;
-}
-.adm .xrow .nm .p.sub {
-  font-family: var(--body);
-  font-weight: 400;
-  font-size: 12.5px;
-  color: var(--cream-3);
-  white-space: normal;
-  text-align: right;
-}
-.adm .xrow.off .nm b,
-.adm .xrow.off .nm .p {
-  color: var(--cream-3);
-}
-.adm .xrow .sw {
-  margin-bottom: 14px;
-}
-.adm .xrow .link,
-.adm .xset .link.rm {
-  font-size: 14px;
-  font-weight: 700;
-  padding: 8px 2px;
-  color: var(--benne-fg);
-}
-.adm .xset .link.rm {
-  display: block;
+  background: var(--s1);
   color: var(--chilli);
+  font-size: 22px;
+  line-height: 1;
 }
-.adm .xrow .tone {
-  display: inline-grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  margin-right: 8px;
-  font-style: normal;
-  font-weight: 800;
-  font-size: 14px;
-  background: var(--s2);
-  color: var(--cream-2);
+.adm .xl .was {
+  margin: 2px 0 10px;
 }
-.adm .xrow .tone.t-add {
-  background: #dcefe0;
-  color: var(--leaf);
+.adm .xl .actions {
+  margin-top: 0;
 }
-.adm .xrow .tone.t-less {
-  background: #fbe3dc;
-  color: var(--chilli);
-}
-.adm .pick .r.sq {
-  border-radius: 6px;
+.adm .xl .pick {
+  margin-top: 10px;
 }
 
 /* the one "Add or change" button's choices */

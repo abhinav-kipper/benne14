@@ -3,58 +3,12 @@
 // page for a draft, and the hide button every dish's sheet ends with.
 import { useState } from 'react';
 import { admin, ApiError } from '@/lib/client';
-import { TEST_CAT, notesFor, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
+import { COMES_WITH, TEST_CAT, extrasOf, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
+import { DishExtras, extrasChanged, rowsOf } from './DishExtras';
 import { PhotoField } from './PhotoField';
 import type { Ctx } from './shared';
 
 const say = (e: unknown, what: string) => (e instanceof ApiError ? e.message : `${what}: no internet.`);
-
-// What a set of extras is called in the picker: its extras, as the customer reads them.
-const groupLine = (cat: Catalog, id: string) => {
-  const g = cat.groups[id];
-  const on = g.options.filter((o) => !o.hidden).map((o) => o.name);
-  return {
-    title: g.custom ? g.name : g.kind === 'many' ? 'Extras' : g.name,
-    sub: on.length ? on.join(', ') : 'Nothing in it yet',
-  };
-};
-
-// Which set of extras (or the sugar choice) a dish offers: one of them, or nothing.
-export function SetPicker(p: { cat: Catalog; value: string | null; onChange: (g: string | null) => void }) {
-  return (
-    <div className="pick" role="radiogroup" aria-label="Extras">
-      {Object.keys(p.cat.groups).map((g) => {
-        const t = groupLine(p.cat, g);
-        return (
-          <button
-            key={g}
-            role="radio"
-            aria-checked={p.value === g}
-            className={p.value === g ? 'on' : ''}
-            onClick={() => p.onChange(g)}
-            data-testid={`dish-group-${g}`}
-          >
-            <span>
-              {t.title}
-              <small>{t.sub}</small>
-            </span>
-            <i className="r" />
-          </button>
-        );
-      })}
-      <button
-        role="radio"
-        aria-checked={p.value === null}
-        className={p.value === null ? 'on' : ''}
-        onClick={() => p.onChange(null)}
-        data-testid="dish-group-none"
-      >
-        <span>Nothing</span>
-        <i className="r" />
-      </button>
-    </div>
-  );
-}
 
 // "Hide from the menu", asked twice. Used at the bottom of every live dish's sheet.
 export function HideButton(p: Ctx & { item: MenuItem; done: () => void; onError: (m: string) => void }) {
@@ -99,9 +53,11 @@ export function DishSheet(
   const [desc, setDesc] = useState(item?.desc ?? '');
   const sections = cat.cats.filter((c) => c.id !== TEST_CAT);
   const [section, setSection] = useState(item?.cat ?? p.section ?? sections[0]?.id ?? 'dosa');
-  const [group, setGroup] = useState<string | null>(
-    item ? (item.groups[0] ?? null) : p.section && p.section !== 'dosa' ? null : 'dosaExtras',
-  );
+  const [rows, setRows] = useState(() => rowsOf(item ? extrasOf(item, cat) : []));
+  const [sugar, setSugar] = useState(!!item?.groups.includes('sugar'));
+  // a new dish starts with the line its section's dishes carry; the owner can change or clear it
+  const usual = (sec: string) => (sec === 'dosa' || sec === 'idli' ? COMES_WITH : '');
+  const [comesWith, setComesWith] = useState(item ? (item.comesWith ?? '') : usual(section));
   const [photo, setPhoto] = useState<string | null>(item?.photo ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<'photo' | 'save' | null>(null);
@@ -115,6 +71,14 @@ export function DishSheet(
     setBusy('save');
     setErr(null);
     try {
+      const own = extrasChanged(rows, comesWith, {
+        extras: item ? extrasOf(item, cat) : [],
+        comesWith: item ? (item.comesWith ?? '') : usual(section),
+      });
+      // an existing dish's list is saved first, while the server still knows what it offered before
+      if (item && own) await admin.extrasChange(p.pin, { dish: { itemId: item.id, ...own } });
+      // a dish still on its section's shared extras keeps them until its own list is edited
+      const shared = item && !item.ownExtras && !own?.extras ? item.groups.filter((g) => g !== 'sugar') : [];
       const r = await admin.menuChange(p.pin, {
         dish: {
           id: item?.id,
@@ -122,10 +86,11 @@ export function DishSheet(
           name: name.trim(),
           desc: desc.trim(),
           price: n,
-          groups: group ? [group] : [],
+          groups: [...shared, ...(sugar ? ['sugar'] : [])],
           photo,
         },
       });
+      if (!item && own) await admin.extrasChange(p.pin, { dish: { itemId: r.dish!.id, ...own } });
       p.saved(r.dish!.id, r.dish!.live);
     } catch (e) {
       p.onAuthError(e);
@@ -202,7 +167,11 @@ export function DishSheet(
                 role="radio"
                 aria-checked={section === c.id}
                 className={section === c.id ? 'on' : ''}
-                onClick={() => setSection(c.id)}
+                onClick={() => {
+                  // a new dish's untouched "Comes with" follows the section picked
+                  if (!item && comesWith === usual(section)) setComesWith(usual(c.id));
+                  setSection(c.id);
+                }}
                 data-testid={`dish-cat-${c.id}`}
               >
                 <span>{c.name}</span>
@@ -211,10 +180,17 @@ export function DishSheet(
             ))}
           </div>
         </div>
-        <div className="field">
-          <label>What customers can add or choose</label>
-          <SetPicker cat={cat} value={group} onChange={setGroup} />
-        </div>
+        <DishExtras
+          cat={cat}
+          self={item}
+          comesWith={comesWith}
+          setComesWith={setComesWith}
+          rows={rows}
+          setRows={setRows}
+          sugar={sugar}
+          setSugar={setSugar}
+          disabled={!!busy}
+        />
         {err && (
           <div className="err" data-testid="dish-err">
             {err}
@@ -253,9 +229,10 @@ export function Check(p: Ctx & { item: MenuItem; cat: Catalog; back: () => void;
     }
   };
   const src = photoFor(item);
-  const notes = notesFor(item, cat)
-    .filter((n) => !n.hidden)
-    .map((n) => n.label);
+  const offers = [
+    ...extrasOf(item, cat).map((x) => x.name),
+    ...(item.groups.includes('sugar') ? ['Sugar choice'] : []),
+  ];
   return (
     <div data-testid="dish-check">
       <div className="h1">
@@ -285,11 +262,11 @@ export function Check(p: Ctx & { item: MenuItem; cat: Catalog; back: () => void;
         </div>
         <div>
           <span>Customers can add</span>
-          <b>{item.groups.length ? item.groups.map((g) => groupLine(cat, g).sub).join(', ') : 'Nothing'}</b>
+          <b>{offers.length ? offers.join(', ') : 'Nothing'}</b>
         </div>
         <div>
-          <span>Kitchen notes</span>
-          <b>{notes.length ? notes.join(', ') : 'None'}</b>
+          <span>Comes with</span>
+          <b>{item.comesWith || 'Nothing shown'}</b>
         </div>
         <div>
           <span>With GST</span>

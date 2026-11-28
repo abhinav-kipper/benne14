@@ -1,6 +1,15 @@
 import { randomBytes } from 'node:crypto';
 import { adminDenied, cleanPrice, cleanText } from '@/lib/admin';
-import { TEST_CAT, mergeCatalog, mergeSections, optionKey, type ExtrasLayout, type Tone } from '@/lib/menu';
+import {
+  TEST_CAT,
+  extrasOf,
+  mergeCatalog,
+  mergeSections,
+  optionKey,
+  type DishExtra,
+  type ExtrasLayout,
+  type Tone,
+} from '@/lib/menu';
 import { getStore } from '@/lib/store';
 import { fail, json, readJson } from '@/lib/server';
 
@@ -17,6 +26,8 @@ const newId = (prefix: string) => `${prefix}-${randomBytes(6).toString('hex').sl
 // { set: { id?, name } }   a new set of extras, or a new name for one the owner made
 // { removeSet: id }        an owner-made set with no extras that no dish offers
 // { dishSets: { itemId, sets: [ids] } }   which sets a dish that came with the app offers
+// { dish: { itemId, extras?: [{ id?, name, price }], comesWith? } }   a dish's own list of extras (the
+//     whole list, as it should be from now on; ₹0 = a free tick box) and its "Comes with" line
 // { note: { id?, label, tone, cats } }    a new kitchen note, or a change to one the owner made
 // { hideNote: id } / { showNote: id }
 // Nothing an old order may point at is deleted: extras and notes are switched off instead.
@@ -128,6 +139,58 @@ export async function POST(req: Request) {
       delete options[set.id];
       await save({ ...ex, sets: (ex.sets ?? []).filter((g) => g.id !== set.id), options }, set.name, 'Set removed');
       return json({ removed: set.id });
+    }
+
+    if (b.dish !== undefined) {
+      const d = (b.dish ?? {}) as Record<string, unknown>;
+      const item = cat.items.find((i) => i.id === d.itemId && !i.testOnly);
+      if (!item) return json({ error: 'No such dish' }, 404);
+      if (d.extras === undefined && d.comesWith === undefined) return json({ error: 'Nothing to change' }, 400);
+      const next: ExtrasLayout = { ...ex };
+      const said: string[] = [];
+      let before: string | undefined;
+      if (d.extras !== undefined) {
+        if (!Array.isArray(d.extras) || d.extras.length > MAX_PER_SET)
+          return json({ error: `At most ${MAX_PER_SET} extras on a dish` }, 400);
+        const was = extrasOf(item, cat);
+        const list: DishExtra[] = [];
+        for (const raw of d.extras) {
+          const x = (raw ?? {}) as Record<string, unknown>;
+          const name = cleanText(x.name, 30, 'Name');
+          if (!name) return json({ error: 'Every extra needs a name' }, 400);
+          const price = cleanPrice(x.price, `${name}: price`, 0);
+          if (price == null)
+            return json({ error: `${name}: price must be a whole number of rupees (0 for free)` }, 400);
+          if (list.some((y) => y.name.toLowerCase() === name.toLowerCase()))
+            return json({ error: `${name} is on the list twice` }, 400);
+          // an extra keeps its id while it stays on the dish, so the kitchen and old orders agree on it
+          const kept = typeof x.id === 'string' && was.some((y) => y.id === x.id) && !list.some((y) => y.id === x.id);
+          list.push({ id: kept ? (x.id as string) : newId('x'), name, price });
+        }
+        const line = (l: DishExtra[]) =>
+          l.map((x) => (x.price ? `${x.name} ₹${x.price}` : x.name)).join(', ') || 'None';
+        if (line(was) !== line(list) || !item.ownExtras) {
+          next.dish = { ...ex.dish, [item.id]: list };
+          if (line(was) !== line(list)) {
+            before = `Extras: ${line(was)}`;
+            said.push(`Extras: ${line(list)}`);
+          }
+        }
+      }
+      if (d.comesWith !== undefined) {
+        if (typeof d.comesWith !== 'string') return json({ error: 'Comes with must be text (empty for nothing)' }, 400);
+        const text = cleanText(d.comesWith, 80, 'Comes with') ?? ''; // empty = show nothing
+        if (text !== (item.comesWith ?? '')) {
+          next.comesWith = { ...ex.comesWith, [item.id]: text };
+          said.push(text ? `Comes with: ${text}` : 'No “comes with” line');
+        }
+      }
+      if (next.dish !== ex.dish || next.comesWith !== ex.comesWith)
+        await store.saveLayout(
+          { extras: next },
+          said.length ? { kind: 'menu', subject: item.name, before: before ?? null, after: said.join(' · ') } : null,
+        );
+      return json({ dish: { itemId: item.id, extras: next.dish?.[item.id] ?? extrasOf(item, cat) } });
     }
 
     if (b.dishSets !== undefined) {

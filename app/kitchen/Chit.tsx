@@ -1,7 +1,7 @@
 'use client';
 // One order on the rail: a paper chit with a line per dish, ticked as each dish is given.
 import { useEffect, useRef } from 'react';
-import { noteTone, optionTone, type Catalog, type Tone } from '@/lib/menu';
+import { isDishSet, noteTone, optionTone, type Catalog, type Tone } from '@/lib/menu';
 import { allGiven, givenOf, minutesSince, type Order } from '@/lib/orders';
 import { Bag, Check, Dine, Flame } from './icons';
 
@@ -144,14 +144,17 @@ export function Chit({
 
 // What the cook reads under a dish: extras and "more" in green (+), "less / no" in red (−), other notes in black.
 // Regular sugar is the default, so it doesn't show. (Spice was dropped; old orders may still carry it.)
+// A free choice from a dish's own list ("Potato stuffing on the side") is a request about serving:
+// it always shows, in black, like a note.
 function lineTags(l: Order['lines'][number], menu: Catalog): { key: string; text: string; tone?: Tone }[] {
   const mods = l.mods
     .map((m) => ({
       key: `${m.groupId}:${m.id}`,
       text: m.groupId === 'spice' ? `${m.name} spice` : m.name,
       tone: optionTone(m.groupId, m.id, menu) ?? (m.price > 0 ? ('add' as const) : undefined),
+      ask: isDishSet(m.groupId),
     }))
-    .filter((t) => t.tone);
+    .filter((t) => t.tone || t.ask);
   const notes = l.notes.map((n) => ({ key: `note:${n.id}`, text: n.label, tone: noteTone(n.id, menu) }));
   const rank = (t: { tone?: Tone }) => (t.tone === 'add' ? 0 : t.tone === 'less' ? 1 : 2);
   return [...mods, ...notes].sort((a, b) => rank(a) - rank(b));

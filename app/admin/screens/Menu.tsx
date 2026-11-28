@@ -2,11 +2,11 @@
 // The menu as the kiosk shows it: sold-out switches, and a sheet to edit price, name, description and extras.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { admin, ApiError } from '@/lib/client';
-import { TEST_CAT, mergeCatalog, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
+import { TEST_CAT, extrasOf, mergeCatalog, photoFor, placeholderFor, type Catalog, type MenuItem } from '@/lib/menu';
 import { SectionsSheet } from './Sections';
-import { Check, DishSheet, HideButton, SetPicker } from './Dish';
+import { Check, DishSheet, HideButton } from './Dish';
+import { DishExtras, extrasChanged, rowsOf } from './DishExtras';
 import { PhotoField } from './PhotoField';
-import { ExtrasSheet } from './Extras';
 import { Bar, type Ctx } from './shared';
 
 export function Menu(p: Ctx & { openHistory: () => void }) {
@@ -15,13 +15,7 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   // What is open on top of the list: a dish's sheet, a new dish, or a draft's check page.
   const [view, setView] = useState<
-    | { edit: string }
-    | { add: string | true }
-    | { check: string }
-    | { sections: true }
-    | { extras: true }
-    | { choose: true }
-    | null
+    { edit: string } | { add: string | true } | { check: string } | { sections: true } | { choose: true } | null
   >(null);
   const dragging = useRef(false);
   const { pin, onAuthError } = p;
@@ -280,13 +274,6 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
                 </span>
                 <i className="go">›</i>
               </button>
-              <button onClick={() => setView({ extras: true })} data-testid="open-extras">
-                <span>
-                  Extras &amp; kitchen notes
-                  <small>What customers can add to a dish, and notes for the kitchen.</small>
-                </span>
-                <i className="go">›</i>
-              </button>
             </div>
             <div className="actions">
               <button className="btn o" onClick={() => setView(null)}>
@@ -297,7 +284,6 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
         </>
       )}
       {view && 'sections' in view && cat && <SectionsSheet {...p} cat={cat} close={done} changed={load} />}
-      {view && 'extras' in view && cat && <ExtrasSheet {...p} cat={cat} close={done} changed={load} />}
       {view && 'add' in view && cat && (
         <DishSheet
           {...p}
@@ -332,19 +318,12 @@ function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; s
   const [price, setPrice] = useState(String(item.price));
   const [name, setName] = useState(item.name);
   const [desc, setDesc] = useState(item.desc);
-  const [group, setGroup] = useState<string | null>(item.groups[0] ?? null);
+  const [rows, setRows] = useState(() => rowsOf(extrasOf(item, cat)));
+  const [sugar, setSugar] = useState(item.groups.includes('sugar'));
+  const [comesWith, setComesWith] = useState(item.comesWith ?? '');
   // The owner's own photo of this dish, if they took one; null = the photo that came with the app.
   const [photo, setPhoto] = useState<string | null>(item.photo ?? null);
   const [uploading, setUploading] = useState(false);
-  // prices of the extras that came with the app; the owner's own are edited in the Extras sheet
-  const extras = item.groups
-    .map((g) => cat.groups[g])
-    .filter((g) => g.kind === 'many')
-    .map((g) => ({ ...g, options: g.options.filter((o) => !o.custom && !o.hidden) }))
-    .filter((g) => g.options.length);
-  const [ex, setEx] = useState<Record<string, string>>(() =>
-    Object.fromEntries(extras.flatMap((g) => g.options.map((o) => [`${g.id}:${o.id}`, String(o.price)]))),
-  );
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const n = Number(price);
@@ -366,19 +345,16 @@ function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; s
       if (n !== item.price) patch.price = n;
       if (name.trim() !== item.name) patch.name = name.trim();
       if (desc.trim() !== item.desc) patch.desc = desc.trim() || null;
-      const options: { groupId: string; optionId: string; price: number }[] = [];
-      for (const g of extras)
-        for (const o of g.options) {
-          const v = ex[`${g.id}:${o.id}`];
-          if (v === String(o.price)) continue;
-          if (!/^\d+$/.test(v) || Number(v) > 100000)
-            throw new ApiError(`${o.name}: price must be a whole number of rupees`, 400);
-          options.push({ groupId: g.id, optionId: o.id, price: Number(v) });
-        }
-      if (options.length) patch.options = options;
+      const own = extrasChanged(rows, comesWith, { extras: extrasOf(item, cat), comesWith: item.comesWith ?? '' });
       if (Object.keys(patch).length > 1) await admin.saveItem(p.pin, patch); // one request: all of it or none
-      if (group !== (item.groups[0] ?? null))
-        await admin.extrasChange(p.pin, { dishSets: { itemId: item.id, sets: group ? [group] : [] } });
+      if (own) await admin.extrasChange(p.pin, { dish: { itemId: item.id, ...own } });
+      if (sugar !== item.groups.includes('sugar'))
+        await admin.extrasChange(p.pin, {
+          dishSets: {
+            itemId: item.id,
+            sets: [...item.groups.filter((g) => g !== 'sugar' && !g.startsWith('d-')), ...(sugar ? ['sugar'] : [])],
+          },
+        });
       if (photo !== (item.photo ?? null)) await admin.menuChange(p.pin, { photo: { itemId: item.id, url: photo } });
       p.saved();
     } catch (e) {
@@ -454,32 +430,17 @@ function EditSheet(p: Ctx & { item: MenuItem; cat: Catalog; close: () => void; s
           />
           <div className="was">Shown under the name on the kiosk. One or two short lines. {desc.length}/160</div>
         </div>
-        {extras.map((g) => (
-          <div className="field extras" key={g.id}>
-            <label>Extras (same price on every dish that has them)</label>
-            {g.options.map((o) => (
-              <div className="x" key={o.id}>
-                <span>{o.name}</span>
-                <span className="money sm">
-                  <span>₹</span>
-                  <input
-                    className="in"
-                    inputMode="numeric"
-                    aria-label={`${o.name} price`}
-                    value={ex[`${g.id}:${o.id}`]}
-                    onChange={(e) =>
-                      setEx({ ...ex, [`${g.id}:${o.id}`]: e.target.value.replace(/[^\d]/g, '').slice(0, 6) })
-                    }
-                  />
-                </span>
-              </div>
-            ))}
-          </div>
-        ))}
-        <div className="field">
-          <label>What customers can add or choose</label>
-          <SetPicker cat={cat} value={group} onChange={setGroup} />
-        </div>
+        <DishExtras
+          cat={cat}
+          self={item}
+          comesWith={comesWith}
+          setComesWith={setComesWith}
+          rows={rows}
+          setRows={setRows}
+          sugar={sugar}
+          setSugar={setSugar}
+          disabled={busy}
+        />
         {err && <div className="err">{err}</div>}
         <div className="actions">
           <button className="btn y" onClick={save} disabled={busy || uploading} data-testid="ed-save">

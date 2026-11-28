@@ -77,9 +77,7 @@ export function ItemSheet({
         <div className="body">
           <p className="desc hdesc">
             {item.desc}
-            {(item.cat === 'dosa' || item.cat === 'idli') && (
-              <span className="incl">Comes with coconut chutney &amp; sambar</span>
-            )}
+            {item.comesWith && <span className="incl">{item.comesWith}</span>}
           </p>
           {item.groups.map((gid) => {
             const g = catalog.groups[gid];
@@ -107,13 +105,14 @@ export function ItemSheet({
                     {g.options.map((o) => (
                       <button
                         key={o.id}
-                        className={`addon ${on.includes(o.id) ? 'on' : ''}`}
+                        className={`addon ${o.price > 0 ? '' : 'free'} ${on.includes(o.id) ? 'on' : ''}`}
                         onClick={() => pick(gid, o.id)}
                         data-testid={`addon-${o.id}`}
                       >
                         <span className="box">{on.includes(o.id) ? '✓' : ''}</span>
                         <b>{o.name}</b>
-                        <span className="p">+₹{o.price}</span>
+                        {/* a free choice is a tick box with no price on it */}
+                        {o.price > 0 && <span className="p">+₹{o.price}</span>}
                       </button>
                     ))}
                   </div>

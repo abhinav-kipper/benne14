@@ -77,6 +77,7 @@ export const admin = {
       | { set: { id?: string; name: string } }
       | { removeSet: string }
       | { dishSets: { itemId: string; sets: string[] } }
+      | { dish: { itemId: string; extras?: { id?: string; name: string; price: number }[]; comesWith?: string } }
       | { note: { id?: string; label: string; tone: 'add' | 'less' | null; cats: string[] } }
       | { hideNote: string }
       | { showNote: string },

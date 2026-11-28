@@ -48,6 +48,8 @@ export interface MenuItem {
   notes: boolean; // kitchen notes allowed
   soldOut?: boolean; // set from the owner's dashboard for today only (see Catalog)
   custom?: boolean; // added by the owner from the dashboard (not in this file)
+  ownExtras?: boolean; // the owner edited this dish's extras: it offers its own list (see ExtrasLayout.dish)
+  comesWith?: string; // the grey line under the description on the kiosk's dish sheet
   // Only in the owner's full catalog (mergeCatalog(o, true)); the kiosk's catalog never contains these.
   hidden?: boolean; // taken off the menu by the owner; can be brought back
   draft?: boolean; // an owner-made dish that hasn't been published yet
@@ -297,9 +299,24 @@ export interface ExtrasLayout {
   sets?: { id: string; name: string }[]; // sets of extras the owner made
   dishSets?: Record<string, string[]>; // a dish that came with the app → the sets it offers now
   photos?: Record<string, string>; // a dish that came with the app → the owner's own photo of it (a URL)
+  // A dish → its own list of extras, once the owner has edited them on the dish's page. From then on
+  // the dish offers exactly this list (₹0 = a free tick box) in place of the shared sets and notes.
+  dish?: Record<string, DishExtra[]>;
+  comesWith?: Record<string, string>; // a dish → the grey "Comes with…" line; '' = show nothing
   notes?: { id: string; label: string; tone: Tone | null; cats: string[] }[];
   hiddenNotes?: string[];
 }
+
+export interface DishExtra {
+  id: string;
+  name: string;
+  price: number; // whole rupees; 0 = free
+}
+// The set that holds a dish's own extras. Its id is stored on order lines, like any set's.
+export const dishSetId = (itemId: string) => `d-${itemId}`;
+export const isDishSet = (groupId: string) => groupId.startsWith('d-');
+export const COMES_WITH = 'Comes with coconut chutney & sambar'; // what dosas and idlis say until the owner changes it
+export const EXTRAS_HEADING = 'Make it extra';
 
 export interface Overrides {
   items: Record<string, ItemOverride>;
@@ -317,7 +334,14 @@ export interface Catalog {
   notes: KitchenNote[]; // every kitchen note; notesFor() picks the ones a dish offers
 }
 
-export const BASE_CATALOG: Catalog = { cats: CATEGORIES, items: ITEMS, groups: GROUPS, notes: LIVE_NOTES };
+// The line a dish carries unless the owner wrote another: dosas and idlis come with chutney and sambar.
+const usualWith = (cat: string) => (cat === 'dosa' || cat === 'idli' ? COMES_WITH : '');
+export const BASE_CATALOG: Catalog = {
+  cats: CATEGORIES,
+  items: ITEMS.map((i) => (usualWith(i.cat) ? { ...i, comesWith: usualWith(i.cat) } : i)),
+  groups: GROUPS,
+  notes: LIVE_NOTES,
+};
 export const optionKey = (groupId: string, optionId: string) => `${groupId}:${optionId}`;
 
 // What customers can order: hidden dishes and drafts are left out, so the kiosk can't show them and
@@ -355,6 +379,18 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
   };
   for (const g of Object.values(GROUPS)) build(g);
   for (const s of ex.sets ?? []) build({ id: s.id, name: s.name, kind: 'many', options: [], custom: true });
+  // A dish with its own list: one set made of that list, plus any pick-one choice (sugar) it had.
+  for (const [itemId, list] of Object.entries(ex.dish ?? {}))
+    groups[dishSetId(itemId)] = {
+      id: dishSetId(itemId),
+      name: EXTRAS_HEADING,
+      kind: 'many',
+      custom: true,
+      // a paid extra is an addition (green on the chit); a free one is a request about serving, not an extra
+      options: list.map((x) => ({ ...x, tone: x.price > 0 ? ('add' as const) : undefined, custom: true })),
+    };
+  const offered = (i: MenuItem, usual: string[]) =>
+    ex.dish?.[i.id] ? [dishSetId(i.id), ...usual.filter((g) => groups[g]?.kind === 'one')] : usual;
   // what a dish offers: sets that exist and, for customers, have something in them
   const sets = (ids: string[]) => ids.filter((g) => Object.hasOwn(groups, g) && (all || groups[g].options.length > 0));
 
@@ -379,7 +415,10 @@ export function mergeCatalog(o: Overrides, all = false): Catalog {
   const items = [...ITEMS, ...own]
     .map((i, n) => {
       const x = o.items[i.id];
-      const it: MenuItem = { ...i, groups: sets(i.custom ? i.groups : (ex.dishSets?.[i.id] ?? i.groups)) };
+      const it: MenuItem = { ...i, groups: sets(offered(i, i.custom ? i.groups : (ex.dishSets?.[i.id] ?? i.groups))) };
+      if (ex.dish?.[i.id]) it.ownExtras = true;
+      const with_ = ex.comesWith?.[i.id] ?? usualWith(i.cat);
+      if (with_) it.comesWith = with_;
       // the owner's own photo of a dish that came with the app (photoFor() falls back to the one in /food)
       if (!i.custom && !i.testOnly && ex.photos?.[i.id]) it.photo = ex.photos[i.id];
       if (hidden.has(i.id)) it.hidden = true;
@@ -402,9 +441,11 @@ export const itemById = (id: string, cat: Catalog = BASE_CATALOG) => cat.items.f
 // Kitchen notes the item sheet offers for an item.
 export const notesFor = (item: MenuItem, cat: Catalog = BASE_CATALOG) =>
   cat.notes.filter((n) =>
-    n.custom
-      ? !!n.cats?.includes(item.cat) // the owner said which sections take it
-      : item.notes && (!n.items || n.items.includes(item.id)),
+    item.ownExtras
+      ? false // the dish's own list says everything it offers, free choices included
+      : n.custom
+        ? !!n.cats?.includes(item.cat) // the owner said which sections take it
+        : item.notes && (!n.items || n.items.includes(item.id)),
   );
 
 // Tone of a choice on an order, looked up by id so orders saved before tones existed still colour
@@ -416,3 +457,18 @@ export const noteTone = (id: string, cat: Catalog = BASE_CATALOG): Tone | undefi
 
 // Shown as "Goes well with" in the item sheet. The cart's "Anything else?" is worked out per order (lib/suggest.ts).
 export const PAIRING = 'filter-coffee';
+
+// What a dish offers now, as one list the owner can edit: its extras and, at ₹0, its free choices.
+// For a dish still on the shared sets this is what the kiosk shows today, so the first edit starts
+// from exactly that.
+export function extrasOf(item: MenuItem, cat: Catalog): DishExtra[] {
+  const paid = item.groups
+    .map((g) => cat.groups[g])
+    .filter((g) => g && g.kind === 'many')
+    .flatMap((g) => g.options.filter((o) => !o.hidden).map((o) => ({ id: o.id, name: o.name, price: o.price })));
+  const free = notesFor(item, cat)
+    .filter((n) => !n.hidden)
+    .map((n) => ({ id: n.id, name: n.label, price: 0 }));
+  const seen = new Set<string>();
+  return [...paid, ...free].filter((x) => !seen.has(x.id) && seen.add(x.id));
+}
