@@ -30,12 +30,12 @@
   background: linear-gradient(180deg, rgba(251, 247, 239, 0.95), rgba(251, 247, 239, 0));
 }
 /* The shop's own logo, as supplied (public/brand): never redrawn in a font. */
-/* It sits on a corner tab of the page's own colour, so its fine lines stay clear over the photos. */
+/* It sits on a square corner block of the page's own colour, so its fine lines stay clear and the
+   photos drifting behind meet a straight edge. */
 .k-home .logo {
   line-height: 0;
   background: var(--bg);
   padding: 22px 24px 16px 28px;
-  border-radius: 0 0 24px 0;
 }
 .k-home .logo img {
   width: 212px;

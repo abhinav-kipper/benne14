@@ -76,7 +76,7 @@ export function Mascots() {
     <div className="hosts" data-testid="hosts">
       <div className="say">
         <b>Namaste!</b>
-        <span>Welcome to Benne 14</span>
+        <span>Welcome to benne 14</span>
       </div>
       <div className="hop">
         <Dosa />
