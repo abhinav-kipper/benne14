@@ -2141,3 +2141,36 @@
     animation: none;
   }
 }
+
+/* ---- Card or cash at the counter: the kiosk waits for staff to confirm ---- */
+.k-atcounter .qrcard {
+  padding: 48px 44px 32px;
+}
+.k-atcounter .how {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 0 28px;
+  color: var(--benne-ink);
+}
+.k-atcounter .how svg {
+  width: 280px;
+  height: auto;
+}
+.k-atcounter .how b {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 150px;
+  line-height: 0.85;
+  color: var(--benne-fg);
+}
+.k-atcounter .waitline {
+  margin-top: 32px;
+}
+.k-atcounter .apps {
+  margin-top: 12px;
+}
+.k-atcounter .waitline i {
+  background: var(--benne);
+}

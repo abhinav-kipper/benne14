@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { counterPaid } from '../support/kiosk';
 
 // What happens when the shop's Wi-Fi drops, a request fails half-way, or a customer walks away.
 const PIN = '2468';
@@ -48,6 +49,7 @@ test('kiosk: a failed checkout shows a calm message, and trying again makes one 
   await expect(page.getByText("Your order didn't go through")).toBeVisible();
   await expect(page.getByText('boom')).toHaveCount(0); // no technical text for customers
   await page.getByTestId('pay-cash').click();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
   expect(await todayCount(page)).toBe(before + 1);
 });
@@ -73,6 +75,7 @@ test('kiosk: if the reply is lost after the order was saved, retrying gives the 
   await expect(page.getByText("Your order didn't go through")).toBeVisible();
   expect(await todayCount(page)).toBe(before + 1);
   await page.getByTestId('pay-cash').click();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
   expect(await todayCount(page)).toBe(before + 1); // same checkout key → same order, not a duplicate
 });
@@ -83,6 +86,7 @@ test('kiosk: a double tap on a payment button places one order', async ({ page }
   await page.getByTestId('continue-to-pay').click();
   const before = await todayCount(page);
   await page.getByTestId('pay-cash').dblclick();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
   expect(await todayCount(page)).toBe(before + 1);
 });
@@ -160,6 +164,7 @@ test('kiosk: if a discount code can’t be checked, the cart says so and the ord
   await page.getByTestId('takeaway').click();
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-cash').click();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
   expect(await todayCount(page)).toBe(before + 1);
 });
@@ -185,6 +190,7 @@ test('kiosk: reply lost, then the customer changes the order: the kitchen gets t
   await page.locator('.k-cart .step button').last().click();
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-cash').click();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
   const today = await (await page.request.get('/api/orders?view=today')).json();
   expect(today.length).toBe(before + 2);
@@ -259,7 +265,7 @@ test('kiosk: a slow moment while an order is being placed never flashes "order a
   await expect(page.getByTestId('pay-upi')).not.toHaveClass(/going/);
   await expect(page.getByTestId('pay-upi')).toHaveCSS('opacity', '0.55');
   release();
-  await expect(page.getByTestId('token')).toBeVisible(); // straight to the order number, no detour
+  await expect(page.getByTestId('at-counter')).toBeVisible(); // straight on to paying, no detour
   await expect(page.getByTestId('counter-please')).toHaveCount(0);
 });
 

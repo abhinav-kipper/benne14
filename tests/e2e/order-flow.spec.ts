@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { counterPaid } from '../support/kiosk';
 
 const PIN = '2468';
 const H = { 'x-staff-pin': PIN };
@@ -148,8 +149,14 @@ test('cash order waits for the counter before reaching the rail', async ({ brows
   await kiosk.getByTestId('dine-in').click(); // dine in / takeaway is asked in the cart
   await kiosk.getByTestId('continue-to-pay').click();
   await kiosk.getByTestId('pay-cash').click();
-  const token = (await kiosk.getByTestId('token').locator('.num').textContent())!;
-  await expect(kiosk.locator('.paid.due')).toContainText('at the counter');
+  // the kiosk waits for the counter: the amount, and no order number yet
+  const wait = kiosk.getByTestId('at-counter');
+  await expect(wait).toContainText('Pay cash');
+  await expect(kiosk.getByTestId('counter-amount')).toHaveText('₹93');
+  await expect(kiosk.getByTestId('token')).toHaveCount(0);
+  const id = (await wait.getAttribute('data-order'))!;
+  const token = (await (await kiosk.request.get(`/api/orders/${id}`)).json()).token as string;
+  await expect(wait).not.toContainText(`Order ${token}`);
 
   const kitchen = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   await staff(kitchen);
@@ -158,6 +165,10 @@ test('cash order waits for the counter before reaching the rail', async ({ brows
   await expect(kitchen.getByTestId(`chit-${token}`)).toHaveCount(0);
   await kitchen.getByTestId(`due-${token}`).getByRole('button', { name: 'Paid' }).click();
   await expect(kitchen.getByTestId(`chit-${token}`)).toBeVisible({ timeout: 5000 });
+  // only now does the customer get their number, on a ticket that says it is paid
+  await expect(kiosk.getByTestId('token').locator('.num')).toHaveText(token, { timeout: 5000 });
+  await expect(kiosk.getByTestId('token')).toContainText('Paid ₹93');
+  await expect(kiosk.locator('.paid.due')).toHaveCount(0);
   // and the cook can take it all the way through without the chit jumping around
   await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // Start
   await expect(kitchen.getByTestId(`go-${token}`)).toContainText('Ready');
@@ -236,6 +247,78 @@ test('UPI: cancelling at the kiosk clears it from the payment shelf', async ({ b
   await expect(kitchen.getByTestId(`due-${token}`)).toHaveCount(0, { timeout: 5000 });
 });
 
+test('card at the counter: staff say not paid and the customer picks again; cancelling or walking off drops the order', async ({
+  page,
+  request,
+}) => {
+  await page.clock.install();
+  await page.setViewportSize({ width: 800, height: 1280 });
+  const toPay = async () => {
+    await page.goto('/kiosk');
+    await page.getByTestId('start').click();
+    await page.getByTestId('item-masala-tea').click();
+    await page.getByTestId('add-to-order').click();
+    await page.getByTestId('cartbar').click();
+    await page.getByTestId('takeaway').click();
+    await page.getByTestId('continue-to-pay').click();
+  };
+  const waiting = async () => {
+    const wait = page.getByTestId('at-counter');
+    await expect(wait).toContainText('Pay by card');
+    return (await wait.getAttribute('data-order'))!;
+  };
+  const statusOf = async (id: string) => (await (await request.get(`/api/orders/${id}`)).json()).status;
+
+  // staff tap Cancel (not paid): back to the ways to pay, cart intact
+  await toPay();
+  await page.getByTestId('pay-card').click();
+  const first = await waiting();
+  expect(await statusOf(first)).toBe('awaiting_cash');
+  await request.post(`/api/orders/${first}/status`, { data: { to: 'cancelled' }, headers: H });
+  await page.clock.runFor(2000);
+  await expect(page.getByTestId('pay-upi')).toBeVisible();
+  // a second try is a new order, and "Other ways to pay" withdraws it
+  await page.getByTestId('pay-card').click();
+  const second = await waiting();
+  expect(second).not.toBe(first);
+  await page.getByTestId('counter-other').click();
+  await expect(page.getByTestId('pay-upi')).toBeVisible();
+  await expect.poll(() => statusOf(second)).toBe('cancelled');
+  // the customer cancels: start screen, order dropped
+  await page.getByTestId('pay-card').click();
+  const third = await waiting();
+  await page.getByTestId('counter-cancel').click();
+  await expect(page.getByTestId('start')).toBeVisible();
+  await expect.poll(() => statusOf(third)).toBe('cancelled');
+
+  // nobody confirms and nobody is there: it asks, then clears and drops the order
+  await toPay();
+  await page.getByTestId('pay-card').click();
+  const fourth = await waiting();
+  await page.clock.runFor(175_000);
+  await expect(page.getByTestId('still-there')).toHaveCount(0);
+  await page.clock.runFor(10_000);
+  await expect(page.getByTestId('still-there')).toContainText('I’m still paying'.replace('’', "'"));
+  await page.getByRole('button', { name: "I'm still paying" }).click();
+  await expect(page.getByTestId('at-counter')).toBeVisible();
+  expect(await statusOf(fourth)).toBe('awaiting_cash');
+  await page.clock.runFor(185_000);
+  await expect(page.getByTestId('still-there')).toBeVisible();
+  await page.clock.runFor(61_000);
+  await expect(page.getByTestId('start')).toBeVisible();
+  await expect.poll(() => statusOf(fourth)).toBe('cancelled');
+
+  // a late cancel from the kiosk never undoes a payment staff confirmed
+  await toPay();
+  await page.getByTestId('pay-card').click();
+  const fifth = await waiting();
+  await request.post(`/api/orders/${fifth}/status`, { data: { to: 'new' }, headers: H });
+  expect((await request.post(`/api/orders/${fifth}/claim`, { data: { action: 'cancel' } })).ok()).toBe(true);
+  expect(await statusOf(fifth)).toBe('new');
+  await page.clock.runFor(2000);
+  await expect(page.getByTestId('token')).toContainText('Paid ₹');
+});
+
 test('kiosk returns to the start screen by itself after the order number', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1280 });
   await page.clock.install();
@@ -247,10 +330,9 @@ test('kiosk returns to the start screen by itself after the order number', async
   await page.getByTestId('dine-in').click(); // dine in / takeaway is asked in the cart
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-cash').click();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
-  await expect(page.getByTestId('thanks')).toContainText(
-    'Pay ₹93 at the counter and we’ll start your Udupi Medu Vada.',
-  ); // matches what was ordered
+  await expect(page.getByTestId('thanks')).toContainText('Your Udupi Medu Vada is being made fresh.'); // matches what was ordered
   await page.clock.runFor(85_000);
   await expect(page.getByTestId('done-ask')).toHaveCount(0); // time to read the number and scan the bill
   await page.clock.runFor(7_000);

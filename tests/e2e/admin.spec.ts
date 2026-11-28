@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { counterPaid } from '../support/kiosk';
 
 // Owner dashboard. Own server (port 3103): these tests change prices and sold-out state, which
 // would upset the other suites' expected totals.
@@ -391,7 +392,7 @@ test('owner makes a code; a customer uses it and leaves a number; the bill and t
   await page.getByTestId('phone-input').fill(PHONE);
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-cash').click();
-  await expect(page.getByTestId('token')).toBeVisible();
+  await expect(page.getByTestId('at-counter')).toBeVisible(); // placed, and waiting for the counter
 
   // the order: discounted, code recorded, and the number nowhere a screen can read it
   const list = await (await request.get('/api/orders?view=today')).json();
@@ -1341,6 +1342,7 @@ test('an extra taken off a dish while a customer has it picked leaves the dish a
   await page.getByTestId('takeaway').click();
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-cash').click();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
   await extras(request, { dish: { itemId: 'plain-dosa', extras: before } });
 });
@@ -1835,6 +1837,7 @@ test('a dish given its own extras while a customer is paying: they keep their pi
   await expect(page.getByTestId('cart-total')).toHaveText(total); // same dishes, same price
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-cash').click();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
   const token = await page.locator('.k-done .token .num').innerText();
   const placed = (await (await request.get('/api/orders', { headers: H })).json()) as {
