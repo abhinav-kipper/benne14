@@ -358,15 +358,28 @@ test('card at the counter: staff say not paid and the customer picks again; canc
   await expect(page.getByTestId('start')).toBeVisible();
   await expect.poll(() => statusOf(fourth)).toBe('cancelled');
 
-  // a late cancel from the kiosk never undoes a payment staff confirmed
+  // the counter can't be reached when the customer cancels: the order still exists, so the kiosk
+  // keeps waiting and says so, and it never shows "order at the counter" over this screen
   await toPay();
   await page.getByTestId('pay-card').click();
-  const fifth = await waiting();
-  await request.post(`/api/orders/${fifth}/status`, { data: { to: 'new' }, headers: H });
-  expect((await request.post(`/api/orders/${fifth}/claim`, { data: { action: 'cancel' } })).ok()).toBe(true);
-  expect(await statusOf(fifth)).toBe('new');
-  await page.clock.runFor(2000);
+  const kept = await waiting();
+  await page.route('**/api/orders/*/claim', (r) => r.abort('internetdisconnected'));
+  await page.route('**/api/ping', (r) => r.abort('internetdisconnected'));
+  await page.getByTestId('counter-cancel').click();
+  await expect(page.getByTestId('counter-note')).toContainText('Could not cancel just now');
+  await page.clock.runFor(30_000);
+  await expect(page.getByTestId('at-counter')).toBeVisible();
+  await expect(page.getByTestId('counter-please')).toHaveCount(0);
+  expect(await statusOf(kept)).toBe('awaiting_cash');
+  await page.unroute('**/api/orders/*/claim');
+  await page.unroute('**/api/ping');
+
+  // staff tap Paid a moment before the customer taps Cancel: the payment stands, and the customer
+  // gets their number instead of an empty start screen
+  await request.post(`/api/orders/${kept}/status`, { data: { to: 'new' }, headers: H });
+  await page.getByTestId('counter-cancel').click();
   await expect(page.getByTestId('token')).toContainText('Paid ₹');
+  expect(await statusOf(kept)).toBe('new');
 });
 
 test('kiosk returns to the start screen by itself after the order number', async ({ page }) => {

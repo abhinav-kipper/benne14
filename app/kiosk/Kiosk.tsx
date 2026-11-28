@@ -114,11 +114,11 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
   useWatch('kiosk', screen);
   // While the shop can't take an order (Wi-Fi or database down) customers are sent to the counter.
   // Not on the payment and order-number screens: an order that exists must be seen through.
-  const [up, serverSeen] = useServerUp(screen !== 'upi' && screen !== 'done');
+  const [up, serverSeen] = useServerUp(screen !== 'upi' && screen !== 'counter' && screen !== 'done');
   // Nor while an order is on its way to the server: a slow moment would otherwise flash "order at
   // the counter" between the customer's tap and their QR. That order answers for itself.
   const [placing, setPlacing] = useState(false);
-  const closed = !up && !placing && screen !== 'upi' && screen !== 'done';
+  const closed = !up && !placing && screen !== 'upi' && screen !== 'counter' && screen !== 'done';
 
   const reset = useCallback(() => {
     setScreen('home');

@@ -26,8 +26,10 @@ export function AtCounter({
   const [asking, setAsking] = useState(false);
   // Staff answered: paid moves on to the order number; their "Cancel" (not paid) goes back to the
   // ways to pay, so the customer can try another one.
+  // (Not while the customer's own cancel is on its way: that answer decides where they go next.)
+  const leavingNow = useRef(false);
   useEffect(() => {
-    if (!live || live.status === 'awaiting_cash') return;
+    if (!live || live.status === 'awaiting_cash' || leavingNow.current) return;
     if (live.status === 'cancelled') onOther();
     else onPaid(live);
   }, [live, onPaid, onOther]);
@@ -44,20 +46,41 @@ export function AtCounter({
       clearInterval(t);
     };
   }, []);
-  // Nothing was paid as far as the app knows: the order is dropped. (If staff tapped "Paid" in the
-  // same moment, the server keeps it paid and this does nothing.)
+  // Nothing was paid as far as the app knows: ask the server to drop the order, and go by its
+  // answer. If staff tapped "Paid" in the same moment the order comes back paid, and the customer
+  // gets their number instead of an empty screen (and a second payment). If the server can't be
+  // reached the order still exists, so the kiosk keeps waiting and says so.
+  const [leaving, setLeaving] = useState(false);
+  const [stuck, setStuck] = useState(false);
   const drop = useCallback(
-    (then: () => void) => {
-      api.claim(order.id, 'cancel').catch(() => {});
-      then();
+    async (then: () => void) => {
+      if (leaving) return;
+      leavingNow.current = true;
+      setLeaving(true);
+      setStuck(false);
+      try {
+        const now = await api.claim(order.id, 'cancel');
+        if (now.status === 'cancelled') then();
+        else if (now.status !== 'awaiting_cash') onPaid(now);
+        else {
+          leavingNow.current = false;
+          setLeaving(false);
+        }
+      } catch {
+        leavingNow.current = false;
+        quietSince.current = Date.now();
+        setAsking(false);
+        setStuck(true);
+        setLeaving(false);
+      }
     },
-    [order.id],
+    [order.id, leaving, onPaid],
   );
   const walkedAway = useCallback(() => drop(onCancel), [drop, onCancel]);
   return (
     <div className="screen k-upi k-atcounter" data-testid="at-counter" data-order={order.id}>
       <div className="bar">
-        <button className="back" onClick={() => drop(onOther)} data-testid="counter-other">
+        <button className="back" onClick={() => drop(onOther)} disabled={leaving} data-testid="counter-other">
           <span>
             <BackChevron />
           </span>
@@ -107,10 +130,14 @@ export function AtCounter({
         <i />
         Waiting for the counter to confirm your payment
       </div>
-      <div className="apps">Your order number appears here as soon as they do.</div>
+      <div className="apps" data-testid="counter-note">
+        {stuck
+          ? 'Could not cancel just now. Please tell the counter, or try again.'
+          : 'Your order number appears here as soon as they do.'}
+      </div>
       <div className="foot">
         <span />
-        <button onClick={() => drop(onCancel)} data-testid="counter-cancel">
+        <button onClick={() => drop(onCancel)} disabled={leaving} data-testid="counter-cancel">
           Cancel order
         </button>
       </div>
