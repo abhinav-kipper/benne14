@@ -197,7 +197,7 @@ function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: Order) 
             </div>
           )}
           <div className="row">
-            <span>{o.savings > 0 ? 'After discount' : packagingOf(o.lines) > 0 ? 'Taxable value' : 'Subtotal'}</span>
+            <span>{packagingOf(o.lines) > 0 ? 'Taxable value' : o.savings > 0 ? 'After discount' : 'Subtotal'}</span>
             <span>{inr2(o.subtotal)}</span>
           </div>
           <div className="row">

@@ -51,6 +51,8 @@ section A are open.
 
 ## Done
 
+- 2026-11-28 — Audit of the day's six changes by a second reader: money, reports, stores, the kitchen undo and the shop screens hold. Fixed on the card/cash waiting screen: a cancel now goes by the server's answer (staff's Paid a moment earlier gives the customer their number instead of an empty screen), a cancel that can't reach the server keeps waiting and says so, and a Wi-Fi blip no longer covers the screen with "order at the counter".
+
 - 2026-11-28 — Packaging on takeaway orders: ₹15 per dish and ₹5 per coffee or tea, added by the server when the order is a takeaway, shown as its own line on the cart, the phone bill, the owner's order view, Reports and the CSVs. GST is charged on it; a discount code does not reduce it; dine-in has none. Each line of the order keeps what its packing cost, so no database change and past bills never move (`lib/pricing.ts`).
 
 - 2026-11-28 — Kitchen can take back a mistaken Ready at any time: "Marked ready by mistake?" under Handed over, then a question that takes Handed over's place (it answers itself "no" after 8 seconds); on a full shelf the same is in Today's orders ("Not ready", asked twice). The order returns to the cook and the TV.
