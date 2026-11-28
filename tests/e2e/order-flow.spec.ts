@@ -795,6 +795,8 @@ test('the house special is on the menu twice, at the top and in its section, and
   const row = page.getByTestId('item-ghee-podi-benne-dosa');
   await expect(top).toBeVisible();
   await expect(row).toBeVisible(); // also a row among the dosas, like any other dish
+  await expect(row.locator('.chip')).toHaveText('House special'); // tagged like the one at the top: plainly the same dish
+  await expect(page.locator('.k-menu .list .item .chip')).toHaveCount(1); // and only that row
   await expect(page.locator('.k-menu .list .item').first()).toHaveAttribute('data-testid', 'item-ghee-podi-benne-dosa');
   // added from the top: the row shows it too
   await top.click();

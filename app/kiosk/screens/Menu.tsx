@@ -185,6 +185,8 @@ export function MenuScreen(p: {
                       <Photo item={i} />
                     </div>
                     <div>
+                      {/* the same tag as at the top of the menu, so it is plainly the same dish */}
+                      {i.special && <span className="chip">House special</span>}
                       <h4>{i.name}</h4>
                       <p className="hdesc">{i.desc}</p>
                       <span className="price">₹{i.price}</span>

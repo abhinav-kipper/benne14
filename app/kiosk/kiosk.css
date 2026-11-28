@@ -427,6 +427,9 @@
   height: 100%;
   object-fit: cover;
 }
+.k-menu .item .chip {
+  margin-bottom: 8px;
+}
 .k-menu .item h4 {
   font-size: 23px;
   font-weight: 700;
