@@ -54,6 +54,21 @@ export const BagIcon = () => (
 );
 
 // "Go on": a short, bold chevron. Sits in a round dark button on the kiosk's yellow bars.
+// The same chevron pointing back, for the "Menu" / "Order" buttons at the top of a screen.
+export const BackChevron = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M15 5l-7 7 7 7" />
+  </svg>
+);
+
 export const Chevron = () => (
   <svg
     viewBox="0 0 24 24"

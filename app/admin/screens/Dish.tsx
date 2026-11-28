@@ -61,6 +61,9 @@ export function DishSheet(
   const [photo, setPhoto] = useState<string | null>(item?.photo ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<'photo' | 'save' | null>(null);
+  // A new dish is saved in two steps (the dish, then its extras). If the second fails, a second
+  // tap on Save must finish this dish, not make another.
+  const [madeId, setMadeId] = useState<string | null>(null);
   const n = Number(price);
   const priceOk = /^\d+$/.test(price) && n >= 1 && n <= 100000;
   const live = !!item && !item.draft;
@@ -81,7 +84,7 @@ export function DishSheet(
       const shared = item && !item.ownExtras && !own?.extras ? item.groups.filter((g) => g !== 'sugar') : [];
       const r = await admin.menuChange(p.pin, {
         dish: {
-          id: item?.id,
+          id: item?.id ?? madeId ?? undefined,
           cat: section,
           name: name.trim(),
           desc: desc.trim(),
@@ -90,6 +93,7 @@ export function DishSheet(
           photo,
         },
       });
+      if (!item) setMadeId(r.dish!.id);
       if (!item && own) await admin.extrasChange(p.pin, { dish: { itemId: r.dish!.id, ...own } });
       p.saved(r.dish!.id, r.dish!.live);
     } catch (e) {

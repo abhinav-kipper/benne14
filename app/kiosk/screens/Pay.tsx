@@ -6,7 +6,7 @@ import { ApiError } from '@/lib/client';
 import { itemById } from '@/lib/menu';
 import type { OrderType, PayMethod } from '@/lib/orders';
 import type { priceOrder } from '@/lib/pricing';
-import type { Line } from './shared';
+import { BackChevron, type Line } from './shared';
 
 export function Pay({
   priced,
@@ -49,7 +49,10 @@ export function Pay({
   return (
     <div className="screen k-pay">
       <button className="back" onClick={onBack} disabled={!!busy}>
-        <span>←</span>Order
+        <span>
+          <BackChevron />
+        </span>
+        Order
       </button>
       <div className="head">
         <div className="amount">

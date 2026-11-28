@@ -51,6 +51,8 @@ section A are open.
 
 ## Done
 
+- 2026-11-28 — Audit of the two days of launch changes by a second reader: money maths and "never paid without asking Easebuzz" hold. Fixed what it found: a customer mid-order keeps their extras when the owner gives the dish its own list (and is brought back to the cart instead of shown a refusal); a cancelled UPI order's QR is closed at Easebuzz whoever cancels it; a settled InstaCollect payment counts as paid; a new dish is not duplicated when its extras fail to save. Kiosk back buttons use the short chevron.
+
 - 2026-11-28 — Each dish has its own extras and its own "Comes with" line, edited on the dish's page in the owner app (add, price, remove, copy from another dish; ₹0 is a free tick box). The separate Extras page is gone. A dish keeps its section's shared extras until its own list is first edited. The kitchen chit prints a dish's free choices in black. Test data wiped by the owner the evening before (orders, counters, logs).
 
 - 2026-11-27 — GST is kept to the paisa (CGST and SGST 2.5% each) and only the total is rounded to the rupee, with a "Round off" line on the cart, the bill, the owner's order view and both CSVs; what customers pay is unchanged for every amount. "Start over" on the menu and cart. The order ticket no longer promises a time; the QR line says what scanning gives. The shop's logo heads the menu's side bar.

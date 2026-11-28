@@ -5,7 +5,7 @@ import { itemById, mergeCatalog } from '@/lib/menu';
 import { createHash } from 'node:crypto';
 import { cleanName, isCheckoutKey, isPaid, istDay, storedKey, type OrderType, type PayMethod } from '@/lib/orders';
 import { after } from 'next/server';
-import { ordersToRecheck, recheck } from '@/lib/gateway';
+import { closeQr, ordersToRecheck, recheck } from '@/lib/gateway';
 import { getStore } from '@/lib/store';
 import { fail, gatewayOn, json, kioskOk, limited, readJson, timed } from '@/lib/server';
 import { isTestMode } from '@/lib/testmode';
@@ -103,7 +103,11 @@ async function place(req: Request) {
           { error: `Order ${before.order.token} was already placed and paid. Please ask at the counter.` },
           409,
         );
-      if (before.order.status !== 'cancelled') await store.setStatus(before.order.id, 'cancelled');
+      if (before.order.status !== 'cancelled') {
+        await store.setStatus(before.order.id, 'cancelled');
+        const gone = before.order.id; // its QR, if it had one, must not stay payable
+        if (before.order.payMethod === 'upi') after(() => closeQr(gone));
+      }
     }
     let order = await store.placeOrder({
       key: storedKey(b.key, fingerprint),

@@ -800,6 +800,16 @@
   padding: 6px 32px 20px;
   scrollbar-width: none;
 }
+.k-cart .note-top {
+  margin: 16px 0 4px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: rgba(209, 79, 43, 0.08);
+  border: 1.5px solid var(--chilli);
+  color: var(--chilli);
+  font-size: 18px;
+  font-weight: 600;
+}
 .k-cart .line {
   display: grid;
   grid-template-columns: 104px 1fr auto;

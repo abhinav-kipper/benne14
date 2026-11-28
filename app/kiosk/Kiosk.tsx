@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CatalogProvider, useMenu } from '@/components/Catalog';
 import { api, ApiError, newKey, useAutoReload, useAwake, useNightlyReload, useServerUp, useWatch } from '@/lib/client';
 import { cleanPhone, type DiscountRule, type KioskSettings } from '@/lib/discounts';
-import { PAIRING, notesFor } from '@/lib/menu';
+import { PAIRING, notesFor, isDishSet } from '@/lib/menu';
 import type { Order, OrderType, PayMethod } from '@/lib/orders';
 import { priceOrder, type CartLine } from '@/lib/pricing';
 import { Cart } from './screens/Cart';
@@ -59,16 +59,27 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
         const item = catalog.items.find((i) => i.id === l.itemId);
         if (!item) return [];
         const choices: Line['choices'] = {};
+        // When the owner gives a dish its own list of extras, what was picked from the shared set
+        // (and a free choice that was a note) moves to the dish's list under the same ids: the
+        // customer keeps everything that is still offered.
+        const moved = [
+          ...Object.entries(l.choices).flatMap(([g, ids]) => (item.groups.includes(g) ? [] : ids)),
+          ...l.notes,
+        ];
         for (const g of item.groups) {
           const have = new Set(catalog.groups[g].options.map((o) => o.id));
-          const kept = (l.choices[g] ?? []).filter((id) => have.has(id));
+          const picked = isDishSet(g) ? [...(l.choices[g] ?? []), ...moved] : (l.choices[g] ?? []);
+          const kept = [...new Set(picked)].filter((id) => have.has(id));
           if (kept.length) choices[g] = kept;
         }
         const allowed = new Set(notesFor(item, catalog).map((n) => n.id));
         const notes = l.notes.filter((id) => allowed.has(id));
-        const same =
-          notes.length === l.notes.length &&
-          Object.keys(l.choices).every((g) => (choices[g]?.length ?? 0) === l.choices[g].length);
+        const flat = (c: Line['choices']) =>
+          Object.keys(c)
+            .sort()
+            .map((g) => `${g}:${c[g].join(',')}`)
+            .join('|');
+        const same = notes.length === l.notes.length && flat(choices) === flat(l.choices);
         return [same ? l : { ...l, choices, notes }];
       }),
     [cartLines, catalog],
@@ -120,12 +131,14 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     setPlaced(null);
     setIdle(false);
     setAsking(false);
+    setCartNote(null);
     checkoutKey.current = newKey();
     menuScroll.current = { top: 0, cat: null };
   }, []);
 
   // "Start over": with dishes chosen it asks first, so a slip of the finger can't wipe an order.
   const [asking, setAsking] = useState(false);
+  const [cartNote, setCartNote] = useState<string | null>(null); // said once at the top of the cart
   const startOver = () => (lines.length ? setAsking(true) : reset());
 
   // Idle watch: anything the customer does resets the timer (a tap, a finger moving, the menu
@@ -257,7 +270,11 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
             onAdd={quickAdd}
             onBack={() => setScreen('menu')}
             onStartOver={startOver}
-            onPay={() => setScreen('pay')}
+            note={cartNote}
+            onPay={() => {
+              setCartNote(null);
+              setScreen('pay');
+            }}
           />
         )}
         {screen === 'cart' && !priced && <EmptyRedirect go={() => setScreen('menu')} />}
@@ -286,6 +303,14 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
                 });
               } catch (e) {
                 if (e instanceof ApiError && e.status === 409) loadMenu(); // something sold out meanwhile: the cart will show which
+                // The server no longer offers something in this order as the kiosk sent it (the
+                // owner changed the dish a moment ago). Fetch the menu and go back to the order, so
+                // the customer sees it as it now is instead of a refusal they can do nothing about.
+                if (e instanceof ApiError && e.status === 400) {
+                  loadMenu();
+                  setCartNote('The menu just changed. Please check your order, then continue.');
+                  setScreen('cart');
+                }
                 if (e instanceof ApiError && e.status === 401) setEnrolled(false); // the staff PIN was changed: set up again
                 throw e;
               } finally {
