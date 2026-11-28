@@ -89,6 +89,11 @@ export const admin = {
       headers: pinHeader(pin),
     }),
   system: (pin: string) => call<SystemReport>('/api/admin/system', { headers: pinHeader(pin) }),
+  // Which devices are the shop's own screens (see app/api/admin/system/route.ts).
+  systemChange: (
+    pin: string,
+    b: { shop: string } | { notShop: string } | { forget: string } | { forgetOthers: true },
+  ) => call<{ ok: boolean }>('/api/admin/system', { method: 'POST', body: JSON.stringify(b), headers: pinHeader(pin) }),
   tech: (pin: string) => call<TechReport>('/api/admin/tech', { headers: pinHeader(pin) }),
   // Try the real InstaCollect with the server's keys: a look-up, a ₹1 QR, cancel it.
   instaCollectCheck: (pin: string) =>

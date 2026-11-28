@@ -2,7 +2,7 @@ import { Fit } from '@/components/Fit';
 import Board from './Board';
 import './board.css';
 
-export const metadata = { title: 'benne 14 — Order board' };
+export const metadata = { title: 'benne 14 — Order board', manifest: '/board.webmanifest' };
 
 export default function BoardPage() {
   return (

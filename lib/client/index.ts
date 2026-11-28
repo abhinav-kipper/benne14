@@ -6,4 +6,4 @@ export { api, newKey, type GatewayView } from './api';
 export { admin, type Report, type SystemReport } from './admin';
 export { usePoll, useLiveOrders, useTodayOrders, useCollected, useOrder, useOrderState, useFreshIds } from './poll';
 export { useAutoReload, chime, useServerUp, useAwake, useNightlyReload, useHoldToReload } from './screen';
-export { reportError, useWatch } from './watch';
+export { reportError, useWatch, SCREEN_KEY, SCREEN_PATH } from './watch';

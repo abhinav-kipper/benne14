@@ -4,7 +4,6 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'benne 14',
   description: 'Authentic Bangalore Dosa — order here',
-  manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'benne 14' },
 };
 

@@ -12,6 +12,7 @@ export interface Device {
   build: string | null;
   firstSeen: string;
   seenAt: string;
+  shop: boolean; // the owner said this is the shop's own kiosk, kitchen tablet or TV (one of each)
 }
 export interface ErrorEntry {
   at: string;
@@ -67,7 +68,10 @@ export interface SystemInput {
 export function problems(s: SystemInput): Problem[] {
   const out: Problem[] = [];
   for (const kind of ['kiosk', 'kitchen', 'board'] as const) {
-    const mine = s.devices.filter((d) => d.kind === kind);
+    // The shop's own screen of this kind, once the owner has picked it; until then, any device
+    // showing that screen counts (a phone can hide a dead tablet, which is why picking matters).
+    const all = s.devices.filter((d) => d.kind === kind);
+    const mine = all.some((d) => d.shop) ? all.filter((d) => d.shop) : all;
     if (!mine.length) continue; // never connected: the page shows that itself, it is not a fault
     const live = mine.filter((d) => isOnline(d, s.now));
     if (!live.length && s.open) {

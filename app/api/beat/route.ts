@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic';
 // version it runs. Open to the kiosk, which has no PIN, so it takes only these few short fields and
 // the store caps how many screens it will remember. It never fails the screen that called it.
 export async function POST(req: Request) {
+  // A test link (a Vercel preview) is not one of the shop's screens: it shares the shop's database,
+  // so without this every preview a tablet or phone ever opened would be listed as another screen.
+  if (process.env.VERCEL_ENV === 'preview') return json({ ok: true });
   try {
     // the shop's screens share one Wi-Fi address: a dozen screens at two a minute, with room to spare
     if (limited(`beat:${clientKey(req)}`, 60, 60_000)) return json({ ok: false }, 429);

@@ -62,6 +62,8 @@ export interface Store {
   // a screen saying "I'm here" must never be what breaks the screen.
   beat(d: { id: string; kind: DeviceKind; screen: string | null; build: string | null }): Promise<void>;
   listDevices(): Promise<Device[]>; // every screen seen in the last two weeks, most recent first
+  markDevice(id: string, shop: boolean): Promise<void>; // the shop's own screen of its kind (one each)
+  forgetDevices(id: string | null): Promise<number>; // one device, or (null) every one that is not a shop screen
   logError(e: Omit<ErrorEntry, 'at'>): Promise<void>;
   listErrors(limit?: number): Promise<ErrorEntry[]>; // newest first
   // The technical page (migration 0014). Before it is run: nothing is kept, nothing is listed, and

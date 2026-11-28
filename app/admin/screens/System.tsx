@@ -40,10 +40,11 @@ export function SystemLine({ sys, open }: { sys: SystemReport | null; open: () =
 
 export function System({
   sys,
+  reload,
   back,
   openTech,
   ...ctx
-}: Ctx & { sys: SystemReport | null; back: () => void; openTech: () => void }) {
+}: Ctx & { sys: SystemReport | null; reload: () => Promise<unknown>; back: () => void; openTech: () => void }) {
   const [open, setOpen] = useState<number | null>(null);
   const now = sys ? Date.parse(sys.now) : 0;
   return (
@@ -80,45 +81,7 @@ export function System({
             ))}
           </div>
 
-          <div className="mcat">
-            <h3>Screens</h3>
-            {SHOP_SCREENS.map((kind) => {
-              const mine = sys.devices.filter((d) => d.kind === kind);
-              if (!mine.length)
-                return (
-                  <div className="dev none-yet" key={kind} data-testid={`dev-${kind}`}>
-                    <i />
-                    <div>
-                      <b>{kindName(kind)}</b>
-                      <span>Not connected yet. It appears here once that screen is opened.</span>
-                    </div>
-                  </div>
-                );
-              return mine.map((d, n) => {
-                const on = isOnline(d, now);
-                return (
-                  <div className={`dev ${on ? 'on' : 'off'}`} key={d.id} data-testid={`dev-${kind}`}>
-                    <i />
-                    <div>
-                      <b>
-                        {kindName(kind)}
-                        {mine.length > 1 ? ` ${n + 1}` : ''}
-                      </b>
-                      <span>
-                        {on
-                          ? `Online${d.screen && SHOWING[d.screen] ? ` · ${SHOWING[d.screen]}` : ''}`
-                          : `Silent · last heard ${ago(d.seenAt, now)}`}
-                        {on && d.build && d.build !== sys.build ? ' · old version' : ''}
-                      </span>
-                    </div>
-                  </div>
-                );
-              });
-            })}
-            <div className="was">
-              A screen counts as silent after two minutes without a word: it is off, asleep or has lost Wi-Fi.
-            </div>
-          </div>
+          <Screens {...ctx} sys={sys} now={now} reload={reload} />
 
           <Notify {...ctx} phones={sys.phones} />
 
@@ -210,6 +173,148 @@ export function System({
         </>
       )}
     </section>
+  );
+}
+
+// The shop has one kiosk, one kitchen tablet and one TV. Any phone or laptop that opens the same
+// address shows up too, so the owner says once which device is the shop's own: after that only
+// those three are watched, and the rest sit in a short list that can be cleared.
+const THE: Record<string, string> = { kiosk: 'kiosk', kitchen: 'kitchen screen', board: 'TV' };
+function Screens({
+  pin,
+  onAuthError,
+  sys,
+  now,
+  reload,
+}: Ctx & { sys: SystemReport; now: number; reload: () => Promise<unknown> }) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [ask, setAsk] = useState(false);
+  const change = async (b: Parameters<typeof admin.systemChange>[1]) => {
+    setBusy(true);
+    setNote(null);
+    try {
+      await admin.systemChange(pin, b);
+      await reload();
+    } catch (e) {
+      onAuthError(e);
+      setNote(e instanceof ApiError ? e.message : 'That did not work. Check the internet and try again.');
+    }
+    setBusy(false);
+    setAsk(false);
+  };
+  const status = (d: SystemReport['devices'][number]) => {
+    const on = isOnline(d, now);
+    return (
+      (on
+        ? `Online${d.screen && SHOWING[d.screen] ? ` · ${SHOWING[d.screen]}` : ''}`
+        : `Silent · last heard ${ago(d.seenAt, now)}`) +
+      (on && d.build && d.build !== sys.build ? ' · old version' : '')
+    );
+  };
+  const others = sys.devices.filter((d) => d.kind !== 'owner' && !d.shop);
+  return (
+    <div className="mcat" data-testid="screens">
+      <h3>Screens</h3>
+      {SHOP_SCREENS.map((kind) => {
+        const all = sys.devices.filter((d) => d.kind === kind);
+        const mine = all.find((d) => d.shop);
+        if (!mine)
+          return (
+            <div className="dev none-yet" key={kind} data-testid={`dev-${kind}`}>
+              <i />
+              <div>
+                <b>{kindName(kind)}</b>
+                <span>
+                  {all.length
+                    ? `Not picked yet. Choose the shop’s ${THE[kind]} from the list below.`
+                    : 'Not connected yet. It appears here once that screen is opened.'}
+                </span>
+              </div>
+            </div>
+          );
+        const on = isOnline(mine, now);
+        return (
+          <div className={`dev ${on ? 'on' : 'off'}`} key={kind} data-testid={`dev-${kind}`}>
+            <i />
+            <div>
+              <b>{kindName(kind)}</b>
+              <span>{status(mine)}</span>
+            </div>
+            <button
+              className="devbtn"
+              disabled={busy}
+              onClick={() => change({ notShop: mine.id })}
+              data-testid={`unpick-${kind}`}
+            >
+              Change
+            </button>
+          </div>
+        );
+      })}
+      <div className="was">
+        A screen counts as silent after two minutes without a word: it is off, asleep or has lost Wi-Fi.
+      </div>
+
+      {others.length > 0 && (
+        <div className="otherdevs" data-testid="other-devices">
+          <h4>Other devices ({others.length})</h4>
+          <div className="was">
+            Phones and laptops that opened one of the screens. They are not watched once the shop’s own screens are
+            picked. A forgotten device comes back if it opens the screen again.
+          </div>
+          {others.map((d) => {
+            const on = isOnline(d, now);
+            return (
+              <div className={`dev other ${on ? 'on' : 'idle'}`} key={d.id} data-testid="other-device">
+                <i />
+                <div>
+                  <b>{kindName(d.kind)} on another device</b>
+                  <span>
+                    {on ? status(d) : `Last heard ${ago(d.seenAt, now)}`} · first opened {ago(d.firstSeen, now)}
+                  </span>
+                  <div className="devacts">
+                    <button disabled={busy} onClick={() => change({ shop: d.id })} data-testid="pick">
+                      This is the shop’s {THE[d.kind]}
+                    </button>
+                    <button disabled={busy} onClick={() => change({ forget: d.id })} data-testid="forget">
+                      Forget
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {others.length > 1 &&
+            (ask ? (
+              <div className="actions">
+                <button
+                  className="btn y"
+                  disabled={busy}
+                  onClick={() => change({ forgetOthers: true })}
+                  data-testid="forget-all-yes"
+                >
+                  Yes, forget all {others.length}
+                </button>
+                <button className="btn o" disabled={busy} onClick={() => setAsk(false)}>
+                  Keep them
+                </button>
+              </div>
+            ) : (
+              <div className="actions">
+                <button className="btn o" disabled={busy} onClick={() => setAsk(true)} data-testid="forget-all">
+                  Forget all others
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
+      {note && (
+        <div className="prob warn" data-testid="screens-note">
+          <b>{note}</b>
+        </div>
+      )}
+    </div>
   );
 }
 
