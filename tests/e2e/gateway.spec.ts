@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { counterPaid } from '../support/kiosk';
 
 // UPI through the payment gateway (Easebuzz). Own server (port 3104, PAYMENTS=easebuzz) pointed at a
 // stand-in Easebuzz (tests/support/fake-easebuzz.mjs) that signs and answers like the real one, so
@@ -171,6 +172,7 @@ test('kiosk: a failed payment says so, and another way to pay still works', asyn
   await expect(page.getByTestId('pay-trouble')).toContainText('didn’t go through', { timeout: 10_000 });
   await page.locator('.k-upi .back').click(); // Other ways to pay
   await page.getByTestId('pay-cash').click();
+  await counterPaid(page);
   await expect(page.getByTestId('token')).toBeVisible();
   expect((await order(request, o.id)).status).toBe('cancelled'); // the UPI attempt is closed, not left open
 });
@@ -203,10 +205,11 @@ test('kiosk: if the gateway is down, UPI steps aside and the customer pays by ca
     const first = (await today())[0];
     // cash goes through as usual, as a new order
     await page.getByTestId('pay-cash').click();
+    await counterPaid(page);
     await expect(page.getByTestId('token')).toBeVisible();
     const paid = (await (await request.get('/api/orders?view=today')).json())[0];
     expect(paid.id).not.toBe(first.id);
-    expect(paid).toMatchObject({ payMethod: 'cash', status: 'awaiting_cash' });
+    expect(paid).toMatchObject({ payMethod: 'cash', status: 'new' }); // the counter said it was paid
   } finally {
     await request.post(`${FAKE}/__down`, { data: { on: false } });
   }

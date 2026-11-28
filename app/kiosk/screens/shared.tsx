@@ -3,7 +3,7 @@
 import { photoFor, placeholderFor, type MenuItem } from '@/lib/menu';
 import type { CartLine } from '@/lib/pricing';
 
-export type Screen = 'home' | 'menu' | 'cart' | 'pay' | 'upi' | 'done';
+export type Screen = 'home' | 'menu' | 'cart' | 'pay' | 'upi' | 'counter' | 'done';
 export interface Line extends CartLine {
   uid: string;
 }
@@ -14,6 +14,10 @@ export const IDLE_GRACE_S = 15;
 // does it ask "Still there?", so a customer who walked off doesn't leave their QR for the next one.
 export const PAY_QUIET_MS = 4 * 60_000;
 export const PAY_GRACE_S = 30;
+// Card or cash at the counter: the kiosk waits for staff to say it is paid. After this long with no
+// touch it asks, then drops the unpaid order so the next customer is not left looking at it.
+export const COUNTER_QUIET_MS = 3 * 60_000;
+export const COUNTER_GRACE_S = 60;
 // The order-number screen: time to read the number and scan the bill, then it asks before clearing for the
 // next customer.
 export const DONE_STAY_S = 90;

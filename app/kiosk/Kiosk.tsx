@@ -16,6 +16,7 @@ import { ItemSheet } from './screens/ItemSheet';
 import { MenuScreen } from './screens/Menu';
 import { Pay } from './screens/Pay';
 import { IDLE_MS, type Line, type Screen } from './screens/shared';
+import { AtCounter } from './screens/AtCounter';
 import { Upi } from './screens/Upi';
 
 const sameChoices = (a: CartLine, b: CartLine) =>
@@ -156,6 +157,7 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
         screen !== 'home' &&
         screen !== 'done' &&
         screen !== 'upi' &&
+        screen !== 'counter' &&
         !idle &&
         Date.now() - lastTouch.current > IDLE_MS
       )
@@ -320,8 +322,26 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
               serverSeen(); // it just took an order: it is up, whatever the last check said
               setOrderId(o.id);
               setPlaced(o);
-              setScreen(m === 'upi' ? 'upi' : 'done');
+              // Card and cash wait for staff to confirm before any order number is shown. In test mode
+              // cash counts as paid at once, so there is nothing to wait for.
+              setScreen(m === 'upi' ? 'upi' : o.status === 'awaiting_cash' ? 'counter' : 'done');
             }}
+          />
+        )}
+        {screen === 'counter' && placed && (
+          <AtCounter
+            order={placed}
+            onPaid={(paid) => {
+              setPlaced(paid);
+              setScreen('done');
+            }}
+            onOther={() => {
+              checkoutKey.current = newKey();
+              setOrderId(null);
+              setPlaced(null);
+              setScreen('pay');
+            }}
+            onCancel={reset}
           />
         )}
         {screen === 'upi' && placed && (

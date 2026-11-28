@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { counterPaid } from '../support/kiosk';
 
 // UPI through Easebuzz InstaCollect: a QR that pays into the shop's own virtual UPI ID. Own server
 // (port 3108, PAYMENTS=instacollect) pointed at the stand-in Easebuzz (tests/support/fake-easebuzz.mjs),
@@ -262,6 +263,7 @@ test('kiosk: if InstaCollect is down, UPI steps aside and the customer pays by c
     await expect(page.getByTestId('pay-upi')).toContainText('Not working right now');
     await expect(page.getByTestId('gateway-qr')).toHaveCount(0);
     await page.getByTestId('pay-cash').click();
+    await counterPaid(page);
     await expect(page.getByTestId('token')).toBeVisible();
   } finally {
     await request.post(`${FAKE}/__ic/down`, { data: { on: false } });
