@@ -40,9 +40,11 @@ function cleanPhoto(v: unknown, store: Store): string | null {
 // One change per request:
 // { dish: { id?, cat, name, desc, price, groups, photo } }  add a dish (as a draft) or edit one
 // { publish: id }   a draft goes on the menu          { discard: id }  a draft is thrown away
+// { delete: id }    one of the owner's own dishes, draft or on the menu, removed for good (past orders keep it)
 // { hide: id }      off the menu, kept for later      { show: id }     back on the menu
 // { order: [ids] }  the dishes in the order the owner arranged them
-// { section: { id?, name } }  add a section, or rename one   { removeSection: id }  an empty one the owner added
+// { section: { id?, name } }  add a section, or rename one   { removeSection: id, withDishes? }  one the owner added:
+//     empty, or with withDishes its dishes too (only the owner's own dishes can go with it)
 // { hideSection: id } / { showSection: id }  a section and its dishes off / back on the kiosk
 // { sectionOrder: [ids] }  the sections in the owner's order
 // { photo: { itemId, url } }  the owner's own photo for a dish that came with the app; url null = the original
@@ -135,6 +137,32 @@ export async function POST(req: Request) {
       return json({ dish: { ...d, live: true } });
     }
 
+    // What the menu's layout still says about dishes that are going: their place in the order, the
+    // hidden list, their own extras and "comes with" line.
+    const without = (ids: string[]) => {
+      const gone = new Set(ids);
+      const ex = o.extras ?? {};
+      const keep = <T>(m?: Record<string, T>) =>
+        Object.fromEntries(Object.entries(m ?? {}).filter(([k]) => !gone.has(k)));
+      return {
+        hidden: (o.hidden ?? []).filter((id) => !gone.has(id)),
+        order: (o.order ?? []).filter((id) => !gone.has(id)),
+        extras: { ...ex, dish: keep(ex.dish), comesWith: keep(ex.comesWith) },
+      };
+    };
+
+    if (b.delete !== undefined) {
+      const d = find(b.delete);
+      if (!d) return json({ error: 'No such dish' }, 404); // a dish that came with the app can be hidden, not deleted
+      await store.deleteDish(d.id, {
+        kind: 'menu',
+        subject: d.name,
+        after: d.live ? 'Deleted from the menu' : 'Draft discarded',
+      });
+      await store.saveLayout(without([d.id]), null);
+      return json({ deleted: d.id });
+    }
+
     if (b.discard !== undefined) {
       const d = find(b.discard);
       if (!d) return json({ error: 'No such dish' }, 404);
@@ -203,11 +231,17 @@ export async function POST(req: Request) {
       const s = sections.find((c) => c.id === b.removeSection);
       if (!s) return json({ error: 'No such section' }, 404);
       if (!s.custom) return json({ error: `${s.name} came with the app: hide it instead` }, 409);
-      if (mergeCatalog(o, true).items.some((i) => i.cat === s.id))
-        return json({ error: `Move or discard the dishes in ${s.name} first` }, 409);
+      const inIt = mergeCatalog(o, true).items.filter((i) => i.cat === s.id);
+      if (inIt.length && b.withDishes !== true)
+        return json({ error: `Move or delete the dishes in ${s.name} first` }, 409);
+      const theirs = inIt.find((i) => !i.custom);
+      if (theirs) return json({ error: `${theirs.name} came with the app: move it before removing ${s.name}` }, 409);
+      for (const i of inIt)
+        await store.deleteDish(i.id, { kind: 'menu', subject: i.name, after: `Deleted with the section ${s.name}` });
       const drop = (ids?: string[]) => (ids ?? []).filter((id) => id !== s.id);
       await store.saveLayout(
         {
+          ...(inIt.length ? without(inIt.map((i) => i.id)) : {}),
           sections: {
             ...lay,
             custom: (lay.custom ?? []).filter((c) => c.id !== s.id),
@@ -217,7 +251,7 @@ export async function POST(req: Request) {
         },
         { kind: 'menu', subject: s.name, after: 'Section removed' },
       );
-      return json({ removed: s.id });
+      return json({ removed: s.id, dishes: inIt.length });
     }
 
     if (b.hideSection !== undefined || b.showSection !== undefined) {

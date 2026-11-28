@@ -3,7 +3,7 @@ import Kiosk from './Kiosk';
 import './kiosk.css';
 import { isTestMode } from '@/lib/testmode';
 
-export const metadata = { title: 'Benne 14 — Order here' };
+export const metadata = { title: 'benne 14 — Order here' };
 
 export default function KioskPage() {
   return (

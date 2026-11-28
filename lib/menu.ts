@@ -82,7 +82,7 @@ export const GROUPS: Record<string, ModGroup> = {
       { id: 'benne', name: 'Extra benne', price: 25, tone: 'add' },
       { id: 'podi', name: 'Extra podi', price: 15, tone: 'add' },
       { id: 'palya', name: 'Extra stuffing', price: 30, tone: 'add' },
-      { id: 'sambar', name: 'Extra sambhar', price: 20, tone: 'add' },
+      { id: 'sambar', name: 'Extra sambar', price: 20, tone: 'add' },
     ],
   },
   idliExtras: {
@@ -90,7 +90,7 @@ export const GROUPS: Record<string, ModGroup> = {
     name: 'Make it extra',
     kind: 'many',
     options: [
-      { id: 'sambar', name: 'Extra sambhar', price: 20, tone: 'add' },
+      { id: 'sambar', name: 'Extra sambar', price: 20, tone: 'add' },
       { id: 'ghee', name: 'Extra ghee', price: 15, tone: 'add' },
     ],
   },
@@ -141,7 +141,7 @@ export const ITEMS: MenuItem[] = [
     special: true,
     groups: dosa,
     notes: true,
-    desc: 'Brushed with ghee, rolled in podi, topped with a knob of butter. Bangalore taste, made with love.',
+    desc: 'Brushed with ghee, rolled in podi, a knob of butter on top.',
   },
   {
     id: 'masala-dosa',
@@ -150,7 +150,7 @@ export const ITEMS: MenuItem[] = [
     price: 209,
     groups: dosa,
     notes: true,
-    desc: 'Crisp outside, warm spiced potato inside. Just like home.',
+    desc: 'Crisp dosa, spiced potato inside.',
   },
   {
     id: 'plain-benne-dosa',
@@ -159,7 +159,7 @@ export const ITEMS: MenuItem[] = [
     price: 159,
     groups: dosa,
     notes: true,
-    desc: 'Soft centre, crisp edges and plenty of butter. The real taste of Bangalore.',
+    desc: 'Soft centre, crisp edges, plenty of butter.',
   },
   {
     id: 'plain-dosa',
@@ -168,7 +168,7 @@ export const ITEMS: MenuItem[] = [
     price: 169,
     groups: dosa,
     notes: true,
-    desc: 'Simple, golden and light. With coconut chutney and sambar.',
+    desc: 'Simple, golden and light.',
   },
   {
     id: 'mallige-idli',
@@ -177,7 +177,7 @@ export const ITEMS: MenuItem[] = [
     price: 89,
     groups: idli,
     notes: true,
-    desc: "Soft as jasmine, with hot sambar. Have one, you'll want two more.",
+    desc: 'Soft steamed idlis.',
   },
   {
     id: 'thatte-idli',
@@ -186,7 +186,7 @@ export const ITEMS: MenuItem[] = [
     price: 89,
     groups: idli,
     notes: true,
-    desc: 'Big as a plate, soft as a cloud. With two chutneys.',
+    desc: 'One big, flat, soft idli.',
   },
   {
     id: 'ghee-podi-thatte-idli',
@@ -195,7 +195,7 @@ export const ITEMS: MenuItem[] = [
     price: 109,
     groups: idli,
     notes: true,
-    desc: "Soaked in ghee, coated in podi. It'll make your morning.",
+    desc: 'Thatte idli soaked in ghee, coated in podi.',
   },
   {
     id: 'medu-vada',
@@ -204,7 +204,7 @@ export const ITEMS: MenuItem[] = [
     price: 89,
     groups: idli,
     notes: true,
-    desc: 'Crunchy outside, fluffy inside. Proper Udupi style.',
+    desc: 'Two vadas, crunchy outside, soft inside.',
   },
   {
     id: 'filter-coffee',
@@ -214,7 +214,7 @@ export const ITEMS: MenuItem[] = [
     groups: ['sugar'],
     notes: false,
     placeholder: 'Coffee',
-    desc: 'Frothy and hot in a steel dabara. A Bangalore morning in your hands.',
+    desc: 'Hot and frothy, in a steel dabara.',
   },
   {
     id: 'masala-tea',
@@ -223,7 +223,7 @@ export const ITEMS: MenuItem[] = [
     price: 49,
     groups: ['sugar'],
     notes: false,
-    desc: 'Ginger, cardamom and a pinch of clove. Chai that warms you up.',
+    desc: 'With ginger, cardamom and a pinch of clove.',
   },
 ];
 
@@ -315,7 +315,7 @@ export interface DishExtra {
 // The set that holds a dish's own extras. Its id is stored on order lines, like any set's.
 export const dishSetId = (itemId: string) => `d-${itemId}`;
 export const isDishSet = (groupId: string) => groupId.startsWith('d-');
-export const COMES_WITH = 'Comes with coconut chutney & sambar'; // what dosas and idlis say until the owner changes it
+export const COMES_WITH = 'Comes with coconut chutney and sambar'; // what dosas and idlis say until the owner changes it
 export const EXTRAS_HEADING = 'Make it extra';
 
 export interface Overrides {

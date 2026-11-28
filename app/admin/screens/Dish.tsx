@@ -38,6 +38,37 @@ export function HideButton(p: Ctx & { item: MenuItem; done: () => void; onError:
   );
 }
 
+// "Delete this dish", asked twice. Only for dishes the owner added: the ones that came with the app
+// can be hidden, and their sales history is under their name either way.
+export function DeleteButton(p: Ctx & { item: MenuItem; done: () => void; onError: (m: string) => void }) {
+  const [sure, setSure] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const del = async () => {
+    setBusy(true);
+    try {
+      await admin.menuChange(p.pin, { delete: p.item.id });
+      p.done();
+    } catch (e) {
+      p.onAuthError(e);
+      p.onError(say(e, 'Not deleted'));
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <button
+        className="btn r"
+        disabled={busy}
+        onClick={() => (sure ? del() : setSure(true))}
+        data-testid="dish-delete"
+      >
+        {sure ? `Yes, delete ${p.item.name} for good` : 'Delete this dish'}
+      </button>
+      <div className="was">Deleting cannot be undone. Bills and reports already made keep the dish.</div>
+    </>
+  );
+}
+
 export function DishSheet(
   p: Ctx & {
     item?: MenuItem;
@@ -208,6 +239,7 @@ export function DishSheet(
             Cancel
           </button>
           {live && item && <HideButton {...p} item={item} done={() => p.saved(item.id, true)} onError={setErr} />}
+          {item && <DeleteButton {...p} item={item} done={() => p.saved(item.id, true)} onError={setErr} />}
         </div>
       </div>
     </>

@@ -53,7 +53,7 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
       </div>
       <div className="token" data-testid="token">
         <div className="tt">
-          <span>Benne 14 · Order no.</span>
+          <span>benne 14 · Order no.</span>
           <span>{o.type === 'dine_in' ? 'Dine-in' : 'Takeaway'}</span>
         </div>
         <div className="num">{o.token}</div>

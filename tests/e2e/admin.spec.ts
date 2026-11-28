@@ -649,7 +649,7 @@ test('owner adds a dish with a photo, checks it, publishes it; customers can the
   await page.getByTestId('dish-file').setInputFiles('public/food/plain-benne-dosa.jpg');
   await expect(page.getByTestId('dish-photo')).toBeVisible({ timeout: 10_000 });
   // a new dosa starts with the usual "Comes with" line and no extras; the owner gives it one
-  await expect(page.getByTestId('dish-with')).toHaveValue('Comes with coconut chutney & sambar');
+  await expect(page.getByTestId('dish-with')).toHaveValue('Comes with coconut chutney and sambar');
   await expect(page.getByTestId('extra-row')).toHaveCount(0);
   await page.getByTestId('extra-add').click();
   await page.getByTestId('dish-save').click();
@@ -964,7 +964,7 @@ test('owner adds a section, puts a dish in it, renames, reorders and hides secti
   await expect(page.getByTestId(`sec-${sid}`)).toContainText('off the kiosk');
   expect((await sections()).hidden).toEqual([sid]);
   expect((await orderIt(request, dish.id)).status()).toBe(400);
-  await expect(page.getByTestId(`sec-remove-${sid}`)).toHaveCount(0); // it has a dish: not removable
+  await expect(page.getByTestId(`sec-remove-${sid}`)).toHaveText('Delete'); // it has a dish of the owner's own: deletable with it, asked twice
   await page.getByTestId('sec-done').click();
   await expect(page.getByTestId(`mcat-${sid}`)).toContainText('Section is off the kiosk');
 });
@@ -1038,10 +1038,10 @@ test('owner edits one dish’s extras and its “comes with” line; the kiosk, 
   await page.getByTestId('tab-menu').click();
   await page.getByTestId(`mi-${DISH}`).locator('.open').click();
   // it starts with exactly what the kiosk offers today
-  await expect(page.getByTestId('dish-with')).toHaveValue('Comes with coconut chutney & sambar');
+  await expect(page.getByTestId('dish-with')).toHaveValue('Comes with coconut chutney and sambar');
   const names = () =>
     page.getByTestId('extra-name').evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
-  expect(await names()).toEqual(['Extra benne', 'Extra podi', 'Extra stuffing', 'Extra sambhar']);
+  expect(await names()).toEqual(['Extra benne', 'Extra podi', 'Extra stuffing', 'Extra sambar']);
   // rename and reprice one, remove one, add a paid one and a free one, change the line
   await page.getByTestId('extra-name').nth(1).fill('Extra gunpowder');
   await page.getByTestId('extra-price').nth(1).fill('18');
@@ -1059,7 +1059,7 @@ test('owner edits one dish’s extras and its “comes with” line; the kiosk, 
   expect(list.map((x) => [x.name, x.price])).toEqual([
     ['Extra benne', 25],
     ['Extra gunpowder', 18],
-    ['Extra sambhar', 20],
+    ['Extra sambar', 20],
     ['Extra cheese', 30],
     ['Chutney on the side', 0],
   ]);
@@ -1083,7 +1083,7 @@ test('owner edits one dish’s extras and its “comes with” line; the kiosk, 
   await sheet.getByRole('button', { name: 'Close' }).click();
   await kiosk.getByTestId('item-masala-dosa').click();
   await expect(sheet).toContainText('Extra stuffing');
-  await expect(sheet).toContainText('Comes with coconut chutney & sambar');
+  await expect(sheet).toContainText('Comes with coconut chutney and sambar');
   await expect(sheet).not.toContainText('Extra cheese');
   await kiosk.context().close();
 
@@ -1139,14 +1139,14 @@ test('owner copies a dish’s extras onto another, clears a “comes with” lin
   await page.getByTestId('extra-copy-mallige-idli').click();
   const names = () =>
     page.getByTestId('extra-name').evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
-  expect(await names()).toEqual(['Extra sambhar', 'Extra ghee']);
+  expect(await names()).toEqual(['Extra sambar', 'Extra ghee']);
   await page.getByTestId('extra-price').first().fill('10');
   await page.getByTestId('dish-with').fill('');
   await page.getByTestId('ed-save').click();
   await expect(page.getByTestId('edit-sheet')).toHaveCount(0);
   const ex = await extrasNow(request);
   expect(ex.dish!['medu-vada'].map((x) => [x.name, x.price])).toEqual([
-    ['Extra sambhar', 10],
+    ['Extra sambar', 10],
     ['Extra ghee', 15],
   ]);
   expect(ex.comesWith!['medu-vada']).toBe('');
@@ -1284,7 +1284,7 @@ test('an extra taken off a dish while a customer has it picked leaves the dish a
   await add.click();
   await page.getByTestId('cartbar').click();
   await expect(page.getByTestId('cart-line').first()).toBeVisible();
-  await expect(page.locator('.kiosk')).not.toContainText('Extra sambhar');
+  await expect(page.locator('.kiosk')).not.toContainText('Extra sambar');
   await expect(page.locator('.kiosk')).toContainText('Extra benne');
   // and the order goes through at the price shown
   await page.getByTestId('takeaway').click();
@@ -1626,6 +1626,82 @@ test('only a tablet staff have set up can place orders; setting one up takes the
   await expect(kiosk.getByTestId('start')).toBeVisible();
   await expect(kiosk.getByTestId('kiosk-setup')).toHaveCount(0);
   await ctx.close();
+});
+
+test('owner deletes a dish they added, and a section they added together with its dishes', async ({
+  page,
+  request,
+}) => {
+  const make = async (name: string, cat: string, publish = true) => {
+    const r = await dishes(request, { dish: { cat, name, desc: 'For deleting', price: 2, groups: [], photo: null } });
+    const id = (await r.json()).dish.id as string;
+    if (publish) await dishes(request, { publish: id });
+    return id;
+  };
+  const names = async () =>
+    ((await (await request.get('/api/admin/dishes', { headers: H })).json()).custom as { name: string }[]).map(
+      (c) => c.name,
+    );
+  // the API's own rules
+  expect((await dishes(request, { delete: 'masala-dosa' })).status()).toBe(404); // came with the app: hide, not delete
+  expect((await dishes(request, { delete: 'c-nosuchdish' })).status()).toBe(404);
+  expect((await request.post('/api/admin/dishes', { data: { delete: 'x' } })).status()).toBe(401);
+
+  // a dish on the menu, with its own extras: deleted from its sheet, asked twice
+  const one = await make('Delete Me Dosa', 'dosa');
+  expect((await extras(request, { dish: { itemId: one, extras: [{ name: 'Extra x', price: 5 }] } })).ok()).toBe(true);
+  const sold = await orderIt(request, one);
+  expect(sold.status()).toBe(201);
+  await owner(page);
+  await page.getByTestId('tab-menu').click();
+  await page.getByTestId(`mi-${one}`).locator('.open').click();
+  await page.getByTestId('dish-delete').click();
+  await expect(page.getByTestId('dish-delete')).toContainText('Yes, delete Delete Me Dosa for good');
+  await page.getByTestId('dish-delete').click();
+  await expect(page.getByTestId(`mi-${one}`)).toHaveCount(0);
+  expect(await names()).not.toContain('Delete Me Dosa');
+  expect((await orderIt(request, one)).status()).toBe(400); // it can no longer be ordered
+  expect((await extrasNow(request)).dish?.[one]).toBeUndefined(); // nothing left behind about it
+  // the bill already made keeps the dish
+  const bill = await (await request.get(`/api/orders/${(await sold.json()).id}`)).json();
+  expect(bill.lines[0].name).toBe('Delete Me Dosa');
+
+  // a hidden dish of the owner's own can be deleted from the Hidden list
+  const two = await make('Hidden Then Gone', 'dosa');
+  await dishes(request, { hide: two });
+  await page.reload();
+  await page.getByTestId('tab-menu').click();
+  await page.getByTestId(`delete-${two}`).click();
+  await expect(page.getByTestId(`delete-${two}`)).toHaveText('Yes, delete for good');
+  await page.getByTestId(`delete-${two}`).click();
+  await expect(page.getByTestId(`mi-${two}`)).toHaveCount(0);
+
+  // a section the owner added, with two dishes in it (one a draft): refused without a word, then gone with them
+  const sec = (await (await dishes(request, { section: { name: 'Trial section' } })).json()).section.id as string;
+  await make('Trial One', sec);
+  await make('Trial Two', sec, false);
+  expect((await dishes(request, { removeSection: sec })).status()).toBe(409);
+  expect((await dishes(request, { removeSection: 'dosa', withDishes: true })).status()).toBe(409); // came with the app
+  await page.reload();
+  await page.getByTestId('tab-menu').click();
+  await page.getByTestId('open-add').click();
+  await page.getByTestId('open-sections').click();
+  await page.getByTestId(`sec-remove-${sec}`).click();
+  await expect(page.getByTestId(`sec-remove-${sec}`)).toHaveText('Yes, delete it and its 2 dishes');
+  await page.getByTestId(`sec-remove-${sec}`).click();
+  await expect(page.getByTestId(`sec-${sec}`)).toHaveCount(0);
+  const left = await names();
+  expect(left).not.toContain('Trial One');
+  expect(left).not.toContain('Trial Two');
+  const menu = await publicMenu(request);
+  expect(JSON.stringify(menu.sections ?? {})).not.toContain(sec);
+  // the built-in sections show no delete at all
+  await expect(page.getByTestId('sec-remove-dosa')).toHaveCount(0);
+  // history says what went
+  await page.getByTestId('sec-done').click();
+  await page.getByTestId('open-history').click();
+  for (const t of ['Deleted from the menu', 'Deleted with the section Trial section', 'Section removed'])
+    await expect(page.getByTestId('history')).toContainText(t);
 });
 
 // Last in this file on purpose: it gives masala dosa its own list, which the tests above don't expect.

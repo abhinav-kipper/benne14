@@ -115,7 +115,7 @@ export function MenuScreen(p: {
     <div className="screen k-menu">
       <aside>
         <div className="brand">
-          <img src="/brand/benne14-logo.webp" alt="Benne 14 — Authentic Bangalore Dosa" draggable={false} />
+          <img src="/brand/benne14-logo.webp" alt="benne 14 — Authentic Bangalore Dosa" draggable={false} />
         </div>
         <div className="cats">
           {cats.map((c) => (

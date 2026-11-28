@@ -111,7 +111,7 @@ test('the phone bill becomes a tax invoice when the order is paid, with the shop
   await expect(page.getByTestId('bill-title')).toHaveText('Bill');
   await expect(page.getByTestId('bill-invoice')).toHaveCount(0);
   const from = page.getByTestId('bill-from');
-  await expect(from).toContainText('Benne 14');
+  await expect(from).toContainText('benne 14');
   await expect(from).toContainText('Shop No. 1, Plot No. 15');
   await expect(from).toContainText('Ghaziabad, Uttar Pradesh 201014');
   await expect(from).toContainText('GSTIN 09HQSPM1340E1ZM');
