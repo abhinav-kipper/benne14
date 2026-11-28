@@ -56,8 +56,8 @@ export function Home({ onStart }: { onStart: () => void }) {
           <br />
           the <em>tawa.</em>
         </h1>
+        <Mascots />
       </div>
-      <Mascots />
       <button className="start" data-testid="start">
         <b>Tap to order</b>
         <span className="arr">

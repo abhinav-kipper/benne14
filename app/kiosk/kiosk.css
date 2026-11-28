@@ -88,12 +88,19 @@
   );
 }
 .k-home .copy {
-  padding: 0 40px;
+  padding: 0 18px 0 40px;
   margin-top: 34px;
   position: relative;
   z-index: 2;
+  /* the headline and the host stand side by side, centred on one line */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 .k-home .copy h1 {
+  flex-shrink: 0; /* two lines, always: the host takes what is left beside it */
+  white-space: nowrap;
   font-size: 132px;
   line-height: 0.86;
 }
@@ -112,11 +119,8 @@
 }
 /* The host, beside the headline: a dosa that hops a little. The photo wall's drift is untouched. */
 .k-home .hosts {
-  position: absolute;
-  right: 18px;
-  top: 668px;
   width: 204px;
-  z-index: 4;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
