@@ -192,14 +192,34 @@
   line-height: 0.85;
   white-space: nowrap;
 }
-.chit .ch-h svg {
-  width: 24px;
-  height: 24px;
-  margin-left: auto;
-  color: var(--ink-2);
+.chit .kind {
+  margin: 0 10px 8px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--chit-2);
+  color: var(--ink);
+}
+/* Takeaway is the one that changes what the cook does (it gets packed), so it is the loud one. */
+.chit .kind.out {
+  background: var(--ink);
+  color: #ffffff;
+}
+.chit .kind svg {
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
 .chit .min {
+  margin-left: auto;
   font-family: var(--display);
   font-weight: 800;
   font-size: 26px;
@@ -1001,6 +1021,11 @@
 .kitchen .chits.narrow .chit .min {
   font-size: 22px;
   padding: 2px 6px;
+}
+.kitchen .chits.narrow .chit .kind {
+  margin: 0 8px 6px;
+  height: 32px;
+  font-size: 19px;
 }
 .kitchen .chits.narrow .chit .who {
   padding: 0 10px 6px;

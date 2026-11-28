@@ -47,6 +47,7 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await expect(chit.locator('.min')).toContainText('min'); // minutes waiting, spelled out
   await expect(chit).toBeVisible({ timeout: 5000 });
   await expect(chit).toContainText('Ghee Podi Benne Dosa');
+  await expect(kitchen.getByTestId(`kind-${token}`)).toHaveText('Takeaway'); // in words, for the cook
   await expect(chit.locator('.tg.more')).toHaveText('+Extra benne'); // additions in green with a +
   await kitchen.getByTestId(`go-${token}`).click(); // Start
   await expect(kitchen.getByTestId(`go-${token}`)).toContainText('Ready');

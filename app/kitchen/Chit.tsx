@@ -48,11 +48,15 @@ export function Chit({
       </div>
       <div className="ch-h">
         <span className="tok">{o.token}</span>
-        {o.type === 'dine_in' ? <Dine /> : <Bag />}
         <span className="min">
           {m}
           <small>min</small>
         </span>
+      </div>
+      {/* In words, not only a symbol: the cook plates one and packs the other. */}
+      <div className={`kind ${o.type === 'dine_in' ? 'in' : 'out'}`} data-testid={`kind-${o.token}`}>
+        {o.type === 'dine_in' ? <Dine /> : <Bag />}
+        {o.type === 'dine_in' ? 'Dine in' : 'Takeaway'}
       </div>
       {o.customerName && <div className="who">{o.customerName}</div>}
       <div className="perf" />

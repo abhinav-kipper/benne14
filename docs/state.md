@@ -51,7 +51,7 @@ section A are open.
 
 ## Done
 
-- 2026-11-28 — Clearer for customers: the TV shows the name under the number while an order is being made, not only when ready; the UPI tile has a round "Tap to pay" button instead of a drawing of a QR (people tried to scan the tile); the bill card on the order screen says "Scan for your bill · No paper bill is printed" with a larger QR.
+- 2026-11-28 — Clearer for customers: the TV shows the name under the number while an order is being made, not only when ready; the UPI tile has a round "Tap to pay" button instead of a drawing of a QR (people tried to scan the tile); the bill card on the order screen says "Scan for your bill · No paper bill is printed" with a larger QR. The kitchen chit says Dine in or Takeaway in words (takeaway on a dark strip) instead of a small symbol.
 
 - 2026-11-28 — Card and cash wait at the kiosk: after picking one, the customer sees "Pay by card" / "Pay cash" with the amount and no order number; the number and the kitchen's chit come only when staff tap Paid (kitchen screen or owner app). Staff's Cancel sends the customer back to the ways to pay; the customer's cancel, or three minutes of nobody there plus a one-minute prompt, drops the unpaid order. Works because there is one kiosk with the counter beside it.
 
