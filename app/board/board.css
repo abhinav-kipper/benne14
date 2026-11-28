@@ -271,6 +271,25 @@
   color: var(--cream);
   white-space: nowrap;
 }
+/* The number with the customer's name under it, so someone waiting can find their order by name. */
+.board .pc .who {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.board .pc .who b {
+  font-family: var(--body);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--cream-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.board .pc .who.named .num {
+  font-size: 76px;
+}
 .board .pc .dots {
   margin-left: auto;
   display: flex;

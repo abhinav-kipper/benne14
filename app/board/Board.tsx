@@ -160,7 +160,10 @@ export default function Board() {
             const n = o.status === 'new' ? 1 : m >= 6 ? 3 : 2;
             return (
               <div className={`pc ${n === 3 ? 'soon' : ''}`} key={o.id} data-testid={`board-prep-${o.token}`}>
-                <span className="num">{o.token}</span>
+                <span className={`who ${o.customerName ? 'named' : ''}`}>
+                  <span className="num">{o.token}</span>
+                  {o.customerName && <b data-testid={`board-prep-name-${o.token}`}>{o.customerName}</b>}
+                </span>
                 <span className="dots">
                   {[0, 1, 2].map((i) => (
                     <i key={i} className={i < n ? 'f' : ''} />

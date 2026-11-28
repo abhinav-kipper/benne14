@@ -31,6 +31,9 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await kiosk.getByPlaceholder('Your name').fill('Rahul');
   await kiosk.getByTestId('takeaway').click(); // dine in / takeaway is asked in the cart
   await kiosk.getByTestId('continue-to-pay').click();
+  // the UPI tile says to tap it (a drawing of a QR there made customers try to scan the tile)
+  await expect(kiosk.getByTestId('pay-upi')).toContainText('Tap here to get your QR code');
+  await expect(kiosk.getByTestId('pay-upi').locator('.tap')).toContainText('Tap to');
   await kiosk.getByTestId('pay-upi').click();
   await kiosk.getByTestId('simulate-paid').click();
   const token = (await kiosk.getByTestId('token').locator('.num').textContent())!;
@@ -44,6 +47,7 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await expect(chit.locator('.min')).toContainText('min'); // minutes waiting, spelled out
   await expect(chit).toBeVisible({ timeout: 5000 });
   await expect(chit).toContainText('Ghee Podi Benne Dosa');
+  await expect(kitchen.getByTestId(`kind-${token}`)).toHaveText('Takeaway'); // in words, for the cook
   await expect(chit.locator('.tg.more')).toHaveText('+Extra benne'); // additions in green with a +
   await kitchen.getByTestId(`go-${token}`).click(); // Start
   await expect(kitchen.getByTestId(`go-${token}`)).toContainText('Ready');
@@ -52,6 +56,7 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   const board = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   await board.goto('/board');
   await expect(board.getByTestId(`board-prep-${token}`)).toBeVisible({ timeout: 5000 });
+  await expect(board.getByTestId(`board-prep-name-${token}`)).toHaveText('Rahul'); // the name is there before it is ready too
   await kitchen.getByTestId(`go-${token}`).click(); // Ready
   await expect(board.getByTestId('board-hero')).toContainText(token, { timeout: 5000 });
   await expect(board.getByTestId('board-hero')).toContainText('Rahul');
@@ -886,8 +891,9 @@ test('the order-number screen promises no time, says what was paid, and explains
   await expect(ticket).toContainText('Paid ₹51 · UPI');
   const screen = page.locator('.k-done');
   for (const gone of [/Ready in/, /\bmin\b/, /Track/]) await expect(screen).not.toContainText(gone);
-  await expect(screen).toContainText('Get your bill on your phone');
-  await expect(screen).toContainText('Scan this code with your phone camera');
+  await expect(screen).toContainText('Scan for your bill');
+  await expect(screen).toContainText('No paper bill is printed');
+  await expect(screen).toContainText('Point your phone camera at this code');
 });
 
 test('the house special is on the menu twice, at the top and in its section, and both are one dish', async ({
