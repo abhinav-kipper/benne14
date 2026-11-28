@@ -1,7 +1,7 @@
 // Shop details shown to customers, printed on the bill, and used to build UPI payment QRs.
 // Everything here is public: it is on the shop's board, its bills and its Paytm standee.
 export const SHOP = {
-  name: 'Benne 14',
+  name: 'benne 14',
   tagline: 'Authentic Bangalore Dosa',
   upiId: 'paytm.s3zpul3@pty',
   // Opening hours (24 h, IST), used to lay out the busy-hours charts. A guess until confirmed with

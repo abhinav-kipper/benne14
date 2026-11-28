@@ -84,7 +84,7 @@ export function Offers(p: Ctx) {
                   'Discount code box',
                   'Customers can type a code in their order. Shows only while a code is on.',
                 ],
-                ['phone', 'Phone number box', 'Optional. The kiosk says it is for offers from Benne 14.'],
+                ['phone', 'Phone number box', 'Optional. The kiosk says it is for offers from benne 14.'],
                 ['cash', 'Cash', 'Customers can choose to pay cash at the counter. Off: UPI and card only.'],
               ] as const
             ).map(([k, title, sub]) => (
@@ -148,7 +148,7 @@ export function Offers(p: Ctx) {
           <div className="mcat">
             <h3>Customers{customers?.length ? ` · ${customers.length}` : ''}</h3>
             <div className="was">
-              Phone numbers customers typed at the kiosk, next to a line saying they are for offers from Benne 14. Paid
+              Phone numbers customers typed at the kiosk, next to a line saying they are for offers from benne 14. Paid
               orders only.
             </div>
             {customers && customers.length === 0 && <div className="none">No numbers yet.</div>}

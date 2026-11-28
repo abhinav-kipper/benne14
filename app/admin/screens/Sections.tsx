@@ -1,5 +1,6 @@
 'use client';
-// The menu's sections: add one, rename, drag into a new order, switch a whole section off the kiosk.
+// The menu's sections: add one, rename, drag into a new order, switch a whole section off the kiosk,
+// remove one the owner added (with its dishes, if they are the owner's own).
 import { useRef, useState } from 'react';
 import { admin, ApiError } from '@/lib/client';
 import { TEST_CAT, type Catalog, type Category } from '@/lib/menu';
@@ -13,6 +14,8 @@ export function SectionsSheet(p: Ctx & { cat: Catalog; close: () => void; change
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const count = (id: string) => p.cat.items.filter((i) => i.cat === id && !i.hidden && !i.draft).length;
   const total = (id: string) => p.cat.items.filter((i) => i.cat === id).length;
+  const allOwn = (id: string) => p.cat.items.filter((i) => i.cat === id).every((i) => i.custom);
+  const [sure, setSure] = useState<string | null>(null); // the section whose "delete with its dishes" was tapped once
 
   // One change, then the list as the server now has it.
   const run = async (b: Parameters<typeof admin.menuChange>[1], then?: (rows: Category[]) => Category[]) => {
@@ -160,6 +163,22 @@ export function SectionsSheet(p: Ctx & { cat: Catalog; close: () => void; change
                   data-testid={`sec-remove-${c.id}`}
                 >
                   Remove
+                </button>
+              )}
+              {c.custom && total(c.id) > 0 && allOwn(c.id) && renaming?.id !== c.id && (
+                <button
+                  className="link rm"
+                  disabled={busy}
+                  onClick={() =>
+                    sure === c.id
+                      ? run({ removeSection: c.id, withDishes: true }, (cur) => cur.filter((x) => x.id !== c.id))
+                      : setSure(c.id)
+                  }
+                  data-testid={`sec-remove-${c.id}`}
+                >
+                  {sure === c.id
+                    ? `Yes, delete it and its ${total(c.id)} ${total(c.id) === 1 ? 'dish' : 'dishes'}`
+                    : 'Delete'}
                 </button>
               )}
               <button

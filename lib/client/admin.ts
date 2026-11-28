@@ -52,11 +52,12 @@ export const admin = {
       | { dish: Omit<CustomItem, 'id' | 'live'> & { id?: string } }
       | { publish: string }
       | { discard: string }
+      | { delete: string }
       | { hide: string }
       | { show: string }
       | { order: string[] }
       | { section: { id?: string; name: string } }
-      | { removeSection: string }
+      | { removeSection: string; withDishes?: boolean }
       | { hideSection: string }
       | { showSection: string }
       | { sectionOrder: string[] }

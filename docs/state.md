@@ -51,6 +51,8 @@ section A are open.
 
 ## Done
 
+- 2026-11-28 — Wording: "sambar" and "benne 14" everywhere customers and the owner read; plain dish descriptions. The owner can delete a dish they added (from its page or the Hidden list) and a section they added together with its dishes; dishes and sections that came with the app can only be hidden.
+
 - 2026-11-28 — Audit of the two days of launch changes by a second reader: money maths and "never paid without asking Easebuzz" hold. Fixed what it found: a customer mid-order keeps their extras when the owner gives the dish its own list (and is brought back to the cart instead of shown a refusal); a cancelled UPI order's QR is closed at Easebuzz whoever cancels it; a settled InstaCollect payment counts as paid; a new dish is not duplicated when its extras fail to save. Kiosk back buttons use the short chevron.
 
 - 2026-11-28 — Each dish has its own extras and its own "Comes with" line, edited on the dish's page in the owner app (add, price, remove, copy from another dish; ₹0 is a free tick box). The separate Extras page is gone. A dish keeps its section's shared extras until its own list is first edited. The kitchen chit prints a dish's free choices in black. Test data wiped by the owner the evening before (orders, counters, logs).

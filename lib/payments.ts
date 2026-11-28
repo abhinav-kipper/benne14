@@ -38,7 +38,7 @@ export const MockProvider: PaymentProvider = {
   upiRequest: (o) => ({
     payload: upiLink({
       upiId: 'demo.benne14@mockupi',
-      name: 'Benne 14 DEMO',
+      name: 'benne 14 DEMO',
       amount: o.total,
       note: `Order ${o.token} (DEMO)`,
     }),

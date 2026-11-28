@@ -251,7 +251,7 @@ export function Cart(p: {
                   A mobile number has 10 digits. Fix it or clear the box.
                 </span>
               ) : (
-                <span>Optional. For offers from Benne 14 by SMS or WhatsApp. We never share it.</span>
+                <span>Optional. For offers from benne 14 by SMS or WhatsApp. We never share it.</span>
               )}
             </div>
             <input

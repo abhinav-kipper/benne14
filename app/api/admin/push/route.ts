@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     }
     if (b.test === true) {
       const sent = await pushToAll(store, {
-        title: 'Benne 14: this is a test',
+        title: 'benne 14: this is a test',
         body: 'Notifications are working on this phone.',
         tag: 'test',
       });

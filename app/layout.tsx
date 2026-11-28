@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Benne 14',
+  title: 'benne 14',
   description: 'Authentic Bangalore Dosa — order here',
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, title: 'Benne 14' },
+  appleWebApp: { capable: true, title: 'benne 14' },
 };
 
 export const viewport: Viewport = {

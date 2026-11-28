@@ -38,7 +38,7 @@ export function Home({ onStart }: { onStart: () => void }) {
     <div className="screen k-home" onClick={onStart}>
       <div className="top">
         <div className="logo" {...holdLogo}>
-          <img src="/brand/benne14-logo.webp" alt="Benne 14 — Authentic Bangalore Dosa" draggable={false} />
+          <img src="/brand/benne14-logo.webp" alt="benne 14 — Authentic Bangalore Dosa" draggable={false} />
         </div>
       </div>
       <div className="mosaic">

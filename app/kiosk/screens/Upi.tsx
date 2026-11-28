@@ -179,7 +179,7 @@ export function Upi({
         ) : null}
         <div className="who">
           <div>
-            <b>Benne 14</b>
+            <b>benne 14</b>
             <small>Order {order.token} · UPI</small>
           </div>
           <span>₹{order.total}</span>
@@ -218,8 +218,8 @@ export function Upi({
           {mock
             ? 'Demo mode: no real money moves.'
             : auto
-              ? 'Paid to Benne 14 · confirmed automatically'
-              : 'Paid to Benne 14 · counter confirms on the soundbox'}
+              ? 'Paid to benne 14 · confirmed automatically'
+              : 'Paid to benne 14 · counter confirms on the soundbox'}
         </span>
         {mock && (
           <button className="sim" onClick={() => api.mockPay(order.id)} data-testid="simulate-paid">

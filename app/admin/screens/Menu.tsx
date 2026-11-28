@@ -51,6 +51,18 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
     }
     load();
   };
+  // One of the owner's own dishes, hidden, deleted for good: asked twice on the same button.
+  const [sureDel, setSureDel] = useState<string | null>(null);
+  const del = async (i: MenuItem) => {
+    if (sureDel !== i.id) return setSureDel(i.id);
+    try {
+      await admin.menuChange(p.pin, { delete: i.id });
+    } catch (e) {
+      failed(e, 'Not deleted');
+    }
+    setSureDel(null);
+    load();
+  };
   const show = async (i: MenuItem) => {
     try {
       await admin.menuChange(p.pin, { show: i.id });
@@ -237,6 +249,11 @@ export function Menu(p: Ctx & { openHistory: () => void }) {
                     <span className="p">₹{i.price}</span>
                   </div>
                 </div>
+                {i.custom && (
+                  <button className="link rm" onClick={() => del(i)} data-testid={`delete-${i.id}`}>
+                    {sureDel === i.id ? 'Yes, delete for good' : 'Delete'}
+                  </button>
+                )}
                 <button className="back" onClick={() => show(i)} data-testid={`show-${i.id}`}>
                   Bring back
                 </button>

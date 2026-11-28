@@ -221,7 +221,7 @@ describe("the owner's extras and kitchen notes", () => {
     expect(cat.groups.dosaExtras.options.map((o) => [o.id, o.name, o.price])).toEqual([
       ['benne', 'Extra benne', 35],
       ['podi', 'Extra gunpowder', 15],
-      ['sambar', 'Extra sambhar', 20],
+      ['sambar', 'Extra sambar', 20],
       ['x-cheese01', 'Extra cheese', 30],
     ]);
     expect(all.groups.dosaExtras.options.find((o) => o.id === 'palya')).toMatchObject({ hidden: true });
@@ -344,8 +344,8 @@ describe('a dish’s own extras and its “comes with” line', () => {
   it('“comes with”: the owner’s words, nothing when cleared, the usual line otherwise', () => {
     expect(itemById('masala-dosa', cat)!.comesWith).toBe('Comes with two chutneys');
     expect(itemById('plain-dosa', mergeCatalog(o, true))!.comesWith).toBeUndefined();
-    expect(itemById('mallige-idli', cat)!.comesWith).toBe('Comes with coconut chutney & sambar');
+    expect(itemById('mallige-idli', cat)!.comesWith).toBe('Comes with coconut chutney and sambar');
     expect(itemById('masala-tea', cat)!.comesWith).toBeUndefined();
-    expect(itemById('masala-dosa')!.comesWith).toBe('Comes with coconut chutney & sambar'); // the menu as it ships
+    expect(itemById('masala-dosa')!.comesWith).toBe('Comes with coconut chutney and sambar'); // the menu as it ships
   });
 });

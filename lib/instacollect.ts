@@ -127,7 +127,7 @@ export function upiLinkOf(o: Record<string, unknown>, total: number, note: strin
   }
   const handle = (o.virtual_account as { upi_handle?: unknown } | undefined)?.upi_handle;
   if (typeof handle !== 'string' || !/^[\w.-]+@[\w.-]+$/.test(handle)) return null;
-  const q = new URLSearchParams({ pa: handle, pn: 'Benne 14', am: total.toFixed(2), cu: 'INR', tn: note });
+  const q = new URLSearchParams({ pa: handle, pn: 'benne 14', am: total.toFixed(2), cu: 'INR', tn: note });
   return `upi://pay?${q.toString()}`;
 }
 
