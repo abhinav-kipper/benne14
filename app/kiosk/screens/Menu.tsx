@@ -20,7 +20,9 @@ export function MenuScreen(p: {
 }) {
   const catalog = useCatalog();
   const items = visibleItems(p.testMode, catalog);
-  const cats = catalog.cats.filter((c) => items.some((i) => i.cat === c.id && !i.special));
+  // The house special heads the menu and is also listed in its own section, like any other dish:
+  // the same dish shown twice, so either place adds to the same line of the order.
+  const cats = catalog.cats.filter((c) => items.some((i) => i.cat === c.id));
   const [active, setActiveState] = useState(cats.find((c) => c.id === p.scrollMemo.current.cat)?.id ?? cats[0]?.id);
   const setActive = (id: typeof active) => {
     p.scrollMemo.current.cat = id;
@@ -167,7 +169,7 @@ export function MenuScreen(p: {
                 {n === 0 && <span className="gst">Prices + 5% GST</span>}
               </div>
               {items
-                .filter((i) => i.cat === c.id && !i.special)
+                .filter((i) => i.cat === c.id)
                 .map((i) => (
                   <div
                     className={`item ${i.soldOut ? 'out' : ''}`}
@@ -183,6 +185,8 @@ export function MenuScreen(p: {
                       <Photo item={i} />
                     </div>
                     <div>
+                      {/* the same tag as at the top of the menu, so it is plainly the same dish */}
+                      {i.special && <span className="chip">House special</span>}
                       <h4>{i.name}</h4>
                       <p className="hdesc">{i.desc}</p>
                       <span className="price">₹{i.price}</span>

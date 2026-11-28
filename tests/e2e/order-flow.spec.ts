@@ -689,7 +689,9 @@ test('start screen: the shop’s logo, the host saying hello, and the photo wall
   await expect(logo).toBeVisible();
   await expect.poll(() => logo.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
   await expect(page.getByTestId('hosts')).toContainText('Namaste!');
-  await expect(page.getByTestId('hosts')).toContainText('Welcome to');
+  await expect(page.getByTestId('hosts')).toContainText('Welcome to benne 14'); // the name as the shop writes it
+  // the logo's block has square corners: the photos drifting behind it meet a straight edge
+  expect(await page.locator('.k-home .logo').evaluate((e) => getComputedStyle(e).borderBottomRightRadius)).toBe('0px');
   // nothing new sits on top of what was there: the headline, the hosts and the button do not overlap
   const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
   const [h1, hosts, start] = [await box('.k-home .copy h1'), await box('.k-home .hosts'), await box('.k-home .start')];
@@ -781,4 +783,31 @@ test('the order-number screen promises no time, says what was paid, and explains
   for (const gone of [/Ready in/, /\bmin\b/, /Track/]) await expect(screen).not.toContainText(gone);
   await expect(screen).toContainText('Get your bill on your phone');
   await expect(screen).toContainText('Scan this code with your phone camera');
+});
+
+test('the house special is on the menu twice, at the top and in its section, and both are one dish', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  const top = page.getByTestId('hero');
+  const row = page.getByTestId('item-ghee-podi-benne-dosa');
+  await expect(top).toBeVisible();
+  await expect(row).toBeVisible(); // also a row among the dosas, like any other dish
+  await expect(row.locator('.chip')).toHaveText('House special'); // tagged like the one at the top: plainly the same dish
+  await expect(page.locator('.k-menu .list .item .chip')).toHaveCount(1); // and only that row
+  await expect(page.locator('.k-menu .list .item').first()).toHaveAttribute('data-testid', 'item-ghee-podi-benne-dosa');
+  // added from the top: the row shows it too
+  await top.click();
+  await page.getByTestId('add-to-order').click();
+  await expect(top.locator('.step span')).toHaveText('1');
+  await expect(row.locator('.step span')).toHaveText('1');
+  // one more from the row: the top follows, and the order holds one line of two, not two lines
+  await row.getByRole('button', { name: 'more' }).click();
+  await expect(top.locator('.step span')).toHaveText('2');
+  await expect(page.getByTestId('cartbar')).toContainText('2');
+  await page.getByTestId('cartbar').click();
+  await expect(page.getByTestId('cart-line')).toHaveCount(1);
+  await expect(page.getByTestId('cart-total')).toHaveText('₹418'); // 2 × 199 + GST
 });
