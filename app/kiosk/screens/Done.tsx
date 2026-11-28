@@ -105,8 +105,12 @@ export function Done({ orderId, first, onDone }: { orderId: string; first: Order
           {origin && <img src={`/api/qr?u=${encodeURIComponent(`${origin}/r/${o.id}`)}`} alt="Scan for your bill" />}
         </div>
         <div>
-          <h3 className="disp">Get your bill on your phone</h3>
-          <p>Scan this code with your phone camera. It shows when your order is ready and keeps your GST bill.</p>
+          <span className="nopaper">No paper bill is printed</span>
+          <h3 className="disp">Scan for your bill</h3>
+          <p>
+            Point your phone camera at this code. Your GST bill opens on your phone, and it shows when your order is
+            ready.
+          </p>
         </div>
       </div>
       <div className="reset">

@@ -91,13 +91,11 @@ export function Pay({
         disabled={!!busy || noUpi}
         data-testid="pay-upi"
       >
-        <span className="lead">
-          {noUpi ? 'Not working right now' : busy === 'upi' ? 'Getting your QR ready…' : 'Most people pay this way'}
-        </span>
+        <span className="lead">{noUpi ? 'Not working right now' : busy === 'upi' ? 'Getting your QR ready…' : ''}</span>
         <span className="big">UPI</span>
         <span className="alt">
           {!noUpi
-            ? 'Scan with any UPI app'
+            ? 'Tap here to get your QR code'
             : card && cash
               ? 'Please pay by card or cash below'
               : card
@@ -113,31 +111,36 @@ export function Pay({
               : 'Sorry for the trouble.'
             : 'Google Pay, PhonePe, Paytm, BHIM or any UPI app'}
         </span>
-        <svg viewBox="0 0 250 312" fill="none" stroke="currentColor" strokeWidth="8" strokeLinejoin="round">
-          <rect x="40" y="6" width="170" height="300" rx="28" />
-          <path d="M100 26h50" strokeLinecap="round" />
-          <g fill="currentColor" stroke="none">
-            <rect x="66" y="70" width="44" height="44" />
-            <rect x="140" y="70" width="44" height="44" />
-            <rect x="66" y="196" width="44" height="44" />
-            <rect x="140" y="160" width="14" height="14" />
-            <rect x="160" y="176" width="14" height="14" />
-            <rect x="140" y="196" width="14" height="14" />
-            <rect x="170" y="210" width="14" height="14" />
-            <rect x="150" y="226" width="14" height="14" />
-            <rect x="118" y="130" width="14" height="14" />
-            <rect x="88" y="140" width="14" height="14" />
-            <rect x="66" y="160" width="14" height="14" />
-            <rect x="118" y="170" width="14" height="14" />
-            <rect x="118" y="214" width="14" height="14" />
-          </g>
-          <g fill="#F5C542" stroke="none">
-            <rect x="77" y="81" width="22" height="22" />
-            <rect x="151" y="81" width="22" height="22" />
-            <rect x="77" y="207" width="22" height="22" />
-          </g>
-          <path className="scan" d="M20 150h210" stroke="#D14F2B" strokeWidth="6" strokeLinecap="round" />
-        </svg>
+        {/* A plain "tap" target: a drawing of a QR here made customers try to scan the tile itself. */}
+        {!noUpi && (
+          <span className="tap" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11" />
+              <path d="M12 10.5V9a1.5 1.5 0 0 1 3 0v2" />
+              <path d="M15 11.5v-1a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.5a6 6 0 0 1-5-2.7L4 14.5a1.5 1.5 0 0 1 2.5-1.6L9 15" />
+            </svg>
+            {busy === 'upi' ? (
+              <>
+                One
+                <br />
+                moment
+              </>
+            ) : (
+              <>
+                Tap to
+                <br />
+                pay
+              </>
+            )}
+          </span>
+        )}
       </button>
       {(card || cash) && (
         <div className="row">
@@ -181,7 +184,7 @@ export function Pay({
               </svg>
               <span className="big">Cash</span>
               <span className="alt">Pay cash at the counter</span>
-              <small>Take your order number, pay at the counter</small>
+              <small>Your order number comes once it is paid</small>
             </button>
           )}
         </div>

@@ -1237,12 +1237,35 @@
   font-weight: 600;
   opacity: 0.75;
 }
-.k-pay .upi svg {
+.k-pay .upi .lead {
+  display: block;
+  min-height: 18px;
+}
+.k-pay .upi .tap {
   position: absolute;
-  right: 40px;
-  top: 30px;
-  width: 250px;
-  height: 312px;
+  right: 36px;
+  top: 50%;
+  margin-top: -115px;
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  background: var(--benne-ink);
+  color: var(--benne);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-align: center;
+}
+.k-pay .upi .tap svg {
+  width: 56px;
+  height: 56px;
 }
 .k-pay .row {
   display: grid;
@@ -1740,13 +1763,14 @@
   border-radius: 20px;
   padding: 22px;
   display: grid;
-  grid-template-columns: 150px 1fr;
-  gap: 22px;
+  grid-template-columns: 210px 1fr;
+  gap: 26px;
   align-items: center;
+  border: 2px solid var(--benne-ink);
 }
 .k-done .receipt .q {
-  width: 150px;
-  height: 150px;
+  width: 210px;
+  height: 210px;
   background: #ffffff;
   border-radius: 12px;
   padding: 12px;
@@ -1757,7 +1781,16 @@
   height: 100%;
 }
 .k-done .receipt h3 {
-  font-size: 30px;
+  font-size: 40px;
+}
+.k-done .receipt .nopaper {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--chilli);
 }
 .k-done .receipt p {
   font-size: var(--t-min);
@@ -2117,27 +2150,18 @@
 }
 
 /* The way to pay the customer just tapped stays at full strength while the order goes through (the
-   other two step back), and on UPI the phone's red line scans the code: it is being prepared, not broken. */
+   other two step back), and on UPI the hand keeps moving: the QR is being prepared, not broken. */
 .k-pay .tile.going:disabled {
   opacity: 1;
 }
 .k-pay .upi.going .lead {
   opacity: 1;
 }
-.k-pay .upi.going .scan {
-  animation: upiscan 1.5s ease-in-out infinite;
-}
-@keyframes upiscan {
-  0%,
-  100% {
-    transform: translateY(-86px);
-  }
-  50% {
-    transform: translateY(96px);
-  }
+.k-pay .upi.going .tap svg {
+  animation: nudge 1.6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .k-pay .upi.going .scan {
+  .k-pay .upi.going .tap svg {
     animation: none;
   }
 }
