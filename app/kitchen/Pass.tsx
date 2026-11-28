@@ -1,6 +1,6 @@
 'use client';
 // The right-hand column: payments to collect at the counter, then orders ready to hand over.
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { minutesSince, type Order, type OrderStatus } from '@/lib/orders';
 import { Bag, Bell, Check, Dine, Hand, Rupee } from './icons';
 
@@ -30,6 +30,18 @@ export function Pass({
     const el = passRef.current;
     if (el && density < 3 && el.scrollHeight > el.clientHeight + 1) setFit({ key: shelfKey, level: density + 1 });
   }, [shelfKey, density]);
+
+  // "Marked ready by mistake?": a small line under Handed over, well away from it, and then a
+  // question that takes Handed over's place, so neither tap can be made by a hand aiming for the
+  // other. The question goes away by itself if nobody answers. The one-line cards of a full shelf
+  // have no room for it; there the same thing is in Today's orders.
+  const [asking, setAsking] = useState<string | null>(null);
+  useEffect(() => {
+    if (!asking) return;
+    const t = setTimeout(() => setAsking(null), 8000);
+    return () => clearTimeout(t);
+  }, [asking]);
+  const ask = density < 2 ? asking : null;
 
   return (
     <div className={`pass d${density}`} ref={passRef} data-testid="pass" data-density={density}>
@@ -96,7 +108,11 @@ export function Pass({
         {ready.map((o) => {
           const w = o.readyAt ? minutesSince(o.readyAt, now) : 0;
           return (
-            <div className={`plate ${isFresh(o) ? 'fresh' : ''}`} key={o.id} data-testid={`ready-${o.token}`}>
+            <div
+              className={`plate ${isFresh(o) ? 'fresh' : ''} ${ask === o.id ? 'asking' : ''}`}
+              key={o.id}
+              data-testid={`ready-${o.token}`}
+            >
               <div className="row1">
                 <span className="tok">{o.token}</span>
                 {o.type === 'dine_in' ? <Dine /> : <Bag />}
@@ -109,10 +125,36 @@ export function Pass({
                 {o.customerName ? `${o.customerName} · ` : ''}
                 {o.lines.map((l) => `${l.qty} × ${l.name}`).join(', ')}
               </div>
-              <button onClick={() => onMove(o, 'handed_over')} aria-label={`Order ${o.token} handed over`}>
-                <Hand />
-                <span className="lbl">Handed over</span>
-              </button>
+              {ask === o.id ? (
+                <>
+                  <div className="ask">Order {o.token} is not ready? It goes back to the cook.</div>
+                  <div className="two">
+                    <button
+                      className="yes"
+                      onClick={() => {
+                        setAsking(null);
+                        onMove(o, 'cooking', false);
+                      }}
+                      data-testid={`not-ready-yes-${o.token}`}
+                    >
+                      Yes, not ready
+                    </button>
+                    <button onClick={() => setAsking(null)} data-testid={`not-ready-no-${o.token}`}>
+                      No, keep it
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => onMove(o, 'handed_over')} aria-label={`Order ${o.token} handed over`}>
+                    <Hand />
+                    <span className="lbl">Handed over</span>
+                  </button>
+                  <button className="nr" onClick={() => setAsking(o.id)} data-testid={`not-ready-${o.token}`}>
+                    Marked ready by mistake?
+                  </button>
+                </>
+              )}
             </div>
           );
         })}
