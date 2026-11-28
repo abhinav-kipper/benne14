@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   BASE_CATALOG,
+  dishSetId,
+  extrasOf,
   isCustomId,
   itemById,
   mergeCatalog,
@@ -262,5 +264,88 @@ describe("the owner's extras and kitchen notes", () => {
     expect(noteTone('extra-crisp', all)).toBe('add'); // retired, but an old order's chit still colours
     expect(noteTone('extra-crisp')).toBe('add'); // with no menu loaded yet, the notes in code still colour
     expect(all.notes.map((n) => n.id)).toEqual(['potato-side', 'n-noonion1']); // the owner is not shown retired notes
+  });
+});
+
+describe('a dish’s own extras and its “comes with” line', () => {
+  const dish = {
+    'masala-dosa': [
+      { id: 'benne', name: 'Extra benne', price: 30 },
+      { id: 'x-cheese01', name: 'Extra cheese', price: 40 },
+      { id: 'potato-side', name: 'Potato stuffing on the side', price: 0 },
+    ],
+    'masala-tea': [{ id: 'x-ginger01', name: 'Extra ginger', price: 10 }],
+    'plain-dosa': [],
+  };
+  const o = {
+    items: {},
+    options: {},
+    extras: { dish, comesWith: { 'masala-dosa': 'Comes with two chutneys', 'plain-dosa': '' } },
+  };
+  const cat = mergeCatalog(o);
+  const line = (itemId: string, choices: Record<string, string[]> = {}, notes: string[] = []) => ({
+    itemId,
+    qty: 1,
+    choices,
+    notes,
+  });
+
+  it('the dish offers exactly its own list, in one set; other dishes keep the shared ones', () => {
+    const md = itemById('masala-dosa', cat)!;
+    expect(md.groups).toEqual([dishSetId('masala-dosa')]);
+    expect(cat.groups[dishSetId('masala-dosa')]).toMatchObject({ name: 'Make it extra', kind: 'many' });
+    expect(extrasOf(md, cat)).toEqual(dish['masala-dosa']);
+    expect(notesFor(md, cat)).toEqual([]); // the free choice is on the list now, not a separate note
+    expect(itemById('plain-benne-dosa', cat)!.groups).toEqual(['dosaExtras']);
+    expect(extrasOf(itemById('plain-benne-dosa', cat)!, cat).map((x) => x.id)).toEqual([
+      'benne',
+      'podi',
+      'palya',
+      'sambar',
+    ]);
+    // before any edit, masala dosa's list is its shared extras plus its free choice
+    expect(extrasOf(itemById('masala-dosa')!, BASE_CATALOG).map((x) => [x.id, x.price])).toEqual([
+      ['benne', 25],
+      ['podi', 15],
+      ['palya', 30],
+      ['sambar', 20],
+      ['potato-side', 0],
+    ]);
+  });
+
+  it('a drink keeps its sugar choice next to its own extras; an empty list offers nothing', () => {
+    expect(itemById('masala-tea', cat)!.groups).toEqual([dishSetId('masala-tea'), 'sugar']);
+    expect(itemById('plain-dosa', cat)!.groups).toEqual([]); // nothing in it: not offered to customers
+    expect(itemById('plain-dosa', mergeCatalog(o, true))!.groups).toEqual([dishSetId('plain-dosa')]);
+  });
+
+  it('prices from the dish’s list: paid extras add up, a free one costs nothing, the rest is refused', () => {
+    const set = dishSetId('masala-dosa');
+    const p = priceOrder([line('masala-dosa', { [set]: ['benne', 'x-cheese01', 'potato-side'] })], cat);
+    expect(p.subtotal).toBe(209 + 30 + 40);
+    expect(p.lines[0].mods.map((m) => [m.name, m.price])).toEqual([
+      ['Extra benne', 30],
+      ['Extra cheese', 40],
+      ['Potato stuffing on the side', 0],
+    ]);
+    expect(() => priceOrder([line('masala-dosa', { dosaExtras: ['benne'] })], cat)).toThrow(); // the shared set
+    expect(() => priceOrder([line('masala-dosa', { [set]: ['podi'] })], cat)).toThrow(); // taken off this dish
+    expect(() => priceOrder([line('masala-dosa', {}, ['potato-side'])], cat)).toThrow(); // no longer a note
+    expect(() => priceOrder([line('plain-benne-dosa', { [set]: ['x-cheese01'] })], cat)).toThrow(); // another dish's
+    expect(priceOrder([line('plain-benne-dosa', { dosaExtras: ['benne'] })], cat).subtotal).toBe(159 + 25); // its own price
+  });
+
+  it('the kitchen colours a paid extra as an addition and leaves a free choice plain', () => {
+    const set = dishSetId('masala-dosa');
+    expect(optionTone(set, 'x-cheese01', cat)).toBe('add');
+    expect(optionTone(set, 'potato-side', cat)).toBeUndefined();
+  });
+
+  it('“comes with”: the owner’s words, nothing when cleared, the usual line otherwise', () => {
+    expect(itemById('masala-dosa', cat)!.comesWith).toBe('Comes with two chutneys');
+    expect(itemById('plain-dosa', mergeCatalog(o, true))!.comesWith).toBeUndefined();
+    expect(itemById('mallige-idli', cat)!.comesWith).toBe('Comes with coconut chutney & sambar');
+    expect(itemById('masala-tea', cat)!.comesWith).toBeUndefined();
+    expect(itemById('masala-dosa')!.comesWith).toBe('Comes with coconut chutney & sambar'); // the menu as it ships
   });
 });

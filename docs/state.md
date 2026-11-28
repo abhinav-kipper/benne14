@@ -51,6 +51,8 @@ section A are open.
 
 ## Done
 
+- 2026-11-28 — Each dish has its own extras and its own "Comes with" line, edited on the dish's page in the owner app (add, price, remove, copy from another dish; ₹0 is a free tick box). The separate Extras page is gone. A dish keeps its section's shared extras until its own list is first edited. The kitchen chit prints a dish's free choices in black. Test data wiped by the owner the evening before (orders, counters, logs).
+
 - 2026-11-27 — GST is kept to the paisa (CGST and SGST 2.5% each) and only the total is rounded to the rupee, with a "Round off" line on the cart, the bill, the owner's order view and both CSVs; what customers pay is unchanged for every amount. "Start over" on the menu and cart. The order ticket no longer promises a time; the QR line says what scanning gives. The shop's logo heads the menu's side bar.
 
 - 2026-11-27 — Kiosk polish for launch: dish photos shown whole on the dish sheet and house special; the shop's logo and a hopping dosa host on the start screen; "Note for the kitchen" removed (Less oil and Extra crisp retired; "Potato stuffing on the side" stays on Masala Dosa as a free tick box); "Still there?" waits two minutes and counts scrolling and typing as activity.

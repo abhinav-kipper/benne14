@@ -1,5 +1,6 @@
 'use client';
 // Today's orders: every order of the day, a tap opens one in full, a collected one can be called back.
+import { isDishSet } from '@/lib/menu';
 import { useState } from 'react';
 import { counts, type Order, type OrderStatus } from '@/lib/orders';
 import { useTodayOrders } from '@/lib/client';
@@ -67,7 +68,7 @@ export function History({ onClose, onRecall }: { onClose: () => void; onRecall: 
                   <ul className="full" data-testid={`hist-full-${o.token}`}>
                     {o.lines.map((l, i) => {
                       const extra = [
-                        ...l.mods.filter((m) => m.price > 0).map((m) => m.name),
+                        ...l.mods.filter((m) => m.price > 0 || isDishSet(m.groupId)).map((m) => m.name), // paid extras and a dish's free choices
                         ...l.notes.map((n) => n.label),
                       ];
                       return (
