@@ -41,7 +41,7 @@ Commands: `npm run dev` · `npm run check` (typecheck, lint, format check, unit 
 - The server prices orders from `mergeCatalog(store.getOverrides())`; the client sends ids and choices only. Never price on the server without passing the merged catalog.
 - Every order write is idempotent (checkout key + request fingerprint). Tokens come from the DB's per-day counter.
 - Money is whole rupees in integer maths (`lib/pricing.ts`, `lib/discounts.ts`); never floating-point arithmetic on amounts. What counts as takings is `counts()` in `lib/orders.ts`, nowhere else. A paid order is refunded, never cancelled.
-- Order lines are a JSON snapshot (names, prices) on the order, so menu changes never alter past bills.
+- Order lines are a JSON snapshot (names, prices) on the order, so menu changes never alter past bills. A takeaway line also carries `pack` (packaging for one of it); read an order's packaging with `packagingOf(o.lines)`, and its dishes-only total with `itemTotal(o)`.
 - Kitchen/board must recover by themselves: polling through `usePoll`, visible offline state, auto-reload after a deploy.
 - The menu reaches components through `useCatalog()` / an explicit `catalog` argument, never a module-level variable.
 - A new migration: add the SQL file, add its name to `lib/migrations.ts`, make it record itself in `schema_migrations`, and tell the user to run it.

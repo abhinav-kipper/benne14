@@ -51,6 +51,8 @@ section A are open.
 
 ## Done
 
+- 2026-11-28 — Packaging on takeaway orders: ₹15 per dish and ₹5 per coffee or tea, added by the server when the order is a takeaway, shown as its own line on the cart, the phone bill, the owner's order view, Reports and the CSVs. GST is charged on it; a discount code does not reduce it; dine-in has none. Each line of the order keeps what its packing cost, so no database change and past bills never move (`lib/pricing.ts`).
+
 - 2026-11-28 — Kitchen can take back a mistaken Ready at any time: "Marked ready by mistake?" under Handed over, then a question that takes Handed over's place (it answers itself "no" after 8 seconds); on a full shelf the same is in Today's orders ("Not ready", asked twice). The order returns to the cook and the TV.
 
 - 2026-11-28 — Clearer for customers: the TV shows the name under the number while an order is being made, not only when ready; the UPI tile has a round "Tap to pay" button instead of a drawing of a QR (people tried to scan the tile); the bill card on the order screen says "Scan for your bill · No paper bill is printed" with a larger QR. The kitchen chit says Dine in or Takeaway in words (takeaway on a dark strip) instead of a small symbol.

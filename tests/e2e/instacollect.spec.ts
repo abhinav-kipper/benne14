@@ -23,7 +23,7 @@ const place = async (r: APIRequestContext, payMethod = 'upi') =>
     await r.post('/api/orders', {
       data: {
         key: `ic-${Date.now()}-${k++}`,
-        type: 'takeaway',
+        type: 'dine_in',
         name: 'Asha',
         payMethod,
         lines: [{ itemId: 'masala-dosa', qty: 1, choices: {}, notes: [] }],
@@ -59,7 +59,7 @@ test('kiosk: a QR for exactly this bill; the customer pays and the order number 
   await page.getByTestId('item-masala-dosa').click();
   await page.getByTestId('add-to-order').click();
   await page.getByTestId('cartbar').click();
-  await page.getByTestId('takeaway').click();
+  await page.getByTestId('dine-in').click();
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-upi').click();
   // our own QR, drawn from the UPI ID Easebuzz gave this order; nothing to tap after paying

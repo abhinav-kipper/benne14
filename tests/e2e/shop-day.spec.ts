@@ -43,6 +43,7 @@ interface Plan {
   code: string | null;
   fate: Fate;
   listPrice: number; // what the menu says, worked out here and not by the app
+  pack: number; // packaging on a takeaway: ₹15 a dish, ₹5 a coffee or tea
 }
 
 // The menu's prices, written out again on purpose: the test must not trust the app's own sums.
@@ -67,6 +68,7 @@ function plan(): Plan[] {
   for (let n = 1; n <= 40; n++) {
     const lines: Plan['lines'] = [];
     let listPrice = 0;
+    let packed = 0;
     for (let j = 0; j < 1 + (n % 3); j++) {
       const itemId = DISHES[(n * 3 + j * 5) % DISHES.length];
       const qty = 1 + ((n + j) % 3);
@@ -91,6 +93,7 @@ function plan(): Plan[] {
         notes: itemId === 'masala-dosa' && n % 2 ? ['potato-side'] : [],
       });
       listPrice += qty * (PRICE[itemId] + extras.reduce((a, x) => a + EXTRA[x], 0));
+      packed += qty * (DRINK.has(itemId) ? 5 : 15);
     }
     const fate: Fate =
       n % 10 === 0
@@ -108,6 +111,7 @@ function plan(): Plan[] {
       n,
       lines,
       listPrice,
+      pack: n % 2 ? 0 : packed,
       payMethod: (['upi', 'card', 'cash'] as const)[n % 3],
       type: n % 2 ? 'dine_in' : 'takeaway',
       code: n % 7 === 0 ? 'DAY10' : null,
@@ -169,7 +173,7 @@ test('forty orders go through every path of a day, each with the right number an
     const off = p.code ? o.savings : 0;
     if (p.code) expect(Math.abs(off - p.listPrice * 0.1), `order ${p.n} discount`).toBeLessThanOrEqual(1);
     else expect(o.savings).toBe(0);
-    expect(o.subtotal, `order ${p.n} before GST`).toBe(p.listPrice - off);
+    expect(o.subtotal, `order ${p.n} before GST`).toBe(p.listPrice - off + p.pack);
     const paise = (x: number) => Math.round(x * 100);
     expect(Math.abs(paise(o.cgst + o.sgst) - paise(o.subtotal * 0.05)), `order ${p.n} GST`).toBeLessThanOrEqual(1);
     expect(Math.abs(paise(o.roundOff)), `order ${p.n} round off`).toBeLessThanOrEqual(50);
@@ -298,9 +302,9 @@ test('the three CSV downloads say the same as the dashboard', async ({ request }
   expect(+gst[1][6]).toBe(takings);
 
   const dishes = (await csv(request, 'dishes')).slice(1);
-  const sold = dishes.filter((r) => r[0] !== 'Extras' && r[0] !== 'Discount codes');
+  const sold = dishes.filter((r) => !['Extras', 'Discount codes', 'Packaging (takeaway)'].includes(r[0]));
   expect(sold.reduce((a, r) => a + +r[1], 0)).toBe(sum(k, (b) => b.itemCount));
-  // dishes + extras − discounts, all before GST, is the taxable value
+  // dishes + extras + packaging − discounts, all before GST, is the taxable value
   expect(dishes.reduce((a, r) => a + +r[2], 0)).toBe(sum(k, (b) => b.subtotal));
 });
 

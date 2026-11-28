@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { OrderError, priceLine, priceOrder } from '@/lib/pricing';
+import type { DiscountRule } from '@/lib/discounts';
+import { itemTotal, OrderError, packagingOf, priceLine, priceOrder } from '@/lib/pricing';
 
 const dosa = {
   itemId: 'ghee-podi-benne-dosa',
@@ -23,6 +24,34 @@ describe('pricing', () => {
       total: 380,
       savings: 0,
     });
+  });
+
+  it('takeaway adds packaging: ₹15 a dish, ₹5 a coffee or tea, GST on top; dine-in adds none', () => {
+    const out = priceOrder([dosa, coffee], undefined, null, 'takeaway');
+    expect(out.lines.map((l) => l.pack)).toEqual([15, 5]); // per one of each line
+    expect(out.lines.map((l) => l.lineTotal)).toEqual([224, 138]); // the dishes cost what they cost
+    expect(packagingOf(out.lines)).toBe(15 + 2 * 5); // one dosa (its extra packs with it), two coffees
+    expect(itemTotal(out)).toBe(362);
+    // taxable 362 + 25 = 387; 2.5% of it is 9.675 → 9.68 each; 406.36 → ₹406
+    expect(out).toMatchObject({ subtotal: 387, cgst: 9.68, sgst: 9.68, roundOff: -0.36, total: 406 });
+    expect(out.total).toBe(out.subtotal + out.cgst + out.sgst + out.roundOff);
+
+    for (const type of ['dine_in', null, undefined] as const) {
+      const o = priceOrder([dosa, coffee], undefined, null, type);
+      expect(o.total).toBe(380);
+      expect(packagingOf(o.lines)).toBe(0);
+      expect(o.lines.every((l) => l.pack === undefined)).toBe(true);
+    }
+    // an order from before packaging existed has no `pack` on its lines: it reads as none
+    expect(packagingOf([{ qty: 3 }])).toBe(0);
+  });
+
+  it('a discount code comes off the dishes, not off the packaging', () => {
+    const code: DiscountRule = { code: 'TEN', kind: 'percent', value: 10, minOrder: null, maxDiscount: null };
+    const o = priceOrder([dosa, coffee], undefined, code, 'takeaway');
+    expect(o.savings).toBe(36); // 10% of 362, not of 387
+    expect(o.subtotal).toBe(362 - 36 + 25);
+    expect(itemTotal(o)).toBe(362);
   });
 
   it('keeps each tax to the paisa and rounds only the total', () => {

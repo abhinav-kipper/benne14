@@ -1,6 +1,7 @@
 // Owner dashboard numbers, computed from order snapshots (so later price changes never change past
 // reports). Pure functions: the API passes in the orders for a range of IST days.
 import type { Customer } from './discounts';
+import { packagingOf } from './pricing';
 import { addDays, counts, daysBetween, isPaid, istHour, type Order, type PayMethod } from './orders';
 
 export { counts }; // the one rule for what counts as takings lives in lib/orders.ts
@@ -22,6 +23,7 @@ export interface Summary {
   split: Record<PayMethod, number>;
   dishes: DishRow[]; // by quantity, then amount
   extras: { qty: number; amount: number };
+  packaging: { qty: number; amount: number }; // takeaway packaging charged: items packed, rupees before GST
   hours: { hour: number; orders: number }[]; // shop hours, stretched to any order outside them
   days: { day: string; takings: number; orders: number }[]; // every day in the range, empty ones too
   gst: { taxable: number; cgst: number; sgst: number; roundOff: number; total: number }; // the four add up to total
@@ -39,8 +41,13 @@ export function summarize(all: Order[], fromDay: string, toDay: string): Summary
 
   const dishes = new Map<string, DishRow>();
   const extras = { qty: 0, amount: 0 };
+  const packaging = { qty: 0, amount: 0 };
   for (const o of kept)
     for (const l of o.lines) {
+      if (l.pack) {
+        packaging.qty += l.qty;
+        packaging.amount += l.pack * l.qty;
+      }
       const extra = l.mods.reduce((a, m) => a + m.price, 0);
       const d = dishes.get(l.itemId) ?? { itemId: l.itemId, name: l.name, qty: 0, amount: 0 };
       d.qty += l.qty;
@@ -79,6 +86,7 @@ export function summarize(all: Order[], fromDay: string, toDay: string): Summary
     split,
     dishes: [...dishes.values()].sort((a, b) => b.qty - a.qty || b.amount - a.amount),
     extras,
+    packaging,
     hours,
     days,
     gst: {
@@ -120,6 +128,7 @@ export function billsCsv(all: Order[]) {
       'Items',
       'Discount',
       'Code',
+      'Packaging',
       'Taxable value',
       'CGST',
       'SGST',
@@ -140,6 +149,7 @@ export function billsCsv(all: Order[]) {
       o.lines.map((l) => `${l.qty} x ${l.name}`).join('; '),
       o.savings ? o.savings.toFixed(2) : '',
       o.discountCode ?? '',
+      packagingOf(o.lines) ? packagingOf(o.lines).toFixed(2) : '',
       o.subtotal.toFixed(2),
       o.cgst.toFixed(2),
       o.sgst.toFixed(2),
@@ -179,6 +189,7 @@ export function dishesCsv(all: Order[], fromDay: string, toDay: string) {
     ['Dish', 'Sold', 'Amount (before GST)'],
     ...s.dishes.map((d) => [d.name, d.qty, d.amount.toFixed(2)]),
     ['Extras', s.extras.qty, s.extras.amount.toFixed(2)],
+    ...(s.packaging.amount ? [['Packaging (takeaway)', s.packaging.qty, s.packaging.amount.toFixed(2)]] : []),
     ...(s.discounts.amount ? [['Discount codes', s.discounts.count, (-s.discounts.amount).toFixed(2)]] : []),
   ]);
 }

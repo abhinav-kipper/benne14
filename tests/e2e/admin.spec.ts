@@ -250,7 +250,7 @@ test('reports: today vs yesterday on the dashboard, CSV downloads for the CA', a
   expect(dl.suggestedFilename()).toMatch(/^benne14-bills-\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}\.csv$/);
   const text = await (await dl.createReadStream()).toArray().then((c) => Buffer.concat(c).toString('utf8'));
   expect(text.split('\r\n')[0]).toContain(
-    'Date,Time,Invoice,Order,Type,Payment,Items,Discount,Code,Taxable value,CGST,SGST,Round off,Total',
+    'Date,Time,Invoice,Order,Type,Payment,Items,Discount,Code,Packaging,Taxable value,CGST,SGST,Round off,Total',
   );
   expect(text).toContain('Food issue');
 });
@@ -385,7 +385,7 @@ test('owner makes a code; a customer uses it and leaves a number; the bill and t
   await expect(page.getByTestId('discount-row')).toBeVisible();
 
   // a half-typed number blocks paying; a whole one (or none) doesn't
-  await page.getByTestId('takeaway').click();
+  await page.getByTestId('dine-in').click();
   await page.getByTestId('phone-input').fill('98765');
   await expect(page.getByTestId('phone-error')).toBeVisible();
   await expect(page.getByTestId('continue-to-pay')).toBeDisabled();
@@ -751,7 +751,7 @@ test('owner adds a dish with a photo, checks it, publishes it; customers can the
     })
   ).json();
   expect(o.lines[0]).toMatchObject({ name: 'Onion Benne Dosa', qty: 2 });
-  expect(o.subtotal).toBe(2 * (179 + 25));
+  expect(o.subtotal).toBe(2 * (179 + 25) + 2 * 15); // a takeaway: an owner-made dish is packed like any other
   await kiosk.context().close();
 
   // history has the moment it went on the menu

@@ -7,7 +7,7 @@ import { ApiError } from '@/lib/client';
 import { cleanPhone, describeCode, type DiscountRule, type KioskSettings } from '@/lib/discounts';
 import { itemById } from '@/lib/menu';
 import type { OrderType } from '@/lib/orders';
-import { itemTotal, type priceOrder } from '@/lib/pricing';
+import { itemTotal, packagingOf, type priceOrder } from '@/lib/pricing';
 import { suggestFor } from '@/lib/suggest';
 import { BackChevron, BagIcon, Chevron, DineIcon, Photo, StartOverIcon, type Line } from './shared';
 
@@ -168,6 +168,12 @@ export function Cart(p: {
                   </button>
                 </span>
                 <span className="v">−₹{p.priced.savings.toFixed(2)}</span>
+              </div>
+            )}
+            {packagingOf(p.priced.lines) > 0 && (
+              <div className="row" data-testid="packaging-row">
+                <span>Packaging · takeaway</span>
+                <span className="v">₹{packagingOf(p.priced.lines).toFixed(2)}</span>
               </div>
             )}
             {/* one line for customers; the CGST / SGST split is on the phone bill */}

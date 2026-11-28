@@ -21,7 +21,7 @@ const place = async (r: APIRequestContext, payMethod = 'upi', itemId = 'masala-d
     await r.post('/api/orders', {
       data: {
         key: `gw-${Date.now()}-${k++}`,
-        type: 'takeaway',
+        type: 'dine_in',
         name: 'Asha',
         payMethod,
         lines: [{ itemId, qty: 1, choices: {}, notes: [] }],
@@ -52,7 +52,7 @@ test('kiosk: the customer pays and the order number comes up by itself, no staff
   await page.getByTestId('item-masala-dosa').click();
   await page.getByTestId('add-to-order').click();
   await page.getByTestId('cartbar').click();
-  await page.getByTestId('takeaway').click();
+  await page.getByTestId('dine-in').click();
   await page.getByTestId('continue-to-pay').click();
   await page.getByTestId('pay-upi').click();
   // the gateway's page is shown in a frame, with this order's amount; there is nothing to tap after paying

@@ -1,6 +1,7 @@
 'use client';
 import type React from 'react';
 import { useOrderState } from '@/lib/client';
+import { itemTotal, packagingOf } from '@/lib/pricing';
 import { phonePretty, SHOP } from '@/lib/shop';
 
 const HEAD: Record<string, React.ReactNode> = {
@@ -47,6 +48,7 @@ export default function Receipt({ id }: { id: string }) {
     timeZone: 'Asia/Kolkata',
   });
   const unpaid = o.status === 'awaiting_cash' || o.status === 'pending_payment';
+  const pack = packagingOf(o.lines);
   const day = (iso: string) =>
     new Date(iso).toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' });
   return (
@@ -142,20 +144,26 @@ export default function Receipt({ id }: { id: string }) {
           );
         })}
         <div className="sums">
+          {(o.savings > 0 || pack > 0) && (
+            <div className="row">
+              <span>Item total</span>
+              <span>{money(itemTotal(o))}</span>
+            </div>
+          )}
           {o.savings > 0 && (
-            <>
-              <div className="row">
-                <span>Item total</span>
-                <span>{money(o.subtotal + o.savings)}</span>
-              </div>
-              <div className="row" data-testid="bill-discount">
-                <span>Discount{o.discountCode ? ` (${o.discountCode})` : ''}</span>
-                <span>−{money(o.savings)}</span>
-              </div>
-            </>
+            <div className="row" data-testid="bill-discount">
+              <span>Discount{o.discountCode ? ` (${o.discountCode})` : ''}</span>
+              <span>−{money(o.savings)}</span>
+            </div>
+          )}
+          {pack > 0 && (
+            <div className="row" data-testid="bill-packaging">
+              <span>Packaging charges</span>
+              <span>{money(pack)}</span>
+            </div>
           )}
           <div className="row">
-            <span>{o.savings > 0 ? 'Taxable value' : 'Subtotal'}</span>
+            <span>{o.savings > 0 || pack > 0 ? 'Taxable value' : 'Subtotal'}</span>
             <span>{money(o.subtotal)}</span>
           </div>
           <div className="row">

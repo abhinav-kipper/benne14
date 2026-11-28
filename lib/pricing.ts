@@ -24,6 +24,21 @@ export function billFor(taxable: number) {
 }
 const MAX_QTY = 20;
 
+// Packaging on a takeaway order (owner's call, 2026-11-28): a charge per item packed, less for a cup
+// of coffee or tea than for a dish. Extras are packed with their dish and add nothing. It is part of
+// the taxable value (GST is charged on it, as on the food) and a discount code does not reduce it.
+// Dine-in orders have none.
+export const PACK_PER_DISH = 15;
+export const PACK_PER_DRINK = 5;
+const DRINK_SECTIONS = ['drinks'];
+// (The ₹1 payment-test item, which exists only in test mode, stays exactly ₹1.)
+export const packFor = (cat: string) =>
+  cat === 'test' ? 0 : DRINK_SECTIONS.includes(cat) ? PACK_PER_DRINK : PACK_PER_DISH;
+// What packaging an order was charged, read from its own lines: each line of a takeaway order
+// carries what packing one of it cost, so later changes to the rates never alter a past bill.
+export const packagingOf = (lines: { qty: number; pack?: number }[]) =>
+  lines.reduce((a, l) => a + (l.pack ?? 0) * l.qty, 0);
+
 export interface CartLine {
   itemId: string;
   qty: number;
@@ -46,12 +61,13 @@ export interface PricedLine {
   lineTotal: number; // rupees
   mods: PricedMod[];
   notes: { id: string; label: string }[];
+  pack?: number; // takeaway only: packaging for one of this line, rupees. Not part of lineTotal.
 }
 
 export interface PricedOrder {
   lines: PricedLine[];
   itemCount: number;
-  subtotal: number; // taxable value: item total minus any discount, rupees, 2dp
+  subtotal: number; // taxable value: item total minus any discount, plus packaging (takeaway), rupees, 2dp
   cgst: number;
   sgst: number;
   roundOff: number; // what rounding the total to the rupee added (+) or took (−), rupees, 2dp
@@ -61,8 +77,9 @@ export interface PricedOrder {
   discountShort: number; // a code was asked for but the order is this many rupees under its minimum
 }
 
-// The item total as the customer reads it: before the discount and before GST.
-export const itemTotal = (o: { subtotal: number; savings: number }) => o.subtotal + o.savings;
+// The item total as the customer reads it: before the discount, packaging and GST.
+export const itemTotal = (o: { subtotal: number; savings: number; lines: { qty: number; pack?: number }[] }) =>
+  o.subtotal + o.savings - packagingOf(o.lines);
 
 export class OrderError extends Error {}
 
@@ -122,12 +139,21 @@ export function priceLine(line: CartLine, cat: Catalog = BASE_CATALOG): PricedLi
   };
 }
 
-export function priceOrder(cart: CartLine[], cat: Catalog = BASE_CATALOG, code?: DiscountRule | null): PricedOrder {
+// `type`: a takeaway order is charged packaging; dine-in (and a cart whose type is not chosen yet) is not.
+export function priceOrder(
+  cart: CartLine[],
+  cat: Catalog = BASE_CATALOG,
+  code?: DiscountRule | null,
+  type?: 'dine_in' | 'takeaway' | null,
+): PricedOrder {
   if (!cart.length) throw new OrderError('Cart is empty');
-  const lines = cart.map((l) => priceLine(l, cat));
+  const lines = cart.map((l) => {
+    const line = priceLine(l, cat);
+    return type === 'takeaway' ? { ...line, pack: packFor(cat.items.find((i) => i.id === line.itemId)!.cat) } : line;
+  });
   const gross = lines.reduce((a, l) => a + l.lineTotal, 0);
   const d = code ? discountFor(gross, code) : { amount: 0, short: 0 };
-  const taxable = gross - d.amount; // whole rupees
+  const taxable = gross - d.amount + packagingOf(lines); // whole rupees
   const bill = billFor(taxable);
   return {
     lines,
