@@ -79,7 +79,10 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await expect(phone.getByTestId('bill')).toContainText('−₹0.10');
 
   // Hand it over so the next test starts with a clear board, like a real shift.
-  await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 }); // Handed over
+  await kitchen
+    .getByTestId(`ready-${token}`)
+    .getByRole('button', { name: /handed over/ })
+    .click({ timeout: 5000 }); // Handed over
   await expect(kitchen.getByTestId(`ready-${token}`)).toHaveCount(0, { timeout: 5000 });
   await expect(board.getByTestId('board-hero')).toHaveCount(0, { timeout: 5000 });
   // …and it moves to the history: the board's Collected row and the kitchen's Today panel.
@@ -89,7 +92,10 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await kitchen.getByTestId(`hist-${token}`).getByRole('button', { name: 'Back to counter' }).click();
   await expect(kitchen.getByTestId(`ready-${token}`)).toBeVisible({ timeout: 5000 });
   await kitchen.getByRole('button', { name: 'Close' }).click();
-  await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 });
+  await kitchen
+    .getByTestId(`ready-${token}`)
+    .getByRole('button', { name: /handed over/ })
+    .click({ timeout: 5000 });
   await expect(kitchen.getByTestId(`ready-${token}`)).toHaveCount(0, { timeout: 5000 });
 });
 
@@ -178,9 +184,35 @@ test('cash order waits for the counter before reaching the rail', async ({ brows
   await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // Start
   await expect(kitchen.getByTestId(`go-${token}`)).toContainText('Ready');
   await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // Ready
-  await expect(kitchen.getByTestId(`ready-${token}`)).toBeVisible({ timeout: 5000 });
-  await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 }); // Handed over
-  await expect(kitchen.getByTestId(`ready-${token}`)).toHaveCount(0, { timeout: 5000 });
+  const plate = kitchen.getByTestId(`ready-${token}`);
+  await expect(plate).toBeVisible({ timeout: 5000 });
+
+  // Marked ready by mistake: a small line, then a question that takes Handed over's place.
+  await kitchen.getByTestId(`not-ready-${token}`).click();
+  await expect(plate).toContainText('is not ready?');
+  await expect(plate.getByRole('button', { name: /handed over/ })).toHaveCount(0); // it can't be hit by mistake now
+  await kitchen.getByTestId(`not-ready-no-${token}`).click(); // changed their mind
+  await expect(plate.getByRole('button', { name: /handed over/ })).toBeVisible();
+  expect((await (await kiosk.request.get(`/api/orders/${id}`)).json()).status).toBe('ready');
+  await kitchen.getByTestId(`not-ready-${token}`).click();
+  await kitchen.getByTestId(`not-ready-yes-${token}`).click();
+  await expect(plate).toHaveCount(0, { timeout: 5000 });
+  await expect(kitchen.getByTestId(`go-${token}`)).toContainText('Ready'); // back with the cook
+  expect((await (await kiosk.request.get(`/api/orders/${id}`)).json()).status).toBe('cooking');
+  // the same from Today's orders, for when the shelf is too full to show the line
+  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // Ready again
+  await expect(plate).toBeVisible({ timeout: 5000 });
+  await kitchen.getByTestId('open-history').click();
+  await kitchen.getByTestId(`day-not-ready-${token}`).click();
+  await expect(kitchen.getByTestId(`day-not-ready-${token}`)).toHaveText('Sure?');
+  await kitchen.getByTestId(`day-not-ready-${token}`).click();
+  await expect.poll(async () => (await (await kiosk.request.get(`/api/orders/${id}`)).json()).status).toBe('cooking');
+  await kitchen.keyboard.press('Escape');
+  await kitchen.goto('/kitchen');
+  await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 }); // Ready, for real this time
+
+  await plate.getByRole('button', { name: /handed over/ }).click({ timeout: 5000 }); // Handed over
+  await expect(plate).toHaveCount(0, { timeout: 5000 });
 });
 
 test('status changes need the staff PIN', async ({ request }) => {
@@ -230,7 +262,10 @@ test("UPI: customer taps I've paid, counter confirms on the soundbox", async ({ 
   // tidy up for the next test
   await kitchen.getByTestId(`go-${token}`).click();
   await kitchen.getByTestId(`go-${token}`).click({ timeout: 5000 });
-  await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 });
+  await kitchen
+    .getByTestId(`ready-${token}`)
+    .getByRole('button', { name: /handed over/ })
+    .click({ timeout: 5000 });
 });
 
 test('UPI: cancelling at the kiosk clears it from the payment shelf', async ({ browser }) => {
@@ -525,7 +560,11 @@ test('a busy counter shelf shrinks its cards so every ready order stays on scree
   expect(Number(await pass.getAttribute('data-density'))).toBeGreaterThan(0);
   expect(await pass.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true); // nothing pushed off
   await expect(kitchen.getByTestId(`ready-${tokens[0]}`)).toBeInViewport(); // the oldest one too
-  for (const t of tokens) await kitchen.getByTestId(`ready-${t}`).getByRole('button').click();
+  for (const t of tokens)
+    await kitchen
+      .getByTestId(`ready-${t}`)
+      .getByRole('button', { name: /handed over/ })
+      .click();
   await expect(pass).toHaveAttribute('data-density', '0', { timeout: 5000 });
 });
 

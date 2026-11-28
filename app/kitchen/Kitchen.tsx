@@ -250,7 +250,13 @@ export default function Kitchen() {
         )}
       </Tray>
 
-      {showHistory && <History onClose={() => setShowHistory(false)} onRecall={(o) => move(o, 'ready', false)} />}
+      {showHistory && (
+        <History
+          onClose={() => setShowHistory(false)}
+          onRecall={(o) => move(o, 'ready', false)}
+          onUnready={(o) => move(o, 'cooking', false)}
+        />
+      )}
       {pinChecked && !pin && (
         <PinGate
           title="Kitchen"

@@ -24,7 +24,16 @@ const time = (iso: string) =>
   });
 
 // Today's orders, newest first. Staff can bring a collected order back to the counter shelf.
-export function History({ onClose, onRecall }: { onClose: () => void; onRecall: (o: Order) => void }) {
+export function History({
+  onClose,
+  onRecall,
+  onUnready,
+}: {
+  onClose: () => void;
+  onRecall: (o: Order) => void;
+  onUnready: (o: Order) => void; // marked ready by mistake: back to the cook
+}) {
+  const [sure, setSure] = useState<string | null>(null);
   const orders = useTodayOrders(true, 5000);
   const list = orders ?? [];
   const paid = list.filter(counts); // the same rule as the owner's dashboard: paid, not refunded
@@ -96,6 +105,19 @@ export function History({ onClose, onRecall }: { onClose: () => void; onRecall: 
                   }}
                 >
                   Back to counter
+                </button>
+              ) : o.status === 'ready' ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (sure === o.id) {
+                      setSure(null);
+                      onUnready(o);
+                    } else setSure(o.id);
+                  }}
+                  data-testid={`day-not-ready-${o.token}`}
+                >
+                  {sure === o.id ? 'Sure?' : 'Not ready'}
                 </button>
               ) : (
                 <i />
