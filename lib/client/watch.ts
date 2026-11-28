@@ -7,6 +7,15 @@ import { timeLimit } from './http';
 import { usePoll } from './poll';
 
 const DEVICE_KEY = 'benne14.device';
+// Which of the shop's screens this device last showed, and where each lives: the plain address
+// sends a returning device back to its screen (app/Landing.tsx).
+export const SCREEN_KEY = 'benne14.screen';
+export const SCREEN_PATH: Record<string, string> = {
+  kiosk: '/kiosk',
+  kitchen: '/kitchen',
+  board: '/board',
+  owner: '/admin',
+};
 function deviceId(): string | null {
   try {
     let id = localStorage.getItem(DEVICE_KEY);
@@ -62,6 +71,13 @@ export function useWatch(kind: 'kiosk' | 'kitchen' | 'board' | 'owner', screen =
       signal: timeLimit(8000),
     }).catch(() => {});
   }, BEAT_MS);
+  useEffect(() => {
+    try {
+      localStorage.setItem(SCREEN_KEY, kind);
+    } catch {
+      // no storage: the plain address will not know this device, and that is all
+    }
+  }, [kind]);
   useEffect(() => {
     const onError = (e: ErrorEvent) => reportError(kind, e.error ?? e.message, showing.current);
     const onReject = (e: PromiseRejectionEvent) => reportError(kind, e.reason, showing.current);

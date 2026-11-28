@@ -1905,6 +1905,36 @@
   color: var(--chilli);
   font-weight: 600;
 }
+.adm .dev:has(.devbtn) {
+  grid-template-columns: 12px 1fr auto;
+}
+.adm .dev.idle span,
+.adm .dev.other span {
+  color: var(--cream-2);
+  font-weight: 400;
+}
+.adm .devbtn,
+.adm .devacts button {
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1.5px solid var(--line);
+  background: var(--s1);
+}
+.adm .devacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+.adm .otherdevs {
+  margin-top: 18px;
+}
+.adm .otherdevs h4 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
 .adm .errrow {
   display: grid;
   grid-template-columns: 86px 1fr;

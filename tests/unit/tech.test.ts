@@ -112,7 +112,15 @@ describe('the report to paste', () => {
     kitchen: { waiting: 2, unstarted: 0, readyMedianMin: 6, readyWorstMin: 20 },
     ordersToday: 41,
     devices: [
-      { id: 'kiosk0000001', kind: 'kiosk', screen: 'home', build: 'abc1234', firstSeen: at(600), seenAt: at(0) },
+      {
+        id: 'kiosk0000001',
+        kind: 'kiosk',
+        shop: false,
+        screen: 'home',
+        build: 'abc1234',
+        firstSeen: at(600),
+        seenAt: at(0),
+      },
     ],
     problems: [{ key: 'm', level: 'bad', text: 'A database update is waiting', hint: 'Run 0014' }],
     db: { bytes: 31_457_280, rows: { orders: 1200 }, firstOrder: '2026-11-01T03:00:00Z' },

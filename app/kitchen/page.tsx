@@ -2,7 +2,7 @@ import { Fit } from '@/components/Fit';
 import Kitchen from './Kitchen';
 import './kitchen.css';
 
-export const metadata = { title: 'benne 14 — Kitchen' };
+export const metadata = { title: 'benne 14 — Kitchen', manifest: '/kitchen.webmanifest' };
 
 export default function KitchenPage() {
   return (

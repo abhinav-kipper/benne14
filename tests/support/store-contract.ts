@@ -386,6 +386,32 @@ export function storeContract(name: string, fresh: () => Promise<Store>) {
       expect(list[1].firstOrderAt <= list[1].lastOrderAt).toBe(true);
     });
 
+    it('one device of each kind can be the shop’s own; the rest can be forgotten', async () => {
+      await s.beat({ id: 'kiosk0000001', kind: 'kiosk', screen: 'home', build: 'v1' });
+      await s.beat({ id: 'kiosk0000002', kind: 'kiosk', screen: 'home', build: 'v1' });
+      await s.beat({ id: 'kitchen00001', kind: 'kitchen', screen: null, build: 'v1' });
+      expect((await s.listDevices()).every((d) => d.shop === false)).toBe(true);
+      const shops = async () =>
+        (await s.listDevices())
+          .filter((d) => d.shop)
+          .map((d) => d.id)
+          .sort();
+      await s.markDevice('kiosk0000001', true);
+      await s.markDevice('kitchen00001', true);
+      expect(await shops()).toEqual(['kiosk0000001', 'kitchen00001']);
+      await s.markDevice('kiosk0000002', true); // a new tablet takes the old one's place
+      expect(await shops()).toEqual(['kiosk0000002', 'kitchen00001']);
+      await s.beat({ id: 'kiosk0000002', kind: 'kiosk', screen: 'cart', build: 'v2' }); // a beat keeps the mark
+      expect(await shops()).toEqual(['kiosk0000002', 'kitchen00001']);
+      await s.markDevice('kitchen00001', false);
+      expect(await shops()).toEqual(['kiosk0000002']);
+
+      await s.forgetDevices('kitchen00001');
+      expect((await s.listDevices()).map((d) => d.id).sort()).toEqual(['kiosk0000001', 'kiosk0000002']);
+      expect(await s.forgetDevices(null)).toBe(1); // everything that is not a shop screen
+      expect((await s.listDevices()).map((d) => d.id)).toEqual(['kiosk0000002']);
+    });
+
     it('remembers which screens are alive and what went wrong, newest first', async () => {
       expect(await s.listDevices()).toEqual([]);
       expect(await s.listErrors()).toEqual([]);

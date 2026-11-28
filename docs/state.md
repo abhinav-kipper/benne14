@@ -51,6 +51,8 @@ section A are open.
 
 ## Done
 
+- 2026-11-28 — Shop screens: the owner picks which device is the shop's kiosk, kitchen tablet and TV (System → Screens); only those are watched for going silent, other phones and laptops sit in a list that can be forgotten (migration 0017). Preview links no longer register as screens. The plain address lists nothing: a device that used a screen before is sent back to it, anyone else sees "Page not found". Each screen installs as its own app (`/kiosk.webmanifest` and so on).
+
 - 2026-11-28 — Wording: "sambar" and "benne 14" everywhere customers and the owner read; plain dish descriptions. The owner can delete a dish they added (from its page or the Hidden list) and a section they added together with its dishes; dishes and sections that came with the app can only be hidden.
 
 - 2026-11-28 — Audit of the two days of launch changes by a second reader: money maths and "never paid without asking Easebuzz" hold. Fixed what it found: a customer mid-order keeps their extras when the owner gives the dish its own list (and is brought back to the cart instead of shown a refusal); a cancelled UPI order's QR is closed at Easebuzz whoever cancels it; a settled InstaCollect payment counts as paid; a new dish is not duplicated when its extras fail to save. Kiosk back buttons use the short chevron.

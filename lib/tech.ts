@@ -162,7 +162,9 @@ export function reportText(r: TechReport): string {
   line();
   line('SCREENS');
   for (const d of r.devices)
-    line(`- ${d.kind} ${d.id}: last heard ${d.seenAt}, showing ${d.screen ?? '-'}, build ${d.build ?? '-'}`);
+    line(
+      `- ${d.kind}${d.shop ? ' (the shop’s)' : ''} ${d.id}: last heard ${d.seenAt}, showing ${d.screen ?? '-'}, build ${d.build ?? '-'}`,
+    );
   if (!r.devices.length) line('- none seen');
   line();
   line('SPEED, last 24 h (count, failed, median / 95% / worst in ms)');

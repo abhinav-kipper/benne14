@@ -41,19 +41,16 @@ export default function Admin() {
   useWatch('owner', tab);
   // The shop's screens and anything that needs a look, for the line on Today and the System page.
   const [sys, setSys] = useState<SystemReport | null>(null);
-  usePoll(
-    async () => {
-      if (!pin) return;
-      try {
-        setSys(await admin.system(pin));
-      } catch (e) {
-        onAuthError(e);
-        return false;
-      }
-    },
-    tab === 'system' ? 10_000 : 30_000,
-    !!pin,
-  );
+  const loadSys = useCallback(async () => {
+    if (!pin) return;
+    try {
+      setSys(await admin.system(pin));
+    } catch (e) {
+      onAuthError(e);
+      return false;
+    }
+  }, [pin, onAuthError]);
+  usePoll(loadSys, tab === 'system' ? 10_000 : 30_000, !!pin);
   // Dish photos for the reports, owner-made dishes included. Refreshed when the owner changes tab.
   const { catalog, reload } = useMenu(true);
   useEffect(() => {
@@ -85,7 +82,9 @@ export default function Admin() {
         {tab === 'today' && (
           <Today {...ctx} live={live.orders ?? []} refreshLive={live.refresh} go={setTab} sys={sys} />
         )}
-        {tab === 'system' && <System {...ctx} sys={sys} back={() => setTab('today')} openTech={() => setTab('tech')} />}
+        {tab === 'system' && (
+          <System {...ctx} sys={sys} reload={loadSys} back={() => setTab('today')} openTech={() => setTab('tech')} />
+        )}
         {tab === 'tech' && <Tech {...ctx} back={() => setTab('system')} />}
         {tab === 'orders' && <Orders {...ctx} refreshLive={live.refresh} />}
         {tab === 'menu' && <Menu {...ctx} openHistory={() => setTab('history')} />}

@@ -381,7 +381,8 @@ export class MemoryStore {
   async beat(d: { id: string; kind: DeviceKind; screen: string | null; build: string | null }) {
     const now = new Date().toISOString();
     if (!this.devices.has(d.id) && this.devices.size >= MAX_DEVICES) return;
-    this.devices.set(d.id, { ...d, firstSeen: this.devices.get(d.id)?.firstSeen ?? now, seenAt: now });
+    const was = this.devices.get(d.id);
+    this.devices.set(d.id, { ...d, firstSeen: was?.firstSeen ?? now, seenAt: now, shop: was?.shop ?? false });
   }
 
   async listDevices() {
@@ -389,6 +390,24 @@ export class MemoryStore {
     return [...this.devices.values()]
       .filter((d) => Date.parse(d.seenAt) > since)
       .sort((a, b) => b.seenAt.localeCompare(a.seenAt));
+  }
+
+  async markDevice(id: string, shop: boolean) {
+    const d = this.devices.get(id);
+    if (!d) throw new StoreError('No such screen', 404);
+    // one shop screen of each kind: picking this one lets go of the other
+    if (shop) for (const o of this.devices.values()) if (o.kind === d.kind) o.shop = false;
+    d.shop = shop;
+  }
+
+  async forgetDevices(id: string | null) {
+    if (id) {
+      if (!this.devices.delete(id)) throw new StoreError('No such screen', 404);
+      return 1;
+    }
+    const gone = [...this.devices.values()].filter((d) => !d.shop);
+    for (const d of gone) this.devices.delete(d.id);
+    return gone.length;
   }
 
   async logError(e: Omit<ErrorEntry, 'at'>) {

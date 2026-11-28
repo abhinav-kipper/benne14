@@ -3,7 +3,7 @@ import type { PushSub } from '../index';
 import { FORGET_MS, type Alert, type Device, type DeviceKind, type ErrorEntry } from '../../system';
 import type { DbStats, Timing } from '../../tech';
 import { MAX_DEVICES, MAX_ERRORS, MAX_SUBS, MAX_TIMINGS, StoreError, sortAlerts } from '../memory';
-import { missing, storeError, type Db } from './shared';
+import { missing, noColumn, storeError, type Db } from './shared';
 
 // None of these may ever throw into a screen: a failed "I'm here" or a failed error report is
 // dropped (and before migration 0012 they simply do nothing).
@@ -28,22 +28,27 @@ export async function beat(db: Db, d: { id: string; kind: DeviceKind; screen: st
 }
 
 export async function listDevices(db: Db): Promise<Device[]> {
-  const { data, error } = await db
-    .from('devices')
-    .select('id,kind,screen,build,first_seen,seen_at')
-    .gt('seen_at', new Date(Date.now() - FORGET_MS).toISOString())
-    .order('seen_at', { ascending: false })
-    .limit(MAX_DEVICES);
+  const read = (cols: string) =>
+    db
+      .from('devices')
+      .select(cols)
+      .gt('seen_at', new Date(Date.now() - FORGET_MS).toISOString())
+      .order('seen_at', { ascending: false })
+      .limit(MAX_DEVICES);
+  let { data, error } = await read('id,kind,screen,build,first_seen,seen_at,shop');
+  // before migration 0017 no screen can be picked as the shop's own: list them all, unpicked
+  if (noColumn(error)) ({ data, error } = await read('id,kind,screen,build,first_seen,seen_at'));
   if (missing(error)) return [];
   if (error) throw new StoreError(error.message, 500);
   return (
-    data as {
+    data as unknown as {
       id: string;
       kind: DeviceKind;
       screen: string | null;
       build: string | null;
       first_seen: string;
       seen_at: string;
+      shop?: boolean;
     }[]
   ).map((r) => ({
     id: r.id,
@@ -52,7 +57,34 @@ export async function listDevices(db: Db): Promise<Device[]> {
     build: r.build,
     firstSeen: r.first_seen,
     seenAt: r.seen_at,
+    shop: !!r.shop,
   }));
+}
+
+const NEEDS_0017 = 'Run supabase/migrations/0017_shop_screens.sql in Supabase first';
+export async function markDevice(db: Db, id: string, shop: boolean) {
+  const { data, error } = await db.from('devices').select('id,kind').eq('id', id).maybeSingle();
+  if (error) throw new StoreError(error.message, 500);
+  if (!data) throw new StoreError('No such screen', 404);
+  const kind = (data as unknown as { kind: DeviceKind }).kind;
+  // one shop screen of each kind: picking this one lets go of the other
+  if (shop) {
+    const off = await db.from('devices').update({ shop: false }).eq('kind', kind).neq('id', id);
+    if (noColumn(off.error)) throw new StoreError(NEEDS_0017, 503);
+    if (off.error) throw new StoreError(off.error.message, 500);
+  }
+  const set = await db.from('devices').update({ shop }).eq('id', id);
+  if (noColumn(set.error)) throw new StoreError(NEEDS_0017, 503);
+  if (set.error) throw new StoreError(set.error.message, 500);
+}
+
+export async function forgetDevices(db: Db, id: string | null) {
+  const q = db.from('devices').delete();
+  const { data, error } = await (id ? q.eq('id', id) : q.eq('shop', false)).select('id');
+  if (noColumn(error)) throw new StoreError(NEEDS_0017, 503);
+  if (error) throw new StoreError(error.message, 500);
+  if (id && !(data as unknown[]).length) throw new StoreError('No such screen', 404);
+  return (data as unknown[]).length;
 }
 
 export async function logError(db: Db, e: Omit<ErrorEntry, 'at'>) {

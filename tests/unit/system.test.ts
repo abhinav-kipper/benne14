@@ -17,6 +17,7 @@ const dev = (kind: Device['kind'], seenMinsAgo: number, over: Partial<Device> = 
   kind,
   screen: null,
   build: 'v2',
+  shop: false,
   firstSeen: at(600),
   seenAt: at(seenMinsAgo),
   ...over,
@@ -69,6 +70,25 @@ describe('system page: what needs the owner’s eye', () => {
       ['warn', 'TV board has been silent since 9 min ago'],
     ]);
     expect(p[0].hint).toContain('Wi-Fi');
+  });
+
+  it('once the shop’s own kiosk is picked, a phone showing the kiosk no longer hides a dead tablet', () => {
+    const phone = dev('kiosk', 0, { id: 'phone0000001' });
+    const tablet = dev('kiosk', 5, { id: 'tablet000001' });
+    // nothing picked: any live kiosk counts
+    expect(problems(input({ devices: [phone, tablet] })).filter((p) => p.text.includes('Kiosk'))).toEqual([]);
+    const picked = problems(input({ devices: [phone, { ...tablet, shop: true }] }));
+    expect(picked.map((p) => [p.level, p.text])).toContainEqual(['bad', 'Kiosk has been silent since 5 min ago']);
+    // and a dead phone is nobody's problem while the shop's tablet is alive
+    const fine = problems(
+      input({
+        devices: [
+          { ...phone, seenAt: tablet.seenAt },
+          { ...tablet, shop: true, seenAt: phone.seenAt },
+        ],
+      }),
+    );
+    expect(fine.filter((p) => p.text.includes('Kiosk'))).toEqual([]);
   });
 
   it('a silent screen after closing time is not a problem, and a screen never connected is not a fault', () => {

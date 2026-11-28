@@ -310,12 +310,35 @@ test('phone screens can be zoomed; the kiosk cannot', async ({ page }) => {
   expect(await viewport('/r/00000000-0000-0000-0000-000000000000')).toContain('maximum-scale=5');
 });
 
-test('installable: the app icons and manifest are served', async ({ request }) => {
-  const m = await (await request.get('/manifest.webmanifest')).json();
-  const pngs = m.icons.filter((i: { type: string }) => i.type === 'image/png');
-  expect(pngs.length).toBeGreaterThanOrEqual(3);
-  for (const i of pngs) expect((await request.get(i.src)).status(), i.src).toBe(200);
+test('installable: each screen installs as its own app; the plain address shows nothing to a stranger', async ({
+  page,
+  request,
+}) => {
+  for (const [path, file] of [
+    ['/kiosk', '/kiosk.webmanifest'],
+    ['/kitchen', '/kitchen.webmanifest'],
+    ['/board', '/board.webmanifest'],
+    ['/admin', '/admin.webmanifest'],
+  ]) {
+    const m = await (await request.get(file)).json();
+    expect(m.start_url, file).toBe(path); // the installed app opens this screen and stays on it
+    expect(m.scope, file).toBe(path);
+    const pngs = m.icons.filter((i: { type: string }) => i.type === 'image/png');
+    expect(pngs.length).toBeGreaterThanOrEqual(3);
+    for (const i of pngs) expect((await request.get(i.src)).status(), i.src).toBe(200);
+    expect(await (await request.get(path)).text(), path).toContain(`href="${file}"`);
+  }
   expect((await request.get('/icon.png')).status()).toBe(200); // the browser-tab icon
+
+  // no list of the shop's screens at the plain address
+  await page.goto('/');
+  await expect(page.getByTestId('nothing-here')).toBeVisible();
+  await expect(page.locator('a')).toHaveCount(0);
+  // a device that has shown a screen before goes straight back to it
+  await page.goto('/board');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('benne14.screen'))).toBe('board');
+  await page.goto('/');
+  await page.waitForURL('**/board');
 });
 
 test('+ opens the dish so extras are offered; the price with GST is explained', async ({ page }) => {

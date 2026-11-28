@@ -1331,7 +1331,7 @@ test('the start screen, the suggestions and the TV follow a hidden dish and a ne
 // ---- System: which screens are alive, and what went wrong ----
 const system = async (r: APIRequestContext) =>
   (await (await r.get('/api/admin/system', { headers: H })).json()) as {
-    devices: { id: string; kind: string; screen: string | null; build: string | null; seenAt: string }[];
+    devices: { id: string; kind: string; screen: string | null; build: string | null; seenAt: string; shop: boolean }[];
     errors: { source: string; message: string; detail: string | null }[];
     problems: { level: string; text: string }[];
     build: string;
@@ -1430,15 +1430,59 @@ test('the owner app shows which screens are alive, and an error a screen ran int
   await expect(line).toBeVisible();
   await line.click();
   const sysPage = page.getByTestId('system');
-  await expect(sysPage.getByTestId('dev-kiosk').first()).toContainText('Online');
-  await expect(sysPage.getByTestId('dev-kitchen').first()).toContainText('Online');
-  await expect(sysPage.getByTestId('dev-board').first()).toBeVisible(); // the TV has its line, connected or not
+  // nothing is picked yet: each screen has its line, and the devices seen wait in the list below
+  await expect(sysPage.getByTestId('dev-kiosk')).toContainText('Not picked yet');
+  await expect(sysPage.getByTestId('dev-board')).toBeVisible(); // the TV has its line, connected or not
+  await expect(sysPage.getByTestId('other-device').filter({ hasText: 'Online' }).first()).toBeVisible();
   const row = sysPage.getByTestId('errrow').filter({ hasText: 'crash test' }).first();
   await expect(row).toContainText('screen crashed');
   await row.click();
   await expect(row.locator('code')).toBeVisible(); // the detail, for whoever fixes it
   await kiosk.context().close();
   await kctx.close();
+});
+
+test('the owner picks the shop’s own screens and clears the rest', async ({ page, request }) => {
+  const from = { 'x-forwarded-for': '10.7.7.8' };
+  const beat = (id: string, kind: string) =>
+    request.post('/api/beat', { data: { id, kind, screen: 'home', build: 'v' }, headers: from });
+  const post = (data: object) => request.post('/api/admin/system', { data, headers: H });
+  // from its own address: wrong PINs are counted per address and this file has many
+  expect((await request.post('/api/admin/system', { data: { forgetOthers: true }, headers: from })).status()).toBe(401);
+  for (const bad of [{}, { shop: 7 }, { shop: 'nosuchdevice1' }, { forget: 'BAD ID!' }, { forgetOthers: 'yes' }])
+    expect((await post(bad)).status(), JSON.stringify(bad)).toBeGreaterThanOrEqual(400);
+  await post({ forgetOthers: true });
+  for (const [id, kind] of [
+    ['shopkiosk001', 'kiosk'],
+    ['phonekiosk01', 'kiosk'],
+    ['phonekiosk02', 'kiosk'],
+    ['shopkitchen1', 'kitchen'],
+  ])
+    expect((await beat(id, kind)).ok()).toBe(true);
+
+  await owner(page);
+  await page.getByTestId('sysline').click();
+  const screens = page.getByTestId('screens');
+  await expect(screens.getByTestId('dev-kiosk')).toContainText('Not picked yet');
+  const kiosks = screens.getByTestId('other-device').filter({ hasText: 'Kiosk' });
+  await expect(kiosks).toHaveCount(3);
+  await kiosks.first().getByTestId('pick').click();
+  await expect(screens.getByTestId('dev-kiosk')).toContainText('Online');
+  await expect(screens.getByTestId('other-device').filter({ hasText: 'Kiosk' })).toHaveCount(2);
+  let sys = await system(request);
+  expect(sys.devices.filter((d) => d.kind === 'kiosk' && d.shop)).toHaveLength(1);
+
+  // one device forgotten, then all the rest: the shop's own kiosk stays
+  await screens.getByTestId('other-device').filter({ hasText: 'Kiosk' }).first().getByTestId('forget').click();
+  await expect(screens.getByTestId('other-device').filter({ hasText: 'Kiosk' })).toHaveCount(1);
+  await screens.getByTestId('forget-all').click();
+  await screens.getByTestId('forget-all-yes').click();
+  await expect(screens.getByTestId('other-devices')).toHaveCount(0, { timeout: 8000 });
+  sys = await system(request);
+  expect(sys.devices.filter((d) => d.shop).map((d) => d.kind)).toEqual(['kiosk']);
+  // "Change" puts it back in the list
+  await screens.getByTestId('unpick-kiosk').click();
+  await expect(screens.getByTestId('dev-kiosk')).toContainText('Not picked yet');
 });
 
 test('system API: the page needs the PIN; the two open endpoints take only short, well-formed reports', async ({
