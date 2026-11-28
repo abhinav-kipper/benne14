@@ -133,7 +133,8 @@ describe('reports agree with each other over random days', () => {
       rand() < 0.25
         ? { code: 'TEN', kind: 'percent' as const, value: 10, minOrder: null, maxDiscount: rand() < 0.5 ? 30 : null }
         : null;
-    const priced = priceOrder(cart, undefined, code);
+    const type = pick(['dine_in', 'takeaway'] as const);
+    const priced = priceOrder(cart, undefined, code, type); // takeaways carry packaging
     const status = pick([
       'handed_over',
       'handed_over',
@@ -152,7 +153,7 @@ describe('reports agree with each other over random days', () => {
       id: `o-${n}`,
       token: String(n + 1),
       tokenDay: day,
-      type: pick(['dine_in', 'takeaway'] as const),
+      type,
       customerName: null,
       payMethod: pick(['upi', 'card', 'cash'] as const),
       status,
@@ -192,8 +193,10 @@ describe('reports agree with each other over random days', () => {
     expect(sum([s.gst.taxable, s.gst.cgst, s.gst.sgst, s.gst.roundOff])).toBe(s.gst.total);
     expect(s.gst.total).toBe(s.takings);
     expect(s.gst.cgst).toBe(s.gst.sgst);
-    // dishes + extras − discounts is the taxable value: nothing sold is missing from the dish report
-    expect(sum(s.dishes.map((d) => d.amount)) + s.extras.amount - s.discounts.amount).toBe(s.gst.taxable);
+    // dishes + extras + packaging − discounts is the taxable value: nothing sold is missing from the dish report
+    expect(sum(s.dishes.map((d) => d.amount)) + s.extras.amount + s.packaging.amount - s.discounts.amount).toBe(
+      s.gst.taxable,
+    );
     expect(sum(s.dishes.map((d) => d.qty))).toBe(sum(kept.map((o) => o.itemCount)));
   });
 
@@ -204,14 +207,15 @@ describe('reports agree with each other over random days', () => {
   });
 
   it('the bills CSV, the GST-by-day CSV and the dish CSV all give the dashboard’s numbers', () => {
-    const bills = rows(billsCsv(orders)); // Date, Time, Invoice, Order, …, Discount, Code, Taxable value, CGST, SGST, Round off, Total, Refunded, Reason
-    const live = bills.filter((r) => r[14] === '');
+    const bills = rows(billsCsv(orders)); // Date, Time, Invoice, Order, …, Discount, Code, Packaging, Taxable value, CGST, SGST, Round off, Total, Refunded, Reason
+    const live = bills.filter((r) => r[15] === '');
     expect(live.length).toBe(s.orders);
-    expect(sum(live.map((r) => +r[13]))).toBe(s.takings);
-    expect(sum(live.map((r) => +r[9]))).toBe(s.gst.taxable);
+    expect(sum(live.map((r) => +r[14]))).toBe(s.takings);
+    expect(sum(live.map((r) => +r[10]))).toBe(s.gst.taxable);
     expect(sum(live.map((r) => +r[7] || 0))).toBe(s.discounts.amount);
-    expect(sum(bills.filter((r) => r[14] !== '').map((r) => +r[14]))).toBe(s.refunds.amount);
-    for (const r of bills) expect(sum([+r[9], +r[10], +r[11], +r[12]])).toBe(+r[13]); // every bill adds up on its own
+    expect(sum(live.map((r) => +r[9] || 0))).toBe(s.packaging.amount);
+    expect(sum(bills.filter((r) => r[15] !== '').map((r) => +r[15]))).toBe(s.refunds.amount);
+    for (const r of bills) expect(sum([+r[10], +r[11], +r[12], +r[13]])).toBe(+r[14]); // every bill adds up on its own
 
     const gst = rows(gstCsv(orders, from, to)); // Date, Bills, Taxable, CGST, SGST, Round off, Total
     expect(gst.length).toBe(3);
@@ -221,7 +225,7 @@ describe('reports agree with each other over random days', () => {
     expect(sum(gst.map((r) => +r[5]))).toBe(s.gst.roundOff);
     expect(sum(gst.map((r) => +r[6]))).toBe(s.takings);
 
-    const dishes = rows(dishesCsv(orders, from, to)); // Dish, Sold, Amount: dishes, then Extras, then Discount codes (minus)
+    const dishes = rows(dishesCsv(orders, from, to)); // Dish, Sold, Amount: dishes, then Extras, Packaging, then Discount codes (minus)
     expect(sum(dishes.map((r) => +r[2]))).toBe(s.gst.taxable);
   });
 });

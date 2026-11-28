@@ -86,7 +86,7 @@ async function place(req: Request) {
         return json({ error: `Code ${code} is no longer valid. Remove it to continue.` }, 409);
       rule = found;
     }
-    const priced = priceOrder(b.lines as CartLine[], catalog, rule);
+    const priced = priceOrder(b.lines as CartLine[], catalog, rule, b.type);
     // The customer was shown a discount: never charge the full price without saying so.
     if (rule && !priced.discountCode)
       return json(

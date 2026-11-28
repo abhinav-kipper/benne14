@@ -29,7 +29,16 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   await expect(kiosk.locator('.k-cart .rows')).toContainText('₹18.10'); // the tax to the paisa
   await expect(kiosk.getByTestId('round-off')).toContainText('−₹0.10'); // and what rounding the total took
   await kiosk.getByPlaceholder('Your name').fill('Rahul');
+  await expect(kiosk.getByTestId('packaging-row')).toHaveCount(0); // no packaging until it is a takeaway
   await kiosk.getByTestId('takeaway').click(); // dine in / takeaway is asked in the cart
+  // takeaway adds packaging: ₹15 for the dosa, ₹5 for each of the two coffees, and GST on it
+  await expect(kiosk.getByTestId('packaging-row')).toContainText('₹25.00');
+  await expect(kiosk.getByTestId('cart-total')).toHaveText('₹406'); // 362 + 25 = 387, + ₹19.36 GST = 406.36
+  await kiosk.getByTestId('dine-in').click();
+  await expect(kiosk.getByTestId('packaging-row')).toHaveCount(0);
+  await expect(kiosk.getByTestId('cart-total')).toHaveText('₹380');
+  await kiosk.getByTestId('takeaway').click();
+  await expect(kiosk.getByTestId('cart-total')).toHaveText('₹406');
   await kiosk.getByTestId('continue-to-pay').click();
   // the UPI tile says to tap it (a drawing of a QR there made customers try to scan the tile)
   await expect(kiosk.getByTestId('pay-upi')).toContainText('Tap here to get your QR code');
@@ -73,10 +82,11 @@ test('kiosk → kitchen → TV board → phone bill', async ({ browser }) => {
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await phone.goto(`/r/${id}`);
   await expect(phone.getByTestId('receipt-status')).toContainText('Ready');
-  await expect(phone.getByTestId('bill-total')).toHaveText('₹380.00');
-  await expect(phone.getByTestId('bill')).toContainText('₹9.05'); // CGST and SGST, each to the paisa
+  await expect(phone.getByTestId('bill-total')).toHaveText('₹406.00');
+  await expect(phone.getByTestId('bill-packaging')).toContainText('₹25.00');
+  await expect(phone.getByTestId('bill')).toContainText('₹9.68'); // CGST and SGST, each to the paisa
   await expect(phone.getByTestId('bill')).toContainText('Round off');
-  await expect(phone.getByTestId('bill')).toContainText('−₹0.10');
+  await expect(phone.getByTestId('bill')).toContainText('−₹0.36');
 
   // Hand it over so the next test starts with a clear board, like a real shift.
   await kitchen.getByTestId(`ready-${token}`).getByRole('button').click({ timeout: 5000 }); // Handed over
@@ -888,7 +898,7 @@ test('the order-number screen promises no time, says what was paid, and explains
   await page.getByTestId('simulate-paid').click();
   const ticket = page.getByTestId('token');
   await expect(ticket).toBeVisible();
-  await expect(ticket).toContainText('Paid ₹51 · UPI');
+  await expect(ticket).toContainText('Paid ₹57 · UPI');
   const screen = page.locator('.k-done');
   for (const gone of [/Ready in/, /\bmin\b/, /Track/]) await expect(screen).not.toContainText(gone);
   await expect(screen).toContainText('Scan for your bill');

@@ -169,7 +169,10 @@ export default function Kiosk({ mock = false, testMode = false }: { mock?: boole
     };
   }, [screen, idle]);
 
-  const priced = useMemo(() => (lines.length ? priceOrder(lines, catalog, code) : null), [lines, catalog, code]);
+  const priced = useMemo(
+    () => (lines.length ? priceOrder(lines, catalog, code, type) : null),
+    [lines, catalog, code, type],
+  );
   const count = priced?.itemCount ?? 0;
 
   const addLine = (l: CartLine) =>

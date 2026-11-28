@@ -15,7 +15,7 @@ const key = () => `api-${Date.now()}-${k++}`;
 const line = (itemId = 'masala-dosa', qty = 1) => ({ itemId, qty, choices: {}, notes: [] });
 const place = (r: APIRequestContext, data: Record<string, unknown>) =>
   r.post('/api/orders', {
-    data: { key: key(), type: 'takeaway', name: null, payMethod: 'cash', lines: [line()], ...data },
+    data: { key: key(), type: 'dine_in', name: null, payMethod: 'cash', lines: [line()], ...data },
   });
 const status = (r: APIRequestContext, id: string, data: unknown, pin = PIN, ip = '127.0.0.1') =>
   r.post(`/api/orders/${id}/status`, { data: data as object, headers: { 'x-staff-pin': pin, 'x-forwarded-for': ip } });
@@ -76,7 +76,9 @@ test('the server sets every price; whatever the client sends is ignored', async 
   });
   const o = await r.json();
   expect(o.lines[0].unitPrice).toBe(234); // 209 + 25 extra benne
-  expect(o.total).toBe(246); // 234 + ₹12 GST
+  expect(o.lines[0].pack).toBe(15); // takeaway: packaging is the server's to add, too
+  expect(o.subtotal).toBe(249);
+  expect(o.total).toBe(261); // 234 + ₹15 packaging = 249, + ₹12.45 GST = 261.45
 });
 
 test('names are cleaned before they reach the TV', async ({ request }) => {

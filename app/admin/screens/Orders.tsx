@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { admin, api, ApiError, useTodayOrders } from '@/lib/client';
 import { counts, type Order, type OrderEvent } from '@/lib/orders';
+import { packagingOf } from '@/lib/pricing';
 import { Bar, PAY, STATUS, inr, inr2, time, type Ctx } from './shared';
 
 export function Orders(p: Ctx & { refreshLive: () => void }) {
@@ -189,8 +190,14 @@ function OrderSheet(p: Ctx & { o: Order; close: () => void; changed: (o: Order) 
               <span>−{inr2(o.savings)}</span>
             </div>
           )}
+          {packagingOf(o.lines) > 0 && (
+            <div className="row" data-testid="order-packaging">
+              <span>Packaging</span>
+              <span>{inr2(packagingOf(o.lines))}</span>
+            </div>
+          )}
           <div className="row">
-            <span>{o.savings > 0 ? 'After discount' : 'Subtotal'}</span>
+            <span>{o.savings > 0 ? 'After discount' : packagingOf(o.lines) > 0 ? 'Taxable value' : 'Subtotal'}</span>
             <span>{inr2(o.subtotal)}</span>
           </div>
           <div className="row">

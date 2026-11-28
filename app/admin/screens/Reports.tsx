@@ -194,6 +194,13 @@ export function Reports(p: Ctx) {
                       <td>{inr(s.extras.amount)}</td>
                     </tr>
                   )}
+                  {s.packaging.amount > 0 && (
+                    <tr className="sub" data-testid="report-packaging">
+                      <td>Packaging (takeaway)</td>
+                      <td>{s.packaging.qty}</td>
+                      <td>{inr(s.packaging.amount)}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             )}
