@@ -51,6 +51,8 @@ section A are open.
 
 ## Done
 
+- 2026-11-28 — Card at the kiosk is the owner's switch and starts off, like cash (migration 0018): out of the box the kiosk takes UPI only. Card still means the customer pays on the Paytm machine at the counter and staff mark it paid; sending the amount to the machine by itself waits on Paytm's keys (`docs/payments.md`).
+
 - 2026-11-28 — Shop screens: the owner picks which device is the shop's kiosk, kitchen tablet and TV (System → Screens); only those are watched for going silent, other phones and laptops sit in a list that can be forgotten (migration 0017). Preview links no longer register as screens. The plain address lists nothing: a device that used a screen before is sent back to it, anyone else sees "Page not found". Each screen installs as its own app (`/kiosk.webmanifest` and so on).
 
 - 2026-11-28 — Wording: "sambar" and "benne 14" everywhere customers and the owner read; plain dish descriptions. The owner can delete a dish they added (from its page or the Hidden list) and a section they added together with its dishes; dishes and sections that came with the app can only be hidden.

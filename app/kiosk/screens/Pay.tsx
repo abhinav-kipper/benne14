@@ -1,5 +1,5 @@
 'use client';
-// How to pay: UPI, card, and cash when the owner takes it. Choosing one places the order.
+// How to pay: UPI, plus card and cash when the owner takes them. Choosing one places the order.
 import { useState } from 'react';
 import { useCatalog } from '@/components/Catalog';
 import { ApiError } from '@/lib/client';
@@ -17,6 +17,7 @@ export function Pay({
   onChoose,
   noUpi = false,
   cash = false,
+  card = false,
 }: {
   priced: ReturnType<typeof priceOrder>;
   lines: Line[];
@@ -26,6 +27,7 @@ export function Pay({
   onChoose: (m: PayMethod) => Promise<void>;
   noUpi?: boolean; // UPI is not answering right now: card and cash only
   cash?: boolean; // the owner takes cash at the counter
+  card?: boolean; // the owner takes cards on the machine at the counter
 }) {
   const catalog = useCatalog();
   const [busy, setBusy] = useState<PayMethod | null>(null);
@@ -94,10 +96,22 @@ export function Pay({
         </span>
         <span className="big">UPI</span>
         <span className="alt">
-          {noUpi ? (cash ? 'Please pay by card or cash below' : 'Please pay by card below') : 'Scan with any UPI app'}
+          {!noUpi
+            ? 'Scan with any UPI app'
+            : card && cash
+              ? 'Please pay by card or cash below'
+              : card
+                ? 'Please pay by card below'
+                : cash
+                  ? 'Please pay by cash below'
+                  : 'Please order at the counter'}
         </span>
         <span className="apps">
-          {noUpi ? 'You pay at the counter. Sorry for the trouble.' : 'Google Pay, PhonePe, Paytm, BHIM or any UPI app'}
+          {noUpi
+            ? card || cash
+              ? 'You pay at the counter. Sorry for the trouble.'
+              : 'Sorry for the trouble.'
+            : 'Google Pay, PhonePe, Paytm, BHIM or any UPI app'}
         </span>
         <svg viewBox="0 0 250 312" fill="none" stroke="currentColor" strokeWidth="8" strokeLinejoin="round">
           <rect x="40" y="6" width="170" height="300" rx="28" />
@@ -125,49 +139,53 @@ export function Pay({
           <path className="scan" d="M20 150h210" stroke="#D14F2B" strokeWidth="6" strokeLinecap="round" />
         </svg>
       </button>
-      <div className="row">
-        <button
-          className={`tile half card ${busy === 'card' ? 'going' : ''}`}
-          onClick={() => choose('card')}
-          disabled={!!busy}
-          data-testid="pay-card"
-        >
-          <svg
-            viewBox="0 0 170 110"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="7"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          >
-            <rect x="4" y="14" width="136" height="90" rx="12" />
-            <rect x="22" y="36" width="30" height="22" rx="4" />
-            <path d="M22 84h44M80 84h22" />
-            <path d="M150 32c8 8 8 26 0 34M160 22c14 14 14 40 0 54" />
-          </svg>
-          <span className="big">Card</span>
-          <span className="alt">Debit or credit card</span>
-          <small>Tap or insert on the machine at the counter</small>
-        </button>
-        {cash && (
-          <button
-            className={`tile half cash ${busy === 'cash' ? 'going' : ''}`}
-            onClick={() => choose('cash')}
-            disabled={!!busy}
-            data-testid="pay-cash"
-          >
-            <svg viewBox="0 0 170 110" fill="none" stroke="currentColor" strokeWidth="7" strokeLinejoin="round">
-              <rect x="24" y="4" width="140" height="74" rx="8" opacity=".45" />
-              <rect x="4" y="28" width="140" height="78" rx="8" fill="#FFFFFF" />
-              <circle cx="74" cy="67" r="20" />
-              <path d="M66 58h17M66 66h17M70 58c10 0 10 14 0 14l12 12" strokeLinecap="round" strokeWidth="5" />
-            </svg>
-            <span className="big">Cash</span>
-            <span className="alt">Pay cash at the counter</span>
-            <small>Take your order number, pay at the counter</small>
-          </button>
-        )}
-      </div>
+      {(card || cash) && (
+        <div className="row">
+          {card && (
+            <button
+              className={`tile half card ${busy === 'card' ? 'going' : ''}`}
+              onClick={() => choose('card')}
+              disabled={!!busy}
+              data-testid="pay-card"
+            >
+              <svg
+                viewBox="0 0 170 110"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="7"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              >
+                <rect x="4" y="14" width="136" height="90" rx="12" />
+                <rect x="22" y="36" width="30" height="22" rx="4" />
+                <path d="M22 84h44M80 84h22" />
+                <path d="M150 32c8 8 8 26 0 34M160 22c14 14 14 40 0 54" />
+              </svg>
+              <span className="big">Card</span>
+              <span className="alt">Debit or credit card</span>
+              <small>Tap or insert on the machine at the counter</small>
+            </button>
+          )}
+          {cash && (
+            <button
+              className={`tile half cash ${busy === 'cash' ? 'going' : ''}`}
+              onClick={() => choose('cash')}
+              disabled={!!busy}
+              data-testid="pay-cash"
+            >
+              <svg viewBox="0 0 170 110" fill="none" stroke="currentColor" strokeWidth="7" strokeLinejoin="round">
+                <rect x="24" y="4" width="140" height="74" rx="8" opacity=".45" />
+                <rect x="4" y="28" width="140" height="78" rx="8" fill="#FFFFFF" />
+                <circle cx="74" cy="67" r="20" />
+                <path d="M66 58h17M66 66h17M70 58c10 0 10 14 0 14l12 12" strokeLinecap="round" strokeWidth="5" />
+              </svg>
+              <span className="big">Cash</span>
+              <span className="alt">Pay cash at the counter</span>
+              <small>Take your order number, pay at the counter</small>
+            </button>
+          )}
+        </div>
+      )}
       {err && <div className="err">{err}</div>}
       <div className="note">Payment stuck? Ask at the counter.</div>
     </div>

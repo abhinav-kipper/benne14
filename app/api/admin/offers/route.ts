@@ -5,7 +5,7 @@ import { getStore } from '@/lib/store';
 import { BadRequest, fail, json, readJson } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';
-const SWITCHES = ['codes', 'phone', 'cash'] as const;
+const SWITCHES = ['codes', 'phone', 'cash', 'card'] as const;
 
 // The dashboard's Offers tab: the kiosk switches and the discount codes.
 export async function GET(req: Request) {
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
         codes: 'Discount codes on the kiosk',
         phone: 'Phone number on the kiosk',
         cash: 'Cash on the kiosk',
+        card: 'Card on the kiosk',
       };
       const events: Omit<AdminEvent, 'at'>[] = SWITCHES.filter(
         (k) => patch[k] !== undefined && patch[k] !== before[k],

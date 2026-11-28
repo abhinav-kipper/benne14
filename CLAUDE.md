@@ -73,7 +73,7 @@ Commands: `npm run dev` · `npm run check` (typecheck, lint, format check, unit 
 - What the live site is running: `GET /api/health` on the live address (`payments`, `testMode`, `build`, `migrations`) and `GET /api/kiosk` (`cash`). Read-only; check it after every settings change instead of trusting that it took.
 - A setting only takes effect after a redeploy, and only in the environments it is ticked for. `PAYMENTS` exists twice in Vercel, once for Production and once for Preview: edit each on its own (making one cover both fails with "already exists").
 - InstaCollect needs `PAYMENTS=instacollect` plus `EASEBUZZ_WIRE_KEY` and `EASEBUZZ_WIRE_SALT`. The gateway's `EASEBUZZ_KEY` is refused by InstaCollect ("Invalid key"). Owner app → System → Technical detail → Check InstaCollect proves the keys with no money moving.
-- Test mode is off unless `TEST_MODE=1` (previews only). Cash at the kiosk is not a Vercel setting: owner app → Offers → On the kiosk → Cash, off by default.
+- Test mode is off unless `TEST_MODE=1` (previews only). Card and cash at the kiosk are not Vercel settings: owner app → Offers → On the kiosk → Card / Cash, each off by default (UPI only).
 - Keys go into Vercel, never the chat. The Wire pair was once pasted in chat (2026-11-21): ask Easebuzz for a fresh pair before launch.
 
 ## Debugging a live problem

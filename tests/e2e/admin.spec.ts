@@ -449,6 +449,57 @@ test('a code with a minimum order says what is missing instead of failing silent
   expect((await r.json()).error).toContain('needs an order of ₹5000');
 });
 
+test('the owner switches card off: the kiosk offers no card tile, and the server refuses a card order', async ({
+  page,
+  request,
+}) => {
+  let k = 0;
+  const cardOrder = () =>
+    request.post('/api/orders', {
+      data: {
+        key: `card-${Date.now()}-${k++}`,
+        type: 'takeaway',
+        name: 'Card',
+        payMethod: 'card',
+        lines: [{ itemId: 'masala-tea', qty: 1, choices: {}, notes: [] }],
+      },
+    });
+  const payScreen = async () => {
+    await page.setViewportSize({ width: 800, height: 1280 });
+    await page.goto('/kiosk');
+    await page.getByTestId('start').click();
+    await page.getByTestId('item-masala-tea').click();
+    await page.getByTestId('add-to-order').click();
+    await page.getByTestId('cartbar').click();
+    await page.getByTestId('takeaway').click();
+    await page.getByTestId('continue-to-pay').click();
+    await expect(page.getByTestId('pay-upi')).toBeVisible();
+  };
+  try {
+    expect((await offers(request, { settings: { card: 'yes' } })).status()).toBe(400);
+    await owner(page);
+    await page.getByTestId('tab-offers').click();
+    await expect(page.getByTestId('set-card')).toHaveAttribute('aria-checked', 'true'); // the tests' server starts with card on
+    await page.getByTestId('set-card').click();
+    await expect(page.getByTestId('set-card')).toHaveAttribute('aria-checked', 'false');
+    await expect.poll(async () => (await (await request.get('/api/kiosk')).json()).card).toBe(false);
+
+    await payScreen();
+    await expect(page.getByTestId('pay-card')).toHaveCount(0);
+    await expect(page.getByTestId('pay-cash')).toBeVisible(); // cash has its own switch
+    const refused = await cardOrder();
+    expect(refused.status()).toBe(409);
+    expect((await refused.json()).error).toContain('Cards are not taken');
+
+    await offers(request, { settings: { card: true } });
+    await payScreen();
+    await expect(page.getByTestId('pay-card')).toBeVisible();
+    expect((await cardOrder()).status()).toBe(201);
+  } finally {
+    await offers(request, { settings: { card: true } }); // other tests pay by card
+  }
+});
+
 test('the owner switches cash off: the kiosk offers UPI and card only, and the server refuses a cash order', async ({
   page,
   request,
@@ -472,7 +523,7 @@ test('the owner switches cash off: the kiosk offers UPI and card only, and the s
     await page.getByTestId('cartbar').click();
     await page.getByTestId('takeaway').click();
     await page.getByTestId('continue-to-pay').click();
-    await expect(page.getByTestId('pay-card')).toBeVisible();
+    await expect(page.getByTestId('pay-upi')).toBeVisible();
   };
   try {
     await owner(page);
