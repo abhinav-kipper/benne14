@@ -600,6 +600,56 @@
   height: 22px;
   color: currentColor;
 }
+.kitchen .plate.asking {
+  border-color: var(--chilli);
+  box-shadow: 0 0 0 1.5px var(--chilli);
+}
+.kitchen .plate .ask {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 2px 0 10px;
+}
+.kitchen .plate .two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.kitchen .plate .two button {
+  font-size: 15px;
+  line-height: 1.1;
+  padding: 0 6px;
+  gap: 0;
+}
+.kitchen .plate .two .yes {
+  background: #ffffff;
+  border-color: var(--chilli);
+  color: var(--chilli);
+}
+/* Not a button to look at: a line of text, so a hand going for Handed over does not land on it. */
+.kitchen .plate button.nr {
+  width: auto;
+  height: auto;
+  margin: 6px auto 0;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.kitchen .pass.d1 .plate button.nr {
+  height: auto;
+  font-size: 13px;
+  margin-top: 2px;
+  padding: 6px 10px;
+}
+.kitchen .pass.d2 .plate button.nr,
+.kitchen .pass.d3 .plate button.nr {
+  display: none;
+}
 .kitchen .pass .gap {
   height: 10px;
 }
