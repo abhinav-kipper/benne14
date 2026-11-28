@@ -9,7 +9,7 @@ import { itemById } from '@/lib/menu';
 import type { OrderType } from '@/lib/orders';
 import { itemTotal, type priceOrder } from '@/lib/pricing';
 import { suggestFor } from '@/lib/suggest';
-import { BagIcon, Chevron, DineIcon, Photo, StartOverIcon, type Line } from './shared';
+import { BackChevron, BagIcon, Chevron, DineIcon, Photo, StartOverIcon, type Line } from './shared';
 
 export function Cart(p: {
   lines: Line[];
@@ -30,6 +30,7 @@ export function Cart(p: {
   onAdd: (id: string) => void;
   onBack: () => void;
   onStartOver: () => void;
+  note?: string | null; // why the customer was brought back here, if they were
   onPay: () => void;
 }) {
   const catalog = useCatalog();
@@ -63,7 +64,10 @@ export function Cart(p: {
     <div className="screen k-cart">
       <div className="top">
         <button className="back" onClick={p.onBack}>
-          <span>←</span>Menu
+          <span>
+            <BackChevron />
+          </span>
+          Menu
         </button>
         <h1 className="disp">Your order</h1>
         <button className="over" onClick={p.onStartOver} data-testid="start-over">
@@ -72,6 +76,11 @@ export function Cart(p: {
         </button>
       </div>
       <div className="body">
+        {p.note && (
+          <div className="note-top" data-testid="cart-note">
+            {p.note}
+          </div>
+        )}
         {p.lines.map((l, i) => {
           const it = itemById(l.itemId, catalog)!;
           const pl = p.priced.lines[i];

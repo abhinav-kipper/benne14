@@ -1203,7 +1203,7 @@ test('extras API: PIN, bad input, limits, and what stays for old orders', async 
         ],
       },
     }, // twice
-    { dish: { itemId: 'masala-dosa', extras: Array.from({ length: 13 }, (_, n) => ({ name: `E${n}`, price: 1 })) } },
+    { dish: { itemId: 'masala-dosa', extras: Array.from({ length: 17 }, (_, n) => ({ name: `E${n}`, price: 1 })) } },
     { dish: { itemId: 'masala-dosa', comesWith: 'x'.repeat(81) } },
     { dish: { itemId: 'masala-dosa', comesWith: 7 } },
     { dishSets: { itemId: 'masala-dosa', sets: ['nope'] } },
@@ -1626,4 +1626,51 @@ test('only a tablet staff have set up can place orders; setting one up takes the
   await expect(kiosk.getByTestId('start')).toBeVisible();
   await expect(kiosk.getByTestId('kiosk-setup')).toHaveCount(0);
   await ctx.close();
+});
+
+// Last in this file on purpose: it gives masala dosa its own list, which the tests above don't expect.
+test('a dish given its own extras while a customer is paying: they keep their picks and the order goes through', async ({
+  page,
+  request,
+}) => {
+  await page.setViewportSize({ width: 800, height: 1280 });
+  await page.goto('/kiosk');
+  await page.getByTestId('start').click();
+  await page.getByTestId('item-masala-dosa').click();
+  await page.getByTestId('addon-benne').click();
+  await page.getByTestId('note-potato-side').click();
+  await page.getByTestId('add-to-order').click();
+  await page.getByTestId('cartbar').click();
+  await page.getByTestId('takeaway').click();
+  const total = await page.getByTestId('cart-total').innerText();
+  await page.getByTestId('continue-to-pay').click();
+  await expect(page.getByTestId('pay-cash')).toBeVisible();
+
+  // the owner saves the dish's own list at this moment: the same extras, the free choice among them
+  const list = [
+    { id: 'benne', name: 'Extra benne', price: 25 },
+    { id: 'podi', name: 'Extra podi', price: 15 },
+    { id: 'potato-side', name: 'Potato stuffing on the side', price: 0 },
+  ];
+  expect((await extras(request, { dish: { itemId: 'masala-dosa', extras: list } })).ok()).toBe(true);
+
+  // the kiosk still holds the old menu: the server refuses, and the customer is brought back to
+  // their order with everything they picked, not shown a refusal they can do nothing about
+  await page.getByTestId('pay-cash').click();
+  await expect(page.getByTestId('cart-note')).toContainText('The menu just changed');
+  const lineText = page.getByTestId('cart-line').first();
+  await expect(lineText).toContainText('Extra benne');
+  await expect(lineText).toContainText('Potato stuffing on the side');
+  await expect(page.getByTestId('cart-total')).toHaveText(total); // same dishes, same price
+  await page.getByTestId('continue-to-pay').click();
+  await page.getByTestId('pay-cash').click();
+  await expect(page.getByTestId('token')).toBeVisible();
+  const token = await page.locator('.k-done .token .num').innerText();
+  const placed = (await (await request.get('/api/orders', { headers: H })).json()) as {
+    token: string;
+    lines: { mods: { name: string }[]; notes: unknown[] }[];
+  }[];
+  const mine = placed.find((o) => o.token === token)!;
+  expect(mine.lines[0].mods.map((m) => m.name).sort()).toEqual(['Extra benne', 'Potato stuffing on the side']);
+  expect(mine.lines[0].notes).toEqual([]);
 });

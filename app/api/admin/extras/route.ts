@@ -16,6 +16,8 @@ import { fail, json, readJson } from '@/lib/server';
 export const dynamic = 'force-dynamic';
 
 const MAX_PER_SET = 12; // extras in one set: what the kiosk's dish sheet shows without a long scroll
+// a dish's own list: a full shared set plus the free choices a dish may carry over from the notes
+const MAX_PER_DISH = 16;
 const MAX_SETS = 8;
 const MAX_NOTES = 12;
 const newId = (prefix: string) => `${prefix}-${randomBytes(6).toString('hex').slice(0, 8)}`;
@@ -150,8 +152,8 @@ export async function POST(req: Request) {
       const said: string[] = [];
       let before: string | undefined;
       if (d.extras !== undefined) {
-        if (!Array.isArray(d.extras) || d.extras.length > MAX_PER_SET)
-          return json({ error: `At most ${MAX_PER_SET} extras on a dish` }, 400);
+        if (!Array.isArray(d.extras) || d.extras.length > MAX_PER_DISH)
+          return json({ error: `At most ${MAX_PER_DISH} extras on a dish` }, 400);
         const was = extrasOf(item, cat);
         const list: DishExtra[] = [];
         for (const raw of d.extras) {

@@ -177,8 +177,10 @@ export async function startCollect(
 // What Easebuzz knows about an order's payment. null: it has no such order.
 // A payment counts once its transaction is "received" or "unsettled" (their two words for money
 // that has arrived); everything paid against the order is added up, so a second or a part payment
-// shows as a wrong amount and is flagged instead of accepted.
-const ARRIVED = ['received', 'unsettled'];
+// shows as a wrong amount and is flagged instead of accepted. "settled" is counted too: money
+// Easebuzz has already passed on to the shop's bank has certainly arrived, and an order must not
+// sit waiting because the first look-up came after the settlement.
+const ARRIVED = ['received', 'unsettled', 'settled'];
 export function readOrder(o: Record<string, unknown>): TxnStatus {
   const txns = (Array.isArray(o.transactions) ? o.transactions : []) as Record<string, unknown>[];
   const paid = txns.filter((t) => ARRIVED.includes(String(t.status)));

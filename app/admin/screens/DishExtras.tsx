@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ApiError } from '@/lib/client';
 import { extrasOf, type Catalog, type DishExtra, type MenuItem } from '@/lib/menu';
 
-export const MAX_EXTRAS = 12;
+export const MAX_EXTRAS = 16; // the server's limit (app/api/admin/extras/route.ts)
 export interface ExtraRow {
   key: number; // for React only
   id?: string; // kept while the extra stays on the dish

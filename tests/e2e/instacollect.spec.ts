@@ -171,6 +171,36 @@ test('cancelling at the kiosk closes the QR at Easebuzz, so a late scan cannot p
   expect((await order(request, o.id)).status).toBe('cancelled');
 });
 
+test('staff cancelling an unpaid UPI order, or a changed checkout replacing one, closes its QR too', async ({
+  request,
+}) => {
+  // staff cancel it from the kitchen screen
+  const o = await place(request);
+  await gateway(request, o.id, 'start');
+  expect((await theirs(request, o.id)).status).toBe('created');
+  const r = await request.post(`/api/orders/${o.id}/status`, { data: { to: 'cancelled' }, headers: H });
+  expect(r.status()).toBe(200);
+  await expect.poll(async () => (await theirs(request, o.id)).status).toBe('cancelled');
+  expect((await pays(request, o.id)).status()).toBe(409);
+
+  // the customer went back and changed the order: same checkout, different dishes
+  const key = `ic-changed-${Date.now()}`;
+  const body = (itemId: string) => ({
+    key,
+    type: 'takeaway',
+    name: null,
+    payMethod: 'upi',
+    lines: [{ itemId, qty: 1, choices: {}, notes: [] }],
+  });
+  const first = await (await request.post('/api/orders', { data: body('masala-dosa') })).json();
+  await gateway(request, first.id, 'start');
+  expect((await theirs(request, first.id)).status).toBe('created');
+  const second = await (await request.post('/api/orders', { data: body('masala-tea') })).json();
+  expect(second.id).not.toBe(first.id);
+  expect((await order(request, first.id)).status).toBe('cancelled');
+  await expect.poll(async () => (await theirs(request, first.id)).status).toBe('cancelled');
+});
+
 test('the owner can check InstaCollect against Easebuzz from the technical page: keys, a ₹1 QR, cancel', async ({
   page,
   request,

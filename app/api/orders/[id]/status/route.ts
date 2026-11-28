@@ -1,3 +1,5 @@
+import { after } from 'next/server';
+import { closeQr } from '@/lib/gateway';
 import { NEXT, type OrderStatus } from '@/lib/orders';
 import { getStore } from '@/lib/store';
 import { fail, isOrderId, json, notFound, readJson, staffCheck, staffDenied, timed } from '@/lib/server';
@@ -18,7 +20,10 @@ async function move(req: Request, ctx: Ctx) {
     const { to, from } = (await readJson(req)) as { to?: OrderStatus; from?: OrderStatus };
     if (typeof to !== 'string' || !ALLOWED.includes(to)) return json({ error: 'Bad status' }, 400);
     if (from !== undefined && (typeof from !== 'string' || !(from in NEXT))) return json({ error: 'Bad status' }, 400);
-    return json(await getStore().setStatus(id, to, from));
+    const moved = await getStore().setStatus(id, to, from);
+    // a cancelled UPI order's QR is closed at the gateway, so a late scan is turned away
+    if (to === 'cancelled' && moved.payMethod === 'upi') after(() => closeQr(id));
+    return json(moved);
   } catch (e) {
     return fail(e);
   }

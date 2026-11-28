@@ -254,6 +254,12 @@ img {
   font-size: 26px;
   line-height: 1;
 }
+/* the back button's chevron: the same stroke as the one on the yellow "next" buttons */
+.back span svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
 
 /* Fit: a fixed-size design surface scaled to the device */
 .fit-outer {

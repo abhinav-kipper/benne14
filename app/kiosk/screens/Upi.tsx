@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, useOrder, usePoll, type GatewayView } from '@/lib/client';
 import type { Order } from '@/lib/orders';
 import { Idle } from './Idle';
-import { PAY_GRACE_S, PAY_QUIET_MS } from './shared';
+import { BackChevron, PAY_GRACE_S, PAY_QUIET_MS } from './shared';
 
 export function Upi({
   order,
@@ -125,7 +125,10 @@ export function Upi({
     <div className="screen k-upi">
       <div className="bar">
         <button className="back" onClick={() => drop(onOther)}>
-          <span>←</span>Other ways to pay
+          <span>
+            <BackChevron />
+          </span>
+          Other ways to pay
         </button>
         <div className="timer" hidden={view?.kind !== 'direct'}>
           QR valid for
